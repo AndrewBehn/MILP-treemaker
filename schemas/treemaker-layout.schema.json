@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Andrewbehn/MILP-treemaker/schemas/treemaker-layout.schema.json",
+  "title": "TreeMaker solved layout",
+  "description": "A grid layout of a tree's leaves, with the scale and edge lengths it was solved (or closed) at. Opening one shows it as if just solved, and the next solve can start from it.",
+  "type": "object",
+  "required": ["format", "version", "tree", "gridSize", "leaves"],
+  "properties": {
+    "format": { "const": "treemaker-layout" },
+    "version": { "const": 1 },
+    "name": { "type": "string" },
+    "tree": { "$ref": "treemaker-tree.schema.json#/$defs/tree", "description": "The tree, as in a tree file (without format and version)." },
+    "gridSize": { "$ref": "treemaker-tree.schema.json#/$defs/gridSize" },
+    "scale": {
+      "type": "number", "exclusiveMinimum": 0,
+      "description": "m, grid units per unit of tree length. Optional: the layout's exact scale is used when it is missing or too large."
+    },
+    "edgeLengths": {
+      "type": ["array", "null"], "items": { "type": "number", "exclusiveMinimum": 0 },
+      "description": "Edge lengths by edge index (the order of tree.edges), when they differ from the tree's: for example after closing the polygons with strain."
+    },
+    "leaves": {
+      "type": "array", "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["leaf", "x", "y"],
+        "properties": {
+          "leaf": { "$ref": "treemaker-tree.schema.json#/$defs/vertex" },
+          "x": { "type": "integer", "minimum": 0 },
+          "y": { "type": "integer", "minimum": 0 }
+        },
+        "additionalProperties": false
+      },
+      "description": "One grid point per leaf; every leaf of the tree must appear exactly once."
+    },
+    "solvedBy": {
+      "type": "object",
+      "description": "Where the layout came from. Informational only.",
+      "properties": {
+        "app": { "type": "string" },
+        "status": { "type": "string" },
+        "savedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "additionalProperties": true
+}

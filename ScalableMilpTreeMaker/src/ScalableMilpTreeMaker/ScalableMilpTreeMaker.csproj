@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The base library brings Google OR-Tools: GLOP (Stage 1), CP-SAT (Stages 2 to 4) and SCIP (closing). -->
+    <ProjectReference Include="..\..\..\PureMilpTreeMaker\src\PureMilpTreeMaker\PureMilpTreeMaker.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ScalableMilpTreeMaker.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Andrewbehn/MILP-treemaker/schemas/treemaker-tree.schema.json",
+  "title": "TreeMaker tree",
+  "description": "A tree to lay out on an N × N grid: weighted edges, the grid size, and optional leaf conditions and mirror pairs. Leaves are the vertices of degree 1.",
+  "type": "object",
+  "required": ["format", "version", "edges"],
+  "properties": {
+    "format": { "const": "treemaker-tree" },
+    "version": { "const": 1 },
+    "name": { "type": "string", "description": "A label for people; ignored by the solvers." },
+    "gridSize": { "$ref": "#/$defs/gridSize" },
+    "edges": { "$ref": "#/$defs/edges" },
+    "leafConditions": { "$ref": "#/$defs/leafConditions" },
+    "mirrorPairs": { "$ref": "#/$defs/mirrorPairs" }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "gridSize": { "type": "integer", "minimum": 1, "maximum": 200, "description": "N: leaves take integer points of {0, …, N}²." },
+    "vertex": { "type": "string", "minLength": 1, "description": "A vertex name; names are case-sensitive." },
+    "edge": {
+      "type": "object",
+      "required": ["from", "to", "length"],
+      "properties": {
+        "from": { "$ref": "#/$defs/vertex" },
+        "to": { "$ref": "#/$defs/vertex" },
+        "length": { "type": "number", "exclusiveMinimum": 0 },
+        "stretch": { "type": "boolean", "default": false, "description": "In the stretch set S (edge optimization in the base app only)." }
+      },
+      "additionalProperties": false
+    },
+    "edges": {
+      "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/edge" },
+      "description": "The edges must form one tree: connected, with no cycles. Their order is the edge index used by layout files."
+    },
+    "leafCondition": {
+      "type": "object",
+      "required": ["leaf", "kind"],
+      "properties": {
+        "leaf": { "$ref": "#/$defs/vertex" },
+        "kind": {
+          "enum": ["LeftEdge", "RightEdge", "BottomEdge", "TopEdge", "BottomLeftCorner", "BottomRightCorner",
+                   "TopLeftCorner", "TopRightCorner", "OnSymmetryAxis", "Fixed"]
+        },
+        "x": { "type": ["integer", "null"], "minimum": 0 },
+        "y": { "type": ["integer", "null"], "minimum": 0 }
+      },
+      "additionalProperties": false,
+      "description": "x and y are used only by Fixed. OnSymmetryAxis needs an even grid size."
+    },
+    "leafConditions": { "type": "array", "items": { "$ref": "#/$defs/leafCondition" } },
+    "mirrorPair": {
+      "type": "object",
+      "required": ["a", "b"],
+      "properties": { "a": { "$ref": "#/$defs/vertex" }, "b": { "$ref": "#/$defs/vertex" } },
+      "additionalProperties": false,
+      "description": "Book symmetry: x_a + x_b = N and y_a = y_b."
+    },
+    "mirrorPairs": { "type": "array", "items": { "$ref": "#/$defs/mirrorPair" } },
+    "tree": {
+      "type": "object",
+      "required": ["edges"],
+      "properties": {
+        "name": { "type": "string" },
+        "gridSize": { "$ref": "#/$defs/gridSize" },
+        "edges": { "$ref": "#/$defs/edges" },
+        "leafConditions": { "$ref": "#/$defs/leafConditions" },
+        "mirrorPairs": { "$ref": "#/$defs/mirrorPairs" }
+      }
+    }
+  }
+}
