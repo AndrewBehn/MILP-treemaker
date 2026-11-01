@@ -1171,8 +1171,8 @@ function enterNode(id) {
   $("solverSummary").textContent = s?.solverSummary ?? "";
   $("sizeNote").textContent = s?.sizeNote ?? "";
   $("treeHelp").textContent = node.stretch
-    ? "Drag vertices to move them, or onto another vertex to re-attach. Click an edge to toggle S, click a length to edit it, double-click a vertex to rename it."
-    : "Drag vertices to move them, or onto another vertex to re-attach. Click a length to edit it, double-click a vertex to rename it.";
+    ? "Drag vertices to move them, or onto another vertex to re-attach. Click a leaf to pin it to an edge, a corner or the axis, or to mirror it with another leaf. Click an edge to toggle S, click a length to edit it, double-click a vertex to rename it."
+    : "Drag vertices to move them, or onto another vertex to re-attach. Click a leaf to pin it to an edge, a corner or the axis, or to mirror it with another leaf. Click a length to edit it, double-click a vertex to rename it.";
   if (node.lockOptions?.symmetryBreaking === false) {
     $("optSymmetry").checked = false;
     $("optSymmetry").disabled = true;

@@ -264,6 +264,51 @@ button.small { height: 30px; padding: 0 10px; font-size: 12.5px; }
 .tree-view .bin.target rect { fill: var(--beni); stroke-dasharray: none; }
 .tree-view .bin.target text { fill: #fff; }
 
+/* Leaf conditions on the drawing: tags, mirror links, picking a partner, and the leaf menu (tree-editor.js). */
+.tree-view .mirror-link { stroke: var(--beni); stroke-width: 1.6; stroke-dasharray: 2 5; stroke-linecap: round; opacity: .75; }
+.tree-view .cond-tag { pointer-events: none; }
+.tree-view .cond-tag rect { fill: #fff3d6; stroke: #c9a34a; stroke-width: 1; }
+.tree-view .cond-tag text { font-size: 10.5px; font-weight: 650; fill: #6b4e0e; }
+.tree-view .vertex-group.pickable { cursor: pointer; }
+.tree-view .vertex-group.pickable .vertex-hit { fill: rgba(194, 48, 74, .08); stroke: var(--beni); stroke-width: 1; stroke-dasharray: 3 3; }
+.tree-view .vertex-group.pickable:hover .vertex-hit { fill: rgba(194, 48, 74, .2); stroke-dasharray: none; }
+.tree-view .vertex-group.pick-from .vertex-hit { fill: rgba(194, 48, 74, .22); stroke: var(--beni); stroke-width: 2; }
+
+.leaf-menu {
+  position: absolute; z-index: 4; width: 236px; padding: 10px 12px 12px;
+  background: var(--field); border: 1px solid #c9cdc6; border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(10, 30, 22, .22); font-size: 12.5px;
+}
+.lm-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.lm-head b { font-size: 14px; }
+.lm-now { flex: 1; color: var(--ink-soft); }
+.lm-close { border: 0; background: none; font-size: 13px; cursor: pointer; color: var(--ink-soft); padding: 2px 4px; }
+.lm-label { margin: 8px 0 5px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); }
+.lm-sheet {
+  display: grid; grid-template-columns: 26px 1fr 26px; grid-template-rows: 26px 46px 26px;
+  width: 132px; margin: 0 auto 4px; position: relative;
+}
+.lm-sheet::before { content: ""; position: absolute; inset: 12px; border: 1.5px solid var(--ink); border-radius: 2px; background: var(--paper); }
+.leaf-menu .lm-pin { position: relative; z-index: 1; border: 0; background: none; box-shadow: none; height: auto; min-height: 0; cursor: pointer; padding: 0; display: grid; place-items: center; }
+.lm-pin::after { content: ""; background: #b9beb7; transition: background .1s; }
+.lm-pin.corner::after { width: 12px; height: 12px; border-radius: 50%; }
+.lm-pin.edge.p1::after, .lm-pin.edge.p7::after { width: 34px; height: 6px; border-radius: 3px; }
+.lm-pin.edge.p3::after, .lm-pin.edge.p5::after { width: 6px; height: 26px; border-radius: 3px; }
+.lm-pin.free { font-size: 11px; color: var(--ink-soft); font-weight: 600; }
+.lm-pin.free::after { display: none; }
+.lm-pin:hover::after, .lm-pin:focus-visible::after { background: var(--beni); }
+.lm-pin[aria-pressed="true"]::after { background: var(--ink); }
+.lm-pin.free[aria-pressed="true"] { color: var(--ink); text-decoration: underline; }
+.lm-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.lm-row input { width: 46px; height: 28px; }
+.lm-btn {
+  height: 28px; padding: 0 9px; border-radius: 4px; border: 1px solid #cfd3cc; background: var(--paper);
+  font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.lm-btn:hover:not(:disabled) { border-color: var(--ink); }
+.lm-btn[aria-pressed="true"] { border-color: var(--ink); background: #fff3d6; }
+.lm-btn:disabled { opacity: .5; cursor: not-allowed; }
+.lm-pair { flex: 1; font-weight: 650; }
 .tree-help { margin: 0; font-size: 12px; color: var(--ink-soft); line-height: 1.45; }
 .tree-message { font-size: 12.5px; color: var(--ink); background: #e8ece6; border-radius: 3px; padding: 5px 9px; }
 
