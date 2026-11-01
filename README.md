@@ -52,6 +52,7 @@ The first screen is a map of the specs and the steps after them, drawn like the 
 | Optimized MILP | `#/optimized` | [Optimized MILP](src/TreeMaker.Web/wwwroot/specs/optimized.md), Section 7 | Lattice hulls, symmetry breaking, pair and facet generation, leaf windows, border seed | `/api/optimized/*` |
 | Scalable MILP | `#/scalable` | [Scalable MILP](src/TreeMaker.Web/wwwroot/specs/scalable.md), Section 9 | Continuous LP, CP-SAT repair, neighbourhood search, foldability finish | `/api/scalable/*` |
 | Close the polygons | `#/close` | [Polygon Closing](src/TreeMaker.Web/wwwroot/specs/closing.md), A:1 to A:4 (Sections 4–7) | Check the polygons; close them by strain; find the strain needed | `/api/polygons`, `/api/complete`, `/api/strain-needed` |
+| Add stubs (optional) | `#/stubs` | [Polygon Closing](src/TreeMaker.Web/wwwroot/specs/closing.md), open problem 1 (Section 10) | Hang a short new leaf edge inside an open polygon; then close again | none: computed in the browser (`stubs.js`), checked by `/api/polygons` |
 | Crease pattern | `#/creases` | [Crease Pattern](src/TreeMaker.Web/wwwroot/specs/crease.md), A:1 and A:3 (Sections 4, 5, 7 and 8) | Universal molecules, pleats, .fold and .svg | `/api/creases` |
 | Folded base | `#/fold` | [Crease Pattern](src/TreeMaker.Web/wwwroot/specs/crease.md), A:2 (Section 6) | The base in 3D | (from the crease pattern) |
 
@@ -104,7 +105,18 @@ The workbench is `src/TreeMaker.Web/wwwroot/workbench.js`.
 
 ## The tree editor
 
-Every solver and the Tree node use the same editor, `tree-editor.js`.
+Every part of the app shows the tree and the sheet side by side, as one widget: the tree editor (`tree-editor.js`) on the left and the sheet on the right. What you point at in one lights up in the other (`linked.js`):
+- Point at a leaf on either side: the leaf, its circle and its tight pairs on the sheet, and its edge in the tree.
+- Point at a tight pair on the sheet: the path between its two leaves in the tree, which is the path whose length sets that pair's spacing.
+- Click a leaf on the sheet to keep it lit.
+
+A row of toggles above the sheet chooses what it shows: leaf circles, every pair and, once they exist, the polygons and the creases.
+
+In the steps after a layout (Close the polygons, Add stubs, Crease pattern, Folded base), the tree is the workbench layout's, and it is locked. Edit it in the Tree node or a solver.
+
+Close the polygons, Crease pattern and Folded base are one page. Each map box opens it at its own part.
+
+The editor works the same everywhere it can edit.
 
 - **Add a leaf.** Drag the **Leaf** chip onto a vertex, or onto an edge to branch from its midpoint.
 - **Split an edge.** Drag the **Joint** chip onto the edge.
@@ -114,6 +126,7 @@ Every solver and the Tree node use the same editor, `tree-editor.js`.
 - **Rename a vertex.** Double-click it.
 - **Pin or mirror a leaf.** Click a leaf to open its menu. The small square stands for the sheet: click a corner or a side to pin the leaf there, or the centre to free it. The menu can also put the leaf on the symmetry axis (2x = N, N even) or at a grid point. **Mirror with another leaf…** then a click on the partner makes a mirror pair (x_a + x_b = N, y_a = y_b). The drawing shows each condition as a tag under the leaf and each pair as a dashed line, and the leaf conditions list in the sidebar follows. Esc or a click elsewhere closes the menu or cancels the pick.
 - **Pure MILP and Symmetry-Breaking MILP only:** click an edge to add it to, or remove it from, the stretch set S, which edge optimization uses.
+- **Leaf circles** (on by default) draw a circle round each leaf, through the joint it hangs from: the flap's reach, as on the sheet. The sketch isn't to scale, so they show reach, not paper.
 - **Layout.** **Tidy** lays the tree out again. **Enlarge** opens the editor nearly full screen.
 - **Mirrored trees.** A tree with mirror pairs, such as the centipede presets, is drawn bilaterally: the body is a straight vertical line and each leg sits on its own side, opposite its partner. The longest flaps at the head and tail (antennae, cerci) point forward and back. The drawing is a sketch, not to scale: short body segments are spaced out so the legs don't overlap. The mirror pairs themselves make every solver place each pair symmetrically about the sheet's vertical axis, x_a + x_b = N. The folded base draws its stick figure the same way, to scale: the body straight and each leg opposite its partner.
 - **Facing the sheet.** Once there is a layout on the workbench for this tree, the tree drawing and the folded base turn to face the way the leaves sit on the sheet: a centipede's head points where its first legs landed, and left and right match the crease pattern. A tree without mirror pairs is turned by the rotation (or mirror image) that best matches its leaves' directions. A drawing you've arranged by dragging stays as you left it; **Tidy** re-orients it.
@@ -143,6 +156,24 @@ After a solve, the **Toward a crease pattern** panel under the sheet checks whet
 5. **Pleat the flaps** (optional, in step 3). This lowers the base to a chosen height H, in grid units. Each facet is cut along the elevation contours z = H, 2H, 3H, …, and the contours fold valley, mountain, valley, … in turn, so every flap collapses into a band of height H. A contour changes from mountain to valley where it crosses a ridge, as a pleat over a fold must. H = 1 gives pleats one grid unit apart, as in box pleating. The pleat creases carry their mountain or valley assignment into the FOLD file.
 
 If **Build the crease pattern** stays greyed out, the polygons aren't valid yet. **Find the strain needed** first solves two linear programs. One finds the smallest strain bound ±s that makes the hull's boundary pairs tight. Valid polygons need those pairs tight, so this is a lower bound, and when no strain manages it the button says so at once. The other finds the smallest bound that makes the whole triangulation tight, which is an upper bound. If tightening the boundary already gives valid polygons, that bound is the answer. Otherwise the button bisects between the two bounds with the closing MILP, to within 0.01. It then closes the polygons at the bound found.
+
+**Progress strip.** Every part of the app has a strip at the top: Tree → Solve a layout → Close the polygons → Crease pattern → Folded base.
+- Each card shows what the workbench holds for that step.
+- The first step not yet done is marked **next**, and the marker moves on by itself as soon as a step is satisfied.
+- The card for the part you're in is outlined. Click any card to go there.
+
+**How the closing went** (`history.js`) lists every state the workbench layout has been through on its way to valid polygons, oldest first. A solve or a layout file starts the list, and each stub added and each closing tried adds a row, so the page grows as you work.
+- Each row has a small drawing of the sheet and says what changed and what is still open.
+- The latest row says what to try next.
+- Every earlier row has **Start over from here**, which puts that state (layout, tree and closing) back on the workbench and drops the rows after it.
+- The sidebar lists the same steps in short, for a quick overview.
+
+**Add stubs** (`#/stubs`, `stubs.js`, optional; the map shows it under Close the polygons) splits an open polygon the TreeMaker way. A stub is a new short leaf edge hung from a joint of the tree, with its leaf inside the polygon. Its leaf goes on a grid point X, so the layout stays a grid layout. Hung from joint v, at the layout's scale m, the longest stub that keeps every pair feasible is ℓ = min over leaves a of (|X − P_a| / m − d(v, a)), and the leaves that reach that minimum are tight to it.
+- The node shows the same two widgets as the rest of the app. The tree editor is locked against edits: the proposed stub is a dashed edge, and clicking a joint hangs the stub there. On the sheet, the open region is outlined and the stub is drawn with its circle and its tight paths. Clicking a grid point inside the region moves the stub there.
+- **Find the best stub here** tries every joint and free grid point in the region. It prefers the most leaves tight, then the longest stub.
+- **Add this stub** adds the leaf `s1`, `s2`, … to the tree and to the workbench layout, at the same scale. The polygons are then checked again. A grid point seldom makes three leaves tight at once, so close the polygons afterwards to tighten what is left.
+
+The spec has stubs only as an open problem so far.
 
 Not yet built: the mountain and valley assignment (which way each crease folds) and the layer order. The FOLD export marks folds as unassigned. Origami Simulator needs the mountain and valley assignment to animate the folding. The current pattern requires every pair on the outer boundary of the leaves to be tight; TreeMaker can also handle boundary pairs that aren't tight.
 

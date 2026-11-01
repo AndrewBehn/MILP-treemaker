@@ -18,21 +18,21 @@ const out = process.argv[2] ?? '.';   // where the screenshots go
   await p.click('#solve');
   await p.waitForFunction(() => !document.getElementById('metricsCard').hidden && !document.getElementById('solve').disabled, null, { timeout: 15000 });
   await p.waitForTimeout(800);
-  log.afterSolve = await p.evaluate(() => ({ status: document.getElementById('status').textContent, shelf: document.getElementById('shelf').innerText.replace(/\n/g, ' '), next: document.getElementById('nextBar').innerText, crease: document.getElementById('creaseSummary').textContent, wb: !!workbench.layout }));
+  log.afterSolve = await p.evaluate(() => ({ status: document.getElementById('status').textContent, shelf: document.getElementById('shelf').innerText.replace(/\n/g, ' '), next: document.getElementById('flowStrip').innerText.replace(/\n/g, ' '), crease: document.getElementById('creaseSummary').textContent, wb: !!workbench.layout }));
   await p.screenshot({ path: `${out}/pure-after.png`, fullPage: true });
   // Step 1
-  await p.click('#nextBar a[href="#/close"]'); await p.waitForTimeout(1200);
+  await p.click('#flowStrip a[href="#/close"]'); await p.waitForTimeout(1200);
   log.close = await p.evaluate(() => ({ title: document.getElementById('nodeTitle').textContent, held: document.getElementById('heldSummary').innerText.replace(/\n/g, ' | '), crease: document.getElementById('creaseSummary').textContent, buildVisible: getComputedStyle(document.querySelector('.crease-build')).display }));
   await p.click('#findStrain');
   await p.waitForFunction(() => workbench.closure?.completion?.after?.valid, null, { timeout: 10000 });
   await p.waitForTimeout(500);
-  log.closed = await p.evaluate(() => ({ shelf: document.getElementById('shelf').innerText.replace(/\n/g, ' '), next: document.getElementById('nextBar').innerText }));
+  log.closed = await p.evaluate(() => ({ shelf: document.getElementById('shelf').innerText.replace(/\n/g, ' '), next: document.getElementById('flowStrip').innerText.replace(/\n/g, ' ') }));
   await p.screenshot({ path: `${out}/close.png`, fullPage: true });
-  await p.click('#nextBar a[href="#/creases"]'); await p.waitForTimeout(1200);
+  await p.click('#flowStrip a[href="#/creases"]'); await p.waitForTimeout(1200);
   log.creases = await p.evaluate(() => ({ disabled: document.getElementById('buildCreases').disabled, closeVisible: getComputedStyle(document.querySelector('.crease-complete')).display, view: creaseReadiness._state.view }));
   await p.click('#buildCreases'); await p.waitForFunction(() => workbench.creases?.result?.built, null, { timeout: 10000 });
   await p.waitForTimeout(400);
-  await p.click('#nextBar a[href="#/fold"]'); await p.waitForTimeout(1200);
+  await p.click('#flowStrip a[href="#/fold"]'); await p.waitForTimeout(1200);
   log.fold = await p.evaluate(() => ({ fold: !document.getElementById('foldCard').hidden, crease: getComputedStyle(document.getElementById('creaseCard')).display, need: !document.getElementById('needCard').hidden }));
   await p.screenshot({ path: `${out}/fold.png`, fullPage: true });
   // Back to the map, then the optimized solver with the held layout.

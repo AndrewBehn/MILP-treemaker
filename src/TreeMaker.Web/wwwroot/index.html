@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=20261101l">
+  <link rel="stylesheet" href="styles.css?v=20261101p">
 </head>
 <body data-view="map">
   <!-- ───────────── Top bar: the way back to the map, where you are, and the workbench ───────────── -->
@@ -77,63 +77,20 @@
       </header>
 
       <!-- Steps after a solve: what they start from. -->
-      <section class="block" data-nodes="close creases fold">
+      <section class="block" data-nodes="close stubs creases fold">
         <h2>Starting point</h2>
         <div id="heldSummary" class="held-summary"></div>
+        <div id="historySide" class="hist-side" hidden>
+          <h3>Steps so far</h3>
+          <ol id="historyOverview"></ol>
+        </div>
         <div class="row gap-s wrap">
           <button id="stepOpenFile" class="quiet" type="button" title="Open a solved layout file (.json) to start from">Open a layout file…</button>
         </div>
       </section>
 
       <section class="block" data-nodes="tree pure sym hull optimized scalable">
-        <div class="block-head">
-          <h2>Tree</h2>
-          <div class="row gap-s">
-            <select id="preset" aria-label="Load a preset tree">
-              <option value="">Load a preset</option>
-              <option value="example">Running example from the specs</option>
-              <option value="star4">Star, 4 equal legs</option>
-              <option value="star5">Star, 5 equal legs</option>
-              <option value="bird">Bird-base–like, 6 leaves (centipede, 3 leg pairs), mirrored</option>
-              <option value="caterpillar">Caterpillar, 6 leaves</option>
-              <option value="centipede2">Centipede, 2 leg pairs (6 nodes), mirrored</option>
-              <option value="centipede4">Centipede, 4 leg pairs (12 nodes), mirrored</option>
-              <option value="centipede5">Centipede, 5 leg pairs (15 nodes), mirrored</option>
-              <option value="centipede6">Centipede, 6 leg pairs (18 nodes), mirrored</option>
-              <option value="centipede8">Centipede, 8 leg pairs (24 nodes), mirrored</option>
-              <option value="beetle">Beetle, 9 leaves (13 nodes), mirrored</option>
-              <option value="deer">Deer with antlers, 12 leaves (17 nodes), mirrored</option>
-              <option value="dragon">Dragon with wings, 14 leaves (19 nodes), mirrored</option>
-              <option value="scorpion">Scorpion, 13 leaves (23 nodes), mirrored</option>
-              <option value="centipede">Centipede with antennae and tail, 18 leaves (25 nodes), mirrored</option>
-              <option value="random25">Random tree, 25 leaves</option>
-              <option value="random50">Random tree, 50 leaves</option>
-              <option value="random100">Random tree, 100 leaves</option>
-            </select>
-            <button id="clearTree" class="quiet" type="button">Clear</button>
-            <button id="openFile" class="quiet" type="button" title="Open a tree file or a solved layout file (.json)">Open…</button>
-            <button id="saveTree" class="quiet" type="button" title="Save this tree as a .json tree file">Save tree</button>
-          </div>
-        </div>
-        <div class="tree-stage">
-          <div class="tree-tools">
-            <span class="chip-label">Drag in</span>
-            <button type="button" class="drag-chip" data-chip="leaf" title="Drop on a vertex to add a leaf there, or on an edge to branch from its midpoint"><i class="dot leaf"></i>Leaf</button>
-            <button type="button" class="drag-chip" data-chip="joint" title="Drop on an edge to split it in two"><i class="dot"></i>Joint</button>
-            <span class="spacer"></span>
-            <button id="tidyTree" type="button" class="quiet small" title="Lay the tree out again automatically">Tidy</button>
-            <button id="expandTree" type="button" class="quiet small" aria-expanded="false">Enlarge</button>
-          </div>
-          <svg id="treeView" class="tree-view" role="img" aria-label="Tree editor"></svg>
-          <p id="treeHelp" class="tree-help">Drag vertices to move them, or onto another vertex to re-attach. Click a leaf to pin it to an edge, a corner or the axis, or to mirror it with another leaf. Click a length to edit it, double-click a vertex to rename it.</p>
-          <div id="treeMessage" class="tree-message" role="status" hidden></div>
-          <section class="model-size" aria-live="polite" data-nodes="pure sym hull optimized scalable">
-            <h3>Model size <span id="sizeNote" class="muted">known before solving</span></h3>
-            <div id="sizeBreakdown" class="size-breakdown"></div>
-          </section>
-        </div>
-        <div id="treeBackdrop" class="tree-backdrop"></div>
-        <div id="treeError" class="error" hidden></div>
+        <h2>Tree details</h2>
         <details class="edge-table">
           <summary>Edit as a table</summary>
           <table class="edges">
@@ -155,6 +112,21 @@
       </section>
 
       <!-- Base model settings: Pure MILP and Symmetry-Breaking MILP. -->
+      <!-- Add stubs: the proposed stub, from the tree and the sheet (stubs.js). -->
+      <section class="block stub-block" data-nodes="stubs">
+        <h2>Add a stub</h2>
+        <p class="hint">A stub is a new short leaf edge. Its leaf goes on a grid point inside an open polygon, as long as every pair still fits at this scale, so the tight paths to it split the polygon. <span class="ref" data-doc="closing">Section 10</span></p>
+        <p id="stubState" class="stub-state"></p>
+        <div id="stubRegions" class="stub-regions"></div>
+        <div id="stubFacts" class="held-summary"></div>
+        <div class="stub-actions">
+          <button id="addStub" type="button" class="primary small-primary" disabled>Add this stub</button>
+          <p class="btn-note">Adds <b id="stubName">a new leaf</b> to the tree, hung from the joint shown, and puts it at the grid point shown in the workbench layout. The scale doesn't change. Then close the polygons to tighten what is left.</p>
+          <button id="bestStub" type="button" class="quiet small" disabled>Find the best stub here</button>
+          <p class="btn-note">Tries every joint and every free grid point in the region: the most leaves tight, then the longest stub. Or click a grid point in the region on the sheet, or a joint on the tree.</p>
+        </div>
+      </section>
+
       <section class="block" data-nodes="pure sym">
         <h2>Model</h2>
         <div class="segmented" role="radiogroup" aria-label="Which model to solve">
@@ -322,6 +294,7 @@
 
     <!-- ───────────── Mat: the solve and its results ───────────── -->
     <main class="mat">
+      <nav id="flowStrip" class="flow-strip" aria-label="Progress through the workflow" hidden></nav>
       <div class="toolbar">
         <div id="analysis" class="analysis" aria-live="polite"></div>
         <div class="run">
@@ -347,7 +320,67 @@
       </section>
 
       <div class="stage-area" id="stageArea">
-        <figure id="resultCard" class="sheet-wrap">
+        <!-- One widget: the tree and the sheet side by side, sharing what is selected (linked.js). -->
+        <div class="duo">
+        <section class="duo-pane duo-tree" aria-label="The tree">
+            <div class="block-head">
+              <h2>Tree</h2>
+              <div class="row gap-s">
+                <select id="preset" aria-label="Load a preset tree">
+                  <option value="">Load a preset</option>
+                  <option value="example">Running example from the specs</option>
+                  <option value="star4">Star, 4 equal legs</option>
+                  <option value="star5">Star, 5 equal legs</option>
+                  <option value="bird">Bird-base–like, 6 leaves (centipede, 3 leg pairs), mirrored</option>
+                  <option value="caterpillar">Caterpillar, 6 leaves</option>
+                  <option value="centipede2">Centipede, 2 leg pairs (6 nodes), mirrored</option>
+                  <option value="centipede4">Centipede, 4 leg pairs (12 nodes), mirrored</option>
+                  <option value="centipede5">Centipede, 5 leg pairs (15 nodes), mirrored</option>
+                  <option value="centipede6">Centipede, 6 leg pairs (18 nodes), mirrored</option>
+                  <option value="centipede8">Centipede, 8 leg pairs (24 nodes), mirrored</option>
+                  <option value="beetle">Beetle, 9 leaves (13 nodes), mirrored</option>
+                  <option value="deer">Deer with antlers, 12 leaves (17 nodes), mirrored</option>
+                  <option value="dragon">Dragon with wings, 14 leaves (19 nodes), mirrored</option>
+                  <option value="scorpion">Scorpion, 13 leaves (23 nodes), mirrored</option>
+                  <option value="centipede">Centipede with antennae and tail, 18 leaves (25 nodes), mirrored</option>
+                  <option value="random25">Random tree, 25 leaves</option>
+                  <option value="random50">Random tree, 50 leaves</option>
+                  <option value="random100">Random tree, 100 leaves</option>
+                </select>
+                <button id="clearTree" class="quiet" type="button">Clear</button>
+                <button id="openFile" class="quiet" type="button" title="Open a tree file or a solved layout file (.json)">Open…</button>
+                <button id="saveTree" class="quiet" type="button" title="Save this tree as a .json tree file">Save tree</button>
+              </div>
+            </div>
+            <div class="tree-stage">
+              <div class="tree-tools">
+                <span class="chip-label">Drag in</span>
+                <button type="button" class="drag-chip" data-chip="leaf" title="Drop on a vertex to add a leaf there, or on an edge to branch from its midpoint"><i class="dot leaf"></i>Leaf</button>
+                <button type="button" class="drag-chip" data-chip="joint" title="Drop on an edge to split it in two"><i class="dot"></i>Joint</button>
+                <span class="spacer"></span>
+                <label class="check small-check" title="A circle round each leaf through the joint it hangs from: the flap's reach, as the sheet's leaf circles show it"><input id="treeCircles" type="checkbox" checked> Leaf circles</label>
+                <button id="tidyTree" type="button" class="quiet small" title="Lay the tree out again automatically">Tidy</button>
+                <button id="expandTree" type="button" class="quiet small" aria-expanded="false">Enlarge</button>
+              </div>
+              <svg id="treeView" class="tree-view" role="img" aria-label="Tree editor"></svg>
+              <p id="treeHelp" class="tree-help">Drag vertices to move them, or onto another vertex to re-attach. Click a leaf to pin it to an edge, a corner or the axis, or to mirror it with another leaf. Click a length to edit it, double-click a vertex to rename it.</p>
+              <div id="treeMessage" class="tree-message" role="status" hidden></div>
+              <section class="model-size" aria-live="polite" data-nodes="pure sym hull optimized scalable">
+                <h3>Model size <span id="sizeNote" class="muted">known before solving</span></h3>
+                <div id="sizeBreakdown" class="size-breakdown"></div>
+              </section>
+            </div>
+            <div id="treeBackdrop" class="tree-backdrop"></div>
+            <div id="treeError" class="error" hidden></div>
+        </section>
+        <figure id="resultCard" class="sheet-wrap duo-pane">
+          <div class="layer-bar" role="group" aria-label="What the sheet shows">
+            <span class="layer-label">Show</span>
+            <label class="layer"><input id="showCircles" type="checkbox" checked> Leaf circles</label>
+            <label class="layer"><input id="showAllPairs" type="checkbox"> Every pair</label>
+            <label class="layer" data-layer="polygons" hidden><input id="showPolygons" type="checkbox" checked> Polygons</label>
+            <label class="layer" data-layer="creases" hidden><input id="showCreases" type="checkbox" checked> Creases</label>
+          </div>
           <div class="sheet">
             <svg id="layoutView" class="layout-view" role="img" aria-label="Leaf layout on the grid"></svg>
             <div id="emptySheet" class="empty">
@@ -356,8 +389,6 @@
             </div>
           </div>
           <figcaption class="sheet-controls">
-            <label class="check"><input id="showAllPairs" type="checkbox"> Show every pair</label>
-            <label class="check"><input id="showCircles" type="checkbox" checked> Show leaf circles</label>
             <button id="saveLayout" type="button" class="on-mat small" disabled title="Save this layout, its scale and edge lengths as a .json layout file">Save layout</button>
             <label id="startRow" class="check" hidden><input id="useStart" type="checkbox" checked> Start the next solve from the workbench layout<span id="startNote" class="muted"></span></label>
             <span class="key"><i class="k-tight"></i>At minimum spacing</span>
@@ -371,6 +402,7 @@
             <p id="polyTodo" class="poly-todo" hidden></p>
           </figcaption>
         </figure>
+        </div>
 
         <section id="metricsCard" class="slip readout" hidden>
           <div id="metrics" class="metrics"></div>
@@ -381,6 +413,14 @@
       <nav id="nextBar" class="next-bar" hidden aria-label="Next step"></nav>
 
       <div class="tables">
+        <!-- The closing history (history.js): every state on the way to valid polygons, oldest first. -->
+        <section id="historyCard" class="slip wide history" hidden>
+          <div class="crease-head">
+            <h2>How the closing went</h2>
+            <span class="muted">Oldest first; the page grows as you go. Start over from any step.</span>
+          </div>
+          <ol id="historyList" class="hist-list"></ol>
+        </section>
         <section id="creaseCard" class="slip wide crease" hidden>
           <div class="crease-head">
             <h2>Toward a crease pattern</h2>
@@ -393,16 +433,16 @@
             <p id="creaseSummary" class="crease-summary"></p>
             <ul id="creaseIssues" class="crease-issues"></ul>
             <div class="crease-controls">
-              <label class="check"><input id="showPolygons" type="checkbox" checked> Show polygons on the sheet</label>
-              <div id="creaseViews" class="crease-views" hidden role="group" aria-label="Which polygons to show">
-                <button type="button" class="quiet small" data-view="before" aria-pressed="true">As solved</button>
-                <button type="button" class="quiet small" data-view="after" aria-pressed="false">After closing</button>
+              <div id="creaseViews" class="crease-views" hidden role="group" aria-label="Which edge lengths the polygons use">
+                <button type="button" class="quiet small" data-view="before" aria-pressed="true" title="The polygons with the edge lengths the layout was solved with">Solver's lengths</button>
+                <button type="button" class="quiet small" data-view="after" aria-pressed="false" title="The polygons with the strained edge lengths that closing found; the leaves stay put">Closed lengths</button>
+                <span class="btn-note">Same leaves, two sets of edge lengths: the solver's, or the strained ones closing found. Step 3 builds from the one shown.</span>
               </div>
             </div>
           </div>
           <div class="crease-complete crease-step" data-step="2">
             <h3><span class="step-no">2</span> Close the polygons <span id="stepCloseState" class="step-state"></span></h3>
-            <p class="hint">Keeps every leaf where it is and the scale fixed, and stretches or shrinks edges (strain σ) until the open pairs become tight paths. Choose one way:</p>
+            <p class="hint">Keeps every leaf where it is and the scale fixed, and stretches or shrinks edges (strain σ) until the open pairs become tight paths. Choose one way. A polygon with a leaf inside, or one that needs too much strain, can be split with a stub first (<a href="#/stubs">Add stubs</a>).</p>
             <p id="closeSkip" class="crease-note good" hidden>Nothing to close: every polygon is already valid. Go on to step 3.</p>
             <div class="close-ways">
               <div class="close-way">
@@ -433,7 +473,6 @@
             </div>
             <div class="row gap-s wrap">
               <button id="buildCreases" type="button" class="primary small-primary" disabled>Build the crease pattern</button>
-              <label class="check"><input id="showCreases" type="checkbox" checked> Show creases on the sheet</label>
               <button id="downloadFold" type="button" class="quiet small" disabled>Download .fold</button>
               <button id="downloadSvg" type="button" class="quiet small" disabled>Download .svg</button>
             </div>
@@ -487,15 +526,18 @@
 
   <input id="fileInput" type="file" accept=".json,application/json" hidden>
 
-  <script src="nodes.js?v=20261101l"></script>
-  <script src="workbench.js?v=20261101l"></script>
-  <script src="tree-editor.js?v=20261101l"></script>
-  <script src="polygons.js?v=20261101l"></script>
-  <script src="folded.js?v=20261101l"></script>
-  <script src="files.js?v=20261101l"></script>
-  <script src="solvers.js?v=20261101l"></script>
-  <script src="map.js?v=20261101l"></script>
-  <script src="specs.js?v=20261101l"></script>
-  <script src="app.js?v=20261101l"></script>
+  <script src="nodes.js?v=20261101p"></script>
+  <script src="workbench.js?v=20261101p"></script>
+  <script src="tree-editor.js?v=20261101p"></script>
+  <script src="polygons.js?v=20261101p"></script>
+  <script src="stubs.js?v=20261101p"></script>
+  <script src="history.js?v=20261101p"></script>
+  <script src="linked.js?v=20261101p"></script>
+  <script src="folded.js?v=20261101p"></script>
+  <script src="files.js?v=20261101p"></script>
+  <script src="solvers.js?v=20261101p"></script>
+  <script src="map.js?v=20261101p"></script>
+  <script src="specs.js?v=20261101p"></script>
+  <script src="app.js?v=20261101p"></script>
 </body>
 </html>

@@ -66,6 +66,13 @@ const NODES = {
     doc: "closing", section: "Polygon test A:1, closing A:2, strain bounds A:3, strain needed A:4 (Sections 4–7)",
     needs: "layout",
   },
+  stubs: {
+    id: "stubs", kind: "step", step: "stubs", title: "Add stubs", kicker: "Step after a layout · optional", mapKicker: "Step 1 · option",
+    lede: "Split an open polygon with a stub: a new short leaf edge hung from a joint of the tree, its leaf on a grid point inside the polygon, tight to the corners it can reach. The scale stays; close the polygons afterwards to tighten what is left.",
+    blurb: "Hang a short new flap inside an open polygon",
+    doc: "closing", section: "Open problem 1, stubs (Section 10)",
+    needs: "layout",
+  },
   creases: {
     id: "creases", kind: "step", step: "creases", title: "Crease pattern", kicker: "Step after closing", mapKicker: "Step 2",
     lede: "Fill every valid polygon with Lang's universal molecule: ridges, hinges and gussets. Optionally pleat the flaps. Download it as .fold or .svg.",
@@ -83,7 +90,7 @@ const NODES = {
 };
 
 /** The order of the pipeline after a layout. */
-const STEP_ORDER = ["close", "creases", "fold"];
+const STEP_ORDER = ["close", "stubs", "creases", "fold"];
 const SOLVER_IDS = ["pure", "sym", "hull", "optimized", "scalable"];
 
 /**
