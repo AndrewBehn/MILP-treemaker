@@ -28,7 +28,7 @@ const base = 'http://127.0.0.1:5099/';
   await docs.waitForLoadState(); await docs.waitForTimeout(1500);
   log.docsUrl = docs.url();
   log.pure = await docs.evaluate(() => ({
-    figures: document.querySelectorAll('#readerBody figure.drawn svg').length,
+    figures: [...document.querySelectorAll('#readerBody figure.drawn img')].filter((img) => img.complete && img.naturalWidth > 0).length,
     undrawn: document.querySelectorAll('#readerBody figure:not(.drawn)').length,
     katex: document.querySelectorAll('#readerBody .math .katex').length,
     tex: document.querySelectorAll('#readerBody .math').length,

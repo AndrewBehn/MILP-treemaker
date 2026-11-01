@@ -320,8 +320,9 @@ Only the LP grows with P. The others grow with n·w and with |R|, which stays ne
 
 These results come from a prototype of A:7 through Stage 4a. It used SciPy's HiGHS in place of GLOP and CP-SAT. The trees were random, with 25, 52 and 101 leaves on grids of 16, 24 and 32, and edge lengths that were either real or whole numbers. There was one run per tree.
 
-&#91;embedded content: Python prototype (SciPy linprog and HiGHS in place of GLOP and CP-SAT), six random trees, one run each, 28 Oct 2026\]
+![Python prototype (SciPy linprog and HiGHS in place of GLOP and CP-SAT), six random trees, one run each, 28 Oct 2026](figures/scalable/01.svg)
 
+*Python prototype (SciPy linprog and HiGHS in place of GLOP and CP-SAT), six random trees, one run each, 28 Oct 2026*
 | Leaves | N | P | Base model binaries | Last repair model | Time, Stages 1–4a |
 | --- | --- | --- | --- | --- | --- |
 | 25 | 16 | 300 | 326,400 | 176 Booleans | 0.8–1.0 s |

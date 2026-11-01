@@ -169,8 +169,9 @@ d(u, v) = \sum_{e \in \mathrm{path}(u, v)} \ell_e, \qquad \ell_{ij} = d(i, j) \ 
 
 Used in: D:2, D:4, and D:5.
 
-&#91;embedded content: example tree · path lengths between leaves\]
+![example tree · path lengths between leaves](figures/hull/01.svg)
 
+*example tree · path lengths between leaves*
 In the running example, leaves 1 and 4 are farthest apart along the tree, so ℓmax = 10.
 
 **D:2 Forbidden offsets and their lattice hull.** For a radius r: the grid offsets shorter than r, their convex hull P(r), and its facets K(r), written with integer coefficients. Facets that no offset in {−N, …, N}² can cross are left out of K(r). A pair at trial scale m uses the radius r = m·ℓᵢⱼ.
@@ -181,8 +182,9 @@ F(r) = \{\, \delta \in \{-N, \dots, N\}^2 : \|\delta\|_2 < r \,\}, \qquad P(r) =
 
 Used in: P:6, D:6, and the starting choices of the procedure.
 
-&#91;embedded content: forbidden offsets at radius 5 · lattice octagon and its 8 facets\]
+![forbidden offsets at radius 5 · lattice octagon and its 8 facets](figures/hull/02.svg)
 
+*forbidden offsets at radius 5 · lattice octagon and its 8 facets*
 **D:3 Offset distance lookup table.** The Euclidean length of every candidate offset in Δ\_N. It depends only on N.
 
 ```math
@@ -191,8 +193,9 @@ D : \Delta_N \to \mathbb{R}_{> 0}, \qquad D(\delta) = \|\delta\|_2 = \sqrt{\delt
 
 Used in: the candidate scales D:5. No constraint reads it; the hulls of D:2 replace it inside the model.
 
-&#91;embedded content: offset distance lookup table · quadrant for N = 5\]
+![offset distance lookup table · quadrant for N = 5](figures/hull/03.svg)
 
+*offset distance lookup table · quadrant for N = 5*
 **D:4 Scale upper bound.** No two grid points are farther apart than the sheet's diagonal, √2·N, and the pair with the longest path needs m·ℓmax of that.
 
 ```math
@@ -201,8 +204,9 @@ Used in: the candidate scales D:5. No constraint reads it; the hulls of D:2 repl
 
 Used in: the candidate scales D:5.
 
-&#91;embedded content: running example on a 9 × 9 grid · binding pair and diagonal bound\]
+![running example on a 9 × 9 grid · binding pair and diagonal bound](figures/hull/04.svg)
 
+*running example on a 9 × 9 grid · binding pair and diagonal bound*
 The bound is usually loose because other pairs also need room. In the running example it is reached by the diagonal pair 1–4, but pair 2–4 binds first (becomes tight, exactly at its minimum distance, at a smaller scale).
 
 **D:5 Candidate scales.** Every lookup-table distance divided by a pair's path length, up to the scale bound m̄. They are sorted as c₁ < c₂ < … < c\_K.
@@ -213,8 +217,9 @@ The bound is usually loose because other pairs also need room. In the running ex
 
 Used in: the objective (Section 9) and the bisection (Section 10).
 
-&#91;embedded content: bisection over candidate scales · running example, 9 × 9 grid\]
+![bisection over candidate scales · running example, 9 × 9 grid](figures/hull/05.svg)
 
+*bisection over candidate scales · running example, 9 × 9 grid*
 For the running example, the 9 × 9 grid has 50 distinct squared lengths and the tree 6 path lengths, giving 195 candidates up to m̄ ≈ 1.273.
 
 **D:6 Inner polygon.** The lattice hull of an active pair's points Qᵢⱼ (P:6), with facets K(Qᵢⱼ) written with integer data as in D:2. With Qᵢⱼ = F(m·ℓᵢⱼ) it is the full hull P(m·ℓᵢⱼ).
@@ -225,8 +230,9 @@ For the running example, the 9 × 9 grid has 50 distinct squared lengths and the
 
 Used in: the facet selectors and C:2.
 
-&#91;embedded content: D:6 · starting inner polygon at radius 5 and an offset it misses\]
+![D:6 · starting inner polygon at radius 5 and an offset it misses](figures/hull/06.svg)
 
+*D:6 · starting inner polygon at radius 5 and an offset it misses*
 The starting inner polygon misses the forbidden offset (4, 2). If a solution uses it, the check of Section 10 adds it and its images, which at radius 5 restores the full hull.
 
 ## 6. Variables
@@ -261,10 +267,12 @@ M_{ijk} = b_k + 1 - \min_{u_i \in W_i,\ u_j \in W_j} a_k^{\top} (u_i - u_j), \qq
 
 Used in: C:2.
 
-&#91;embedded content: D:7 with full windows · range of aₖᵀδ against the threshold\]
+![D:7 with full windows · range of aₖᵀδ against the threshold](figures/hull/07.svg)
 
-&#91;embedded content: D:7 with small windows · the big-M falls from 31 to 1\]
+*D:7 with full windows · range of aₖᵀδ against the threshold*
+![D:7 with small windows · the big-M falls from 31 to 1](figures/hull/08.svg)
 
+*D:7 with small windows · the big-M falls from 31 to 1*
 With both leaves confined to 3 × 3 windows, the facet row's left side ranges over 6 to 14 instead of −24 to 24, and the big-M falls from 31 to 1.
 
 **C:2 Spacing through the inner polygons.** Each active pair's offset lies strictly outside its inner polygon, beyond at least one facet.
@@ -277,8 +285,9 @@ With both leaves confined to 3 × 3 windows, the facet row's left side ranges ov
 \qquad \forall\, \{i, j\} \in A
 ```
 
-&#91;embedded content: C:2 · an offset beyond one facet of its hull at radius 5\]
+![C:2 · an offset beyond one facet of its hull at radius 5](figures/hull/09.svg)
 
+*C:2 · an offset beyond one facet of its hull at radius 5*
 With the full hull at radius 5, the offset (5, 1) lies beyond exactly one facet, so that facet's selector is the only one that can be 1.
 
 ## 8. Models
@@ -334,8 +343,9 @@ For the running example, m\* = 1.054 on the 9 × 9 grid, with pair 2–4 tight.
 1. **Windowed phase.** Repeated solves. Set the windows around the window center layout: the last feasible layout found, or at the first test the rounded TreeMaker layout. Run the generation loop. A "yes" is final. If R has no layout, go to phase 2.
 2. **Full-grid phase.** Repeated solves, run only when the windowed phase fails. Run the generation loop again with full windows, starting from the A and Q the windowed phase built. Its "yes" or "no" is final.
 
-&#91;embedded content: one bisection step · windowed phase, then full-grid phase\]
+![one bisection step · windowed phase, then full-grid phase](figures/hull/10.svg)
 
+*one bisection step · windowed phase, then full-grid phase*
 ### 10.4 The generation loop (repeated solves)
 
 The loop takes a trial scale m, a set of windows, and the current A and Q. Each pass:

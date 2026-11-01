@@ -917,19 +917,6 @@ a.button-like:hover { border-color: var(--mat-ink); }
 
 body[data-page="docs"] {
   background: var(--paper);
-  /* Colours the figures use (named as in the docs they were drawn for). */
-  --cds-text-primary: var(--ink);
-  --cds-text-secondary: var(--ink-soft);
-  --cds-chart-axis: #8a9097;
-  --cds-chart-grid: #e3e6e1;
-  --cds-chart-muted: #b5bab3;
-  --cds-chart-reference: #6b7178;
-  --cds-chart-reference-tint: rgba(107, 113, 120, .10);
-  --cds-chart-categorical-1: var(--beni);
-  --cds-chart-categorical-2: #2f6fa8;
-  --cds-chart-status-good: var(--good);
-  --cds-chart-status-warning: #b7791f;
-  --cds-chart-status-critical: var(--bad);
 }
 body[data-page="docs"] .topbar { gap: 22px; }
 .docs-page { display: grid; grid-template-columns: 280px minmax(0, 1fr); height: calc(100vh - var(--topbar)); }
@@ -992,7 +979,7 @@ pre.code { background: var(--panel); padding: 8px 10px; border-radius: 4px; over
 .spec-table tr.hit td { background: rgba(194, 48, 74, .09); }
 
 .spec-fig { margin: 16px 0 18px; padding: 12px 14px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--field); }
-.spec-fig .fig-art svg { display: block; width: 100%; height: auto; font-family: var(--font); }
+.spec-fig .fig-art img { display: block; width: 100%; height: auto; }   /* colours are written into each SVG file (tools/render_spec_figures.js) */
 .spec-fig .fig-art { overflow-x: auto; }
 .spec-fig figcaption { font-size: 12.5px; color: var(--ink-soft); margin-top: 6px; }
 .spec-fig:not(.drawn) { background: var(--panel); border-style: dashed; }

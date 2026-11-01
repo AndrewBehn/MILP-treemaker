@@ -88,8 +88,9 @@ F(r) = \{\, \delta \in \{-N, \dots, N\}^2 : \|\delta\|_2 < r \,\}, \qquad P(r) =
 
 Used in: D:2, the facet selectors z, and constraint C:1.
 
-&#91;embedded content: forbidden offsets at radius 5 · lattice octagon and its 8 facets\]
+![forbidden offsets at radius 5 · lattice octagon and its 8 facets](figures/optimized/01.svg)
 
+*forbidden offsets at radius 5 · lattice octagon and its 8 facets*
 **D:2 Facet big-M.** For each pair and facet, the constant that switches that facet's row of C:1 off when its selector is 0.
 
 ```math
@@ -98,8 +99,9 @@ M_{ijk} = b_k + 1 + \|a_k\|_1\, N
 
 Used in: constraint C:1.
 
-&#91;embedded content: facet big-M · range of aₖᵀδ against the threshold\]
+![facet big-M · range of aₖᵀδ against the threshold](figures/optimized/02.svg)
 
+*facet big-M · range of aₖᵀδ against the threshold*
 ### 3.3 Variables
 
 Kept: the leaf coordinates of base Section 6. Removed: the scale m, which is now the trial scale P:1, and the offset selectors w. Added: the facet selectors.
@@ -128,8 +130,9 @@ Kept: base C:1, leaves on grid points. Replaced: base C:2–C:4 (offset selectio
 \qquad \forall\, \{i, j\} \in \mathcal{P}
 ```
 
-&#91;embedded content: C:1 · an offset beyond one facet of its hull at radius 5\]
+![C:1 · an offset beyond one facet of its hull at radius 5](figures/optimized/03.svg)
 
+*C:1 · an offset beyond one facet of its hull at radius 5*
 A pair at radius 5 with offset (5, 1) lies beyond exactly one facet, so that facet's selector is the only one that can be 1.
 
 ### 3.5 The model
@@ -203,8 +206,9 @@ Kept: base C:1 and C:1. Added: C:2 and C:3.
 (N + 1)\, x_a + y_a \leq (N + 1)\, x_b + y_b \qquad \forall\, (a, b) \in \mathcal{T}
 ```
 
-&#91;embedded content: C:2 and C:3 · anchor in the fundamental domain, siblings in order\]
+![C:2 and C:3 · anchor in the fundamental domain, siblings in order](figures/optimized/04.svg)
 
+*C:2 and C:3 · anchor in the fundamental domain, siblings in order*
 On an 8 × 8 grid, an anchor leaf at (6, 1) has 8 images and only (2, 1) satisfies C:2; for two siblings, only the order with the smaller key first satisfies C:3.
 
 ### 4.4 The model
@@ -237,8 +241,9 @@ Feas(m) answers a yes-or-no question at one scale. This section recovers the bas
 
 Used in: the objective and the bisection below.
 
-&#91;embedded content: bisection over candidate scales · running example, 9 × 9 grid\]
+![bisection over candidate scales · running example, 9 × 9 grid](figures/optimized/05.svg)
 
+*bisection over candidate scales · running example, 9 × 9 grid*
 ### 5.2 Objective
 
 The base model's objective, maximize the scale, restated over the candidates:
@@ -318,8 +323,9 @@ W_i = [\underline{x}_i, \overline{x}_i] \times [\underline{y}_i, \overline{y}_i]
 
 Used in: the facet selectors and C:5.
 
-&#91;embedded content: D:4 · starting inner polygon at radius 5 and an offset it misses\]
+![D:4 · starting inner polygon at radius 5 and an offset it misses](figures/optimized/06.svg)
 
+*D:4 · starting inner polygon at radius 5 and an offset it misses*
 The starting inner polygon misses the forbidden offset (4, 2). If R picks it, the check adds it and its images, which at radius 5 restores the full hull.
 
 ### 6.4 Variables
@@ -348,8 +354,9 @@ M_{ijk}(W) = b_k + 1 - \min_{u_i \in W_i,\ u_j \in W_j} a_k^{\top} (u_i - u_j)
 
 Used in: C:5.
 
-&#91;embedded content: D:5 and C:4 · leaf windows and the window big-M\]
+![D:5 and C:4 · leaf windows and the window big-M](figures/optimized/07.svg)
 
+*D:5 and C:4 · leaf windows and the window big-M*
 With both leaves confined to 3 × 3 windows, the facet row's left side ranges over 6 to 14 instead of −24 to 24, and the big-M falls from 31 to 1.
 
 **C:5 Spacing through the inner polygons.** Each active pair's offset lies strictly outside its inner polygon, beyond at least one facet.
@@ -394,8 +401,9 @@ A step at a trial scale m runs the generation loop in up to two phases.
 1. **Windowed phase.** Repeated solves. Take as the window center layout the last feasible layout found, or, at the first step, the rounded TreeMaker layout of base Section 9. Map it into the form C:2 and C:3 require: apply the symmetry of the square that puts the anchor leaf in the fundamental domain, and swap any interchangeable siblings that are out of order. Set the windows around it and run the generation loop. A "yes" is final. If R has no layout, go to phase 2.
 2. **Full-grid phase.** Repeated solves, run only when the windowed phase fails. Run the generation loop again with full windows, starting from the A and Q that the windowed phase built. Its "yes" or "no" is final.
 
-&#91;embedded content: one bisection step · windowed phase, then full-grid phase\]
+![one bisection step · windowed phase, then full-grid phase](figures/optimized/08.svg)
 
+*one bisection step · windowed phase, then full-grid phase*
 Each phase loops through a single solve, a check, and additions. The windowed phase can only end in "yes" or hand over; the full-grid phase ends in a final "yes" or "no".
 
 ### 6.10 What carries from one step to the next (no solve)

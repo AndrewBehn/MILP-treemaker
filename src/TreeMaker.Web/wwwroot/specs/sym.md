@@ -137,8 +137,9 @@ d(u, v) = \sum_{e \in \mathrm{path}(u, v)} \ell_e, \qquad \ell_{ij} = d(i, j) \ 
 
 Used in: D:3 and constraint C:4.
 
-&#91;embedded content: example tree · path lengths between leaves\]
+![example tree · path lengths between leaves](figures/sym/01.svg)
 
+*example tree · path lengths between leaves*
 In the running example, leaves 1 and 4 are farthest apart along the tree, so ℓmax = 10.
 
 **D:2 Offset distance lookup table.** The Euclidean length of every candidate offset in Δ\_N. It depends only on N, not on the tree, so it is computed once per grid size and shared by every leaf pair.
@@ -149,8 +150,9 @@ D : \Delta_N \to \mathbb{R}_{> 0}, \qquad D(\delta) = \|\delta\|_2 = \sqrt{\delt
 
 Used in: constraint C:4 and the optimum's closed form (Section 8).
 
-&#91;embedded content: offset distance lookup table · quadrant for N = 5\]
+![offset distance lookup table · quadrant for N = 5](figures/sym/02.svg)
 
+*offset distance lookup table · quadrant for N = 5*
 The table replaces the nonconvex function ‖uᵢ − uⱼ‖₂ by a finite list of values, one per possible offset, so selecting an offset reads its length as a linear expression.
 
 **D:3 Scale upper bound.** No two grid points are farther apart than the sheet's diagonal, √2·N, and the pair with the longest path needs m·ℓmax of that.
@@ -161,8 +163,9 @@ The table replaces the nonconvex function ‖uᵢ − uⱼ‖₂ by a finite lis
 
 Used in: the bounds on the variable m, and Section 10.
 
-&#91;embedded content: running example on a 9 × 9 grid · binding pair and diagonal bound\]
+![running example on a 9 × 9 grid · binding pair and diagonal bound](figures/sym/03.svg)
 
+*running example on a 9 × 9 grid · binding pair and diagonal bound*
 The bound is usually loose because other pairs also need room. In the running example it is reached by the diagonal pair 1–4, but pair 2–4 binds first (becomes tight, exactly at its minimum distance, at a smaller scale).
 
 ## 6. Variables
@@ -215,12 +218,14 @@ u_i \in G_N \iff x_i,\ y_i \in \{0, 1, \dots, N\} \qquad \forall\, i \in L
 m\, \ell_{ij} \leq \sum_{\delta \in \Delta_N} D(\delta)\, w_{ij\delta} \qquad \forall\, \{i, j\} \in \mathcal{P}
 ```
 
-&#91;embedded content: C:2–C:4 · offset selection, linking, and spacing for pair 2–4\]
+![C:2–C:4 · offset selection, linking, and spacing for pair 2–4](figures/sym/04.svg)
 
+*C:2–C:4 · offset selection, linking, and spacing for pair 2–4*
 For pair 2–4 of the running example, C:2 sets one selector to 1, C:3 makes that offset the leaves' actual difference, and C:4 reads its length from the lookup table.
 
-&#91;embedded content: C:4 · every pair's distance against its minimum at m\* = 1.054\]
+![C:4 · every pair's distance against its minimum at m\* = 1.054](figures/sym/05.svg)
 
+*C:4 · every pair's distance against its minimum at m\* = 1.054*
 At the optimum every pair's grid distance reaches its required minimum, and pair 2–4 reaches it exactly: it is the tight pair that stops m from growing.
 
 **C:5 Anchor in the fundamental domain.** The anchor leaf lies in the triangle 0 ≤ y ≤ x ≤ N/2.
@@ -235,8 +240,9 @@ At the optimum every pair's grid distance reaches its required minimum, and pair
 (N + 1)\, x_a + y_a \leq (N + 1)\, x_b + y_b \qquad \forall\, (a, b) \in \mathcal{T}
 ```
 
-&#91;embedded content: C:5 and C:6 · anchor in the fundamental domain, siblings in order\]
+![C:5 and C:6 · anchor in the fundamental domain, siblings in order](figures/sym/06.svg)
 
+*C:5 and C:6 · anchor in the fundamental domain, siblings in order*
 On an 8 × 8 grid, an anchor leaf at (6, 1) has 8 images and only (2, 1) satisfies C:5; for two siblings, only the order with the smaller key first satisfies C:6. In the running example the optimal layout already has leaf 1 at (0, 0), inside the triangle, and 𝒯 is empty, so C:6 has no rows.
 
 **Position and symmetry conditions.** TreeMaker's optional conditions (a leaf on an edge or a corner, a mirrored pair under book symmetry) stay linear on the grid, but they break the sheet's symmetry. With such conditions, C:5 must be dropped or limited to the symmetries the conditions keep, and C:6 kept only for siblings the conditions treat alike.

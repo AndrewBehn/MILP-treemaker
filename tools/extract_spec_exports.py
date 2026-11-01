@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Copy the spec documents into the app as packaged Markdown.
+"""Copy the spec documents into the app as packaged Markdown, with their figures as SVG files.
 
 The specs are Claude Docs artifacts. Exporting one to Markdown (the Docs `export` tool, format "markdown") returns
 the file inline as base64, and the session transcript records that result. This script scans one or more transcript
 JSONL files (or plain .md files), keeps the newest export of each spec, and writes
 
-    src/TreeMaker.Web/wwwroot/specs/<key>.md
-    src/TreeMaker.Web/wwwroot/specs/manifest.json
+    src/TreeMaker.Web/wwwroot/specs/<key>.md               the text, with ```math blocks and links to its figures
+    src/TreeMaker.Web/wwwroot/specs/figures/<key>/NN.svg   the figures, from the figure nodes read in the transcripts
+    src/TreeMaker.Web/wwwroot/specs/manifest.json          each doc's revision and export date
 
 Usage:
     python3 tools/extract_spec_exports.py [--out DIR] SOURCE [SOURCE ...]
@@ -199,6 +200,36 @@ def for_github(md):
     return re.sub(r"^```latex[ \t]*$", "```math", md, flags=re.M)
 
 
+PLACEHOLDER = re.compile(r"^&#91;embedded content:\s*(.*?)\\?\]\s*$", re.M)
+
+
+def figure_files(out, key):
+    folder = os.path.join(out, "figures", key)
+    return sorted(f for f in os.listdir(folder) if f.endswith(".svg")) if os.path.isdir(folder) else []
+
+
+def link_figures(md, key, out, fresh):
+    """Replaces the n-th "[embedded content: caption]" placeholder of the export with the n-th figure file, shown
+    with its caption under it. Placeholders stay when the files don't match them one for one."""
+    files = figure_files(out, key)
+    found = PLACEHOLDER.findall(md)
+    if not found:
+        return md
+    if len(files) != len(found):
+        print(f"{key}: {len(found)} figures in the doc but {len(files)} figure files; read the doc's tab and each "
+              f"figure node, then run this again", file=sys.stderr)
+        return md
+    if not fresh:
+        print(f"{key}: figures not re-read this run; linking the existing files", file=sys.stderr)
+    names = iter(files)
+
+    def image(m):
+        caption = m.group(1).strip()
+        alt = caption.replace("[", "\\[").replace("]", "\\]")
+        return f"![{alt}](figures/{key}/{next(names)})\n\n*{caption}*"
+    return PLACEHOLDER.sub(image, md)
+
+
 def main():
     here = os.path.dirname(os.path.abspath(__file__))
     default_out = os.path.join(here, "..", "src", "TreeMaker.Web", "wwwroot", "specs")
@@ -237,16 +268,8 @@ def main():
     if os.path.exists(manifest_path):
         with open(manifest_path, encoding="utf-8") as f:
             manifest = json.load(f)
-    for key, spec in sorted(best.items()):
-        with open(os.path.join(args.out, key + ".md"), "w", encoding="utf-8") as f:
-            f.write(for_github(spec["text"]))
-        manifest["specs"][key] = {
-            "title": spec["title"], "url": spec["url"], "rev": spec["rev"],
-            "exportedAt": spec["when"] or dt.datetime.now(dt.timezone.utc).replace(tzinfo=None).isoformat() + "Z",
-            "file": key + ".md",
-        }
-        print(f"{key:10s} rev {spec['rev']}  {len(spec['text']):6d} chars  {spec['title']}")
-    # Figures: compile each doc's JSX figures to static SVG (tools/render_spec_figures.js), in placeholder order.
+    # Figures first: compile each doc's JSX figures to SVG files (tools/render_spec_figures.js), in placeholder order,
+    # so the Markdown can link them. The files are what both GitHub and the app's docs page show.
     figures = collect_figures(args.sources)
     if figures:
         import subprocess
@@ -256,22 +279,26 @@ def main():
         renderer = os.path.join(here, "render_spec_figures.js")
         subprocess.run(["node", renderer, tmp.name, args.out], check=False)
         os.unlink(tmp.name)
+    for key, spec in sorted(best.items()):
+        md = link_figures(for_github(spec["text"]), key, args.out, fresh=key in figures)
+        with open(os.path.join(args.out, key + ".md"), "w", encoding="utf-8") as f:
+            f.write(md)
+        manifest["specs"][key] = {
+            "title": spec["title"], "url": spec["url"], "rev": spec["rev"],
+            "exportedAt": spec["when"] or dt.datetime.now(dt.timezone.utc).replace(tzinfo=None).isoformat() + "Z",
+            "file": key + ".md",
+        }
+        print(f"{key:10s} rev {spec['rev']}  {len(spec['text']):6d} chars  {spec['title']}")
     for key, entry in manifest["specs"].items():
-        md_path = os.path.join(args.out, entry["file"])
-        fig_path = os.path.join(args.out, key + ".figures.json")
-        with open(md_path, encoding="utf-8") as f:
-            placeholders = f.read().count("&#91;embedded content:")
-        if os.path.exists(fig_path):
-            with open(fig_path, encoding="utf-8") as f:
-                count = len(json.load(f)["figures"])
-            if count != placeholders:
-                print(f"{key}: {placeholders} figure placeholders but {count} figures; re-read the doc's figures",
-                      file=sys.stderr)
-            entry["figures"] = key + ".figures.json"
-        elif placeholders:
-            print(f"{key}: {placeholders} figures not packaged (read the doc tab and each figure node first)",
-                  file=sys.stderr)
-            entry.pop("figures", None)
+        entry.pop("figures", None)       # the figures used to be a <key>.figures.json beside the doc
+        stale = os.path.join(args.out, key + ".figures.json")
+        if os.path.exists(stale):
+            os.remove(stale)
+        count = len(figure_files(args.out, key))
+        if count:
+            entry["figureCount"] = count
+        else:
+            entry.pop("figureCount", None)
     manifest["packagedAt"] =dt.datetime.now(dt.timezone.utc).replace(tzinfo=None).replace(microsecond=0).isoformat() + "Z"
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)

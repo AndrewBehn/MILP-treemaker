@@ -109,7 +109,7 @@ const SpecText = (() => {
     let figures = 0;
     const claim = (id) => (id && !ids.has(id) ? (ids.add(id), id) : null);
     const idAttr = (id) => (id ? ` id="spec-${id}"` : "");
-    const isBlockStart = (l) => /^```|^#{1,4}\s|^\||^\s*(?:[-*]|\d+\.)\s|^&#91;embedded content:/.test(l);
+    const isBlockStart = (l) => /^```|^#{1,4}\s|^\||^\s*(?:[-*]|\d+\.)\s|^&#91;embedded content:|^!\[/.test(l);
 
     // Gives the first <strong> of a block the anchor of the label it defines.
     const markDef = (h, id) => (id ? h.replace("<strong>", `<strong class="def"${idAttr(id)}>`) : h);
@@ -201,10 +201,21 @@ const SpecText = (() => {
         continue;
       }
 
-      // An interactive figure of the live doc that Markdown cannot carry.
+      // A figure: an image line (the SVG file the packaging wrote), with its caption in italics on the next line.
+      if ((m = line.match(/^!\[((?:\\.|[^\]])*)\]\(([^)\s]+)\)\s*$/))) {
+        i++;
+        const caption = m[1].replace(/\\([[\]])/g, "$1");
+        let k = i;
+        while (k < lines.length && !lines[k].trim()) k++;
+        if (k < lines.length && lines[k].trim() === `*${caption}*`) i = k + 1;
+        out.push(`<figure class="spec-fig drawn" data-fig="${figures++}"><div class="fig-art"><img data-fig-src="${html(m[2])}" alt="${html(caption.replace(/\\(.)/g, "$1"))}"></div><figcaption>${inline(caption, docUrls)}</figcaption></figure>`);
+        continue;
+      }
+
+      // A figure the packaging couldn't draw: the placeholder the export leaves.
       if ((m = line.match(/^&#91;embedded content:\s*(.*?)\\?\]\s*$/))) {
         i++;
-        out.push(`<figure class="spec-fig" data-fig="${figures++}"><figcaption>${inline(m[1], docUrls)}</figcaption><span class="fig-missing">Figure not packaged; re-run tools/extract_spec_exports.py.</span></figure>`);
+        out.push(`<figure class="spec-fig" data-fig="${figures++}"><figcaption>${inline(m[1], docUrls)}</figcaption><span class="fig-missing">Figure not packaged; see tools/extract_spec_exports.py.</span></figure>`);
         continue;
       }
 
@@ -330,11 +341,8 @@ const specReader = typeof document === "undefined" || document.body.dataset.page
       await Promise.all(Object.keys(DOCS).map(async (key) => {
         const entry = manifest.specs?.[key];
         if (!entry) return;
-        const [md, figs] = await Promise.all([
-          fetch(`specs/${entry.file}?v=${v}`).then((r) => r.text()),
-          entry.figures ? fetch(`specs/${entry.figures}?v=${v}`).then((r) => r.json()).catch(() => null) : null,
-        ]);
-        docs[key] = { ...SpecText.parse(md, urlToKey), md, figures: figs?.figures ?? [] };
+        const md = await fetch(`specs/${entry.file}?v=${v}`).then((r) => r.text());
+        docs[key] = { ...SpecText.parse(md, urlToKey), md };
       }));
     })().catch((e) => { loading = null; throw e; });
     return loading;
@@ -418,16 +426,9 @@ const specReader = typeof document === "undefined" || document.body.dataset.page
     const article = el("article", { class: "spec-doc", "data-doc": key });
     article.innerHTML = d.html;
 
-    // Figures: the packaged drawing (compiled from the doc by tools/render_spec_figures.js), else a link to the doc.
-    for (const fig of article.querySelectorAll("figure[data-fig]")) {
-      const drawn = d.figures[Number(fig.dataset.fig)]?.html;
-      if (!drawn) continue;
-      const art = el("div", { class: "fig-art" });
-      art.innerHTML = drawn;
-      fig.querySelector(".fig-missing")?.remove();
-      fig.prepend(art);
-      fig.classList.add("drawn");
-    }
+    // Figures: the SVG files beside the doc (written by tools/render_spec_figures.js), the same ones GitHub shows.
+    const v = encodeURIComponent(manifest?.packagedAt ?? "");
+    for (const img of article.querySelectorAll("img[data-fig-src]")) img.src = `specs/${img.dataset.figSrc}?v=${v}`;
     for (const a of article.querySelectorAll("a.doc-link")) a.href = href(a.dataset.doc);
     linkRefs(article, key);
 
