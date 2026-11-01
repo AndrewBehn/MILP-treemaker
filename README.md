@@ -145,6 +145,17 @@ After a solve, the **Toward a crease pattern** panel under the sheet checks whet
 
 If **Build the crease pattern** stays greyed out, the polygons aren't valid yet. **Find the strain needed** first solves two linear programs. One finds the smallest strain bound ±s that makes the hull's boundary pairs tight. Valid polygons need those pairs tight, so this is a lower bound, and when no strain manages it the button says so at once. The other finds the smallest bound that makes the whole triangulation tight, which is an upper bound. If tightening the boundary already gives valid polygons, that bound is the answer. Otherwise the button bisects between the two bounds with the closing MILP, to within 0.01. It then closes the polygons at the bound found.
 
+**Progress strip.** Every part of the app has a strip at the top: Tree → Solve a layout → Close the polygons → Crease pattern → Folded base.
+- Each card shows what the workbench holds for that step.
+- The first step not yet done is marked **next**, and the marker moves on by itself as soon as a step is satisfied.
+- The card for the part you're in is outlined. Click any card to go there.
+
+**How the closing went** (`history.js`) lists every state the workbench layout has been through on its way to valid polygons, oldest first. A solve or a layout file starts the list, and each stub added and each closing tried adds a row, so the page grows as you work.
+- Each row has a small drawing of the sheet and says what changed and what is still open.
+- The latest row says what to try next.
+- Every earlier row has **Start over from here**, which puts that state (layout, tree and closing) back on the workbench and drops the rows after it.
+- The sidebar lists the same steps in short, for a quick overview.
+
 **Add stubs** (`#/stubs`, `stubs.js`, optional; the map shows it under Close the polygons) splits an open polygon the TreeMaker way. A stub is a new short leaf edge hung from a joint of the tree, with its leaf inside the polygon. Its leaf goes on a grid point X, so the layout stays a grid layout. Hung from joint v, at the layout's scale m, the longest stub that keeps every pair feasible is ℓ = min over leaves a of (|X − P_a| / m − d(v, a)), and the leaves that reach that minimum are tight to it.
 - The node shows the same two widgets as the rest of the app. The tree editor is locked against edits: the proposed stub is a dashed edge, and clicking a joint hangs the stub there. On the sheet, the open region is outlined and the stub is drawn with its circle and its tight paths. Clicking a grid point inside the region moves the stub there.
 - **Find the best stub here** tries every joint and free grid point in the region. It prefers the most leaves tight, then the longest stub.

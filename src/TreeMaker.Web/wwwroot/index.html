@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=20261101m">
+  <link rel="stylesheet" href="styles.css?v=20261101n">
 </head>
 <body data-view="map">
   <!-- ───────────── Top bar: the way back to the map, where you are, and the workbench ───────────── -->
@@ -80,6 +80,10 @@
       <section class="block" data-nodes="close stubs creases fold">
         <h2>Starting point</h2>
         <div id="heldSummary" class="held-summary"></div>
+        <div id="historySide" class="hist-side" hidden>
+          <h3>Steps so far</h3>
+          <ol id="historyOverview"></ol>
+        </div>
         <div class="row gap-s wrap">
           <button id="stepOpenFile" class="quiet" type="button" title="Open a solved layout file (.json) to start from">Open a layout file…</button>
         </div>
@@ -337,6 +341,7 @@
 
     <!-- ───────────── Mat: the solve and its results ───────────── -->
     <main class="mat">
+      <nav id="flowStrip" class="flow-strip" aria-label="Progress through the workflow" hidden></nav>
       <div class="toolbar">
         <div id="analysis" class="analysis" aria-live="polite"></div>
         <div class="run">
@@ -396,6 +401,14 @@
       <nav id="nextBar" class="next-bar" hidden aria-label="Next step"></nav>
 
       <div class="tables">
+        <!-- The closing history (history.js): every state on the way to valid polygons, oldest first. -->
+        <section id="historyCard" class="slip wide history" hidden>
+          <div class="crease-head">
+            <h2>How the closing went</h2>
+            <span class="muted">Oldest first; the page grows as you go. Start over from any step.</span>
+          </div>
+          <ol id="historyList" class="hist-list"></ol>
+        </section>
         <section id="creaseCard" class="slip wide crease" hidden>
           <div class="crease-head">
             <h2>Toward a crease pattern</h2>
@@ -503,16 +516,17 @@
 
   <input id="fileInput" type="file" accept=".json,application/json" hidden>
 
-  <script src="nodes.js?v=20261101m"></script>
-  <script src="workbench.js?v=20261101m"></script>
-  <script src="tree-editor.js?v=20261101m"></script>
-  <script src="polygons.js?v=20261101m"></script>
-  <script src="stubs.js?v=20261101m"></script>
-  <script src="folded.js?v=20261101m"></script>
-  <script src="files.js?v=20261101m"></script>
-  <script src="solvers.js?v=20261101m"></script>
-  <script src="map.js?v=20261101m"></script>
-  <script src="specs.js?v=20261101m"></script>
-  <script src="app.js?v=20261101m"></script>
+  <script src="nodes.js?v=20261101n"></script>
+  <script src="workbench.js?v=20261101n"></script>
+  <script src="tree-editor.js?v=20261101n"></script>
+  <script src="polygons.js?v=20261101n"></script>
+  <script src="stubs.js?v=20261101n"></script>
+  <script src="history.js?v=20261101n"></script>
+  <script src="folded.js?v=20261101n"></script>
+  <script src="files.js?v=20261101n"></script>
+  <script src="solvers.js?v=20261101n"></script>
+  <script src="map.js?v=20261101n"></script>
+  <script src="specs.js?v=20261101n"></script>
+  <script src="app.js?v=20261101n"></script>
 </body>
 </html>

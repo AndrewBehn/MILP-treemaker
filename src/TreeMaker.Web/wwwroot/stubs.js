@@ -283,6 +283,8 @@ const stubTool = (() => {
       status: `${held.status ?? "Layout"} + stub ${name}`,
       stubs: [...(held.stubs ?? []), name],
       polygonsValid: undefined,
+      lid: undefined, parentLid: held.lid,
+      historyTitle: `Added stub ${name}: ℓ = ${fmt(c.len, 3)} from ${c.attach}, at (${c.x}, ${c.y}), tight to ${c.tight.join(", ")}`,
     };
     applyProblem(problem);
     workbench.setLayout(layout);

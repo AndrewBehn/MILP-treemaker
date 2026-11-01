@@ -1017,30 +1017,56 @@ function renderHeldSummary(box) {
   }));
 }
 
-/** The "next step" links under the sheet, from what the workbench now holds. */
+/**
+ * The progress strip at the top of every part of the app: tree → layout → polygons → crease pattern → folded base.
+ * Each card says what the workbench holds for that step; the first step not yet done is "Next", and the marker moves
+ * on by itself as soon as a step is satisfied. The card for where you are is outlined. (It replaces the old "Next,
+ * from the workbench" links under the sheet.)
+ */
 function renderNextBar() {
-  const bar = $("nextBar");
+  $("nextBar").hidden = true;
+  const strip = $("flowStrip");
   const node = state.node;
-  if (!node || node.kind === "tree") { bar.hidden = true; return; }
+  if (!node) { strip.hidden = true; return; }
+  strip.hidden = false;
   const wb = workbench;
-  const links = [];
-  if (wb.layout) {
-    if (node.id !== "close") links.push(["Close the polygons", "#/close", !wb.polygonsValid()]);
-    if (node.id === "close" && !wb.polygonsValid()) links.push(["Add stubs", "#/stubs", false]);
-    if (wb.polygonsValid() && node.id !== "creases") links.push(["Crease pattern", "#/creases", !wb.creases?.result?.built]);
-    if (wb.creases?.result?.built && node.id !== "fold") links.push(["Folded base", "#/fold", true]);
-  }
-  bar.hidden = !links.length;
-  const label = document.createElement("span");
-  label.className = "next-label";
-  label.textContent = "Next, from the workbench:";
-  bar.replaceChildren(label, ...links.map(([text, href, primary]) => {
+  const l = wb.layout;
+  const valid = wb.polygonsValid();
+  const built = !!wb.creases?.result?.built;
+  const leaves = wb.tree?.edges?.length ? treeInfo(wb.tree.edges).leaves.length : 0;
+  const steps = [
+    { key: "tree", title: "Tree", done: leaves > 0, href: "#/tree", text: leaves ? `${leaves} leaves · N ${wb.tree.gridSize}` : "Make a tree" },
+    {
+      key: "layout", title: "Solve a layout", done: !!l, href: l && NODES[l.node]?.kind === "solver" ? `#/${l.node}` : "#/tree",
+      text: l ? `${NODES[l.node]?.title ?? "File"} · m ${fmt(l.scale, 3)}` : "Pick a solver",
+    },
+    {
+      key: "polygons", title: "Close the polygons", done: valid, href: "#/close",
+      text: !l ? "Waits for a layout" : valid ? (wb.closure?.completion?.after?.valid ? `Closed ±${fmt(wb.closure.strainMax, 2)}` : "Valid as solved")
+        : `Open${l.stubs?.length ? ` · ${l.stubs.length} stub${l.stubs.length === 1 ? "" : "s"}` : ""}: close or add stubs`,
+    },
+    { key: "creases", title: "Crease pattern", done: built, href: "#/creases", text: built ? `${wb.creases.result.creases.length} creases` : valid ? "Ready to build" : "Waits for closed polygons" },
+    { key: "fold", title: "Folded base", done: built && node.id === "fold", href: "#/fold", text: built ? "Ready to view" : "Waits for a crease pattern" },
+  ];
+  const here = node.kind === "tree" ? "tree" : node.kind === "solver" ? "layout" : { close: "polygons", stubs: "polygons", creases: "creases", fold: "fold" }[node.id];
+  const next = steps.find((s) => !s.done)?.key ?? null;
+  const moved = state.flowNext !== undefined && state.flowNext !== next;
+  state.flowNext = next;
+  strip.replaceChildren(...steps.map((s, k) => {
     const a = document.createElement("a");
-    a.href = href;
-    a.className = primary ? "bench-go" : "quiet-link";
-    a.textContent = text + " →";
+    a.href = s.href;
+    a.className = "flow-step" + (s.done ? " done" : "") + (s.key === next ? " next" : "") + (s.key === here ? " here" : "") + (moved && s.key === next ? " arrived" : "");
+    if (s.key === here) a.setAttribute("aria-current", "step");
+    a.innerHTML = `<span class="fs-no"></span><span class="fs-body"><span class="fs-title"></span><span class="fs-text"></span></span>`;
+    a.querySelector(".fs-no").textContent = s.done ? "✓" : String(k + 1);
+    a.querySelector(".fs-title").textContent = s.title + (s.key === next ? " · next" : "");
+    a.querySelector(".fs-text").textContent = s.text;
     return a;
   }));
+  if (moved && next && next !== here) {
+    const target = steps.find((s) => s.key === next);
+    setStatus(`${steps[steps.findIndex((s) => s.key === next) - 1]?.title ?? "That step"} is done. Next: ${target.title} (top of the page).`);
+  }
 }
 
 // ───────────────────────── Tree node ─────────────────────────
@@ -1143,6 +1169,9 @@ function enterNode(id) {
   $("backToMap").hidden = false;
   window.scrollTo(0, 0);
   document.title = `${node.title} · TreeMaker`;
+  state.flowNext = undefined;   // entering a node is not "moving on"
+  renderNextBar();
+  closingHistory.render();
 
   // Header and crumbs: which spec this part of the app implements.
   const doc = nodeDoc(node);
@@ -1326,14 +1355,19 @@ async function init() {
   // The crease panel reports to the workbench.
   creaseReadiness.hooks.onReport = (report) => {
     if (workbench.layout && workbench.layout.polygonsValid !== report.valid) workbench.noteLayout({ polygonsValid: report.valid });
+    closingHistory.noteReport(report);
   };
-  creaseReadiness.hooks.onCompletion = (result, bounds) => workbench.setClosure({ ...bounds, completion: result });
+  creaseReadiness.hooks.onCompletion = (result, bounds) => {
+    workbench.setClosure({ ...bounds, completion: result });
+    closingHistory.noteClosing(result, bounds);
+  };
   creaseReadiness.hooks.onCreases = (creases) => workbench.setCreases(creases);
   workbench.onChange((slot) => {
     // A new layout: redraw the tree sketch to face the way the leaves sit on the sheet, unless it was arranged by hand.
     if (slot === "layout" && !treeUi.handPlaced) { resetTreeLayout(); renderTreePreview(); }
     renderShelf();
     renderNextBar();
+    closingHistory.render();
     if (state.node?.kind === "step") renderHeldSummary($("heldSummary"));
   });
 

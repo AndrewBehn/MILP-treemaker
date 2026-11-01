@@ -54,7 +54,8 @@ const workbench = (() => {
      * Clears the closure and the crease pattern, which belonged to the old layout.
      */
     setLayout(layout) {
-      data.layout = layout ? { ...layout, at: now() } : null;
+      // Every layout gets an id, kept when a layout is put back (closing history, history.js).
+      data.layout = layout ? { ...layout, lid: layout.lid ?? Math.random().toString(36).slice(2, 10), at: now() } : null;
       data.closure = null;
       data.creases = null;
       emit("layout");

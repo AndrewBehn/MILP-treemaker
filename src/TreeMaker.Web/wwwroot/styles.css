@@ -1114,3 +1114,63 @@ body[data-node="stubs"] #layoutView { cursor: crosshair; }
 .crease-views .btn-note { flex-basis: 100%; }
 .crease-views { flex-wrap: wrap; }
 .map-flow.side { fill: none; }
+
+/* The progress strip at the top of the work area (renderNextBar in app.js). */
+.flow-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; padding: 14px 32px 0; }
+.flow-step {
+  display: flex; gap: 10px; align-items: flex-start; padding: 9px 11px; border-radius: 8px; text-decoration: none;
+  background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .14); color: var(--mat-ink);
+  transition: background .2s, border-color .2s, transform .2s;
+}
+.flow-step:hover { background: rgba(255, 255, 255, .12); }
+.fs-no {
+  flex: none; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, .45); font-size: 12px; font-weight: 700;
+}
+.fs-body { display: flex; flex-direction: column; min-width: 0; }
+.fs-title { font-size: 13px; font-weight: 700; }
+.fs-text { font-size: 11.5px; color: var(--mat-ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.flow-step.done .fs-no { background: #a8e6c1; border-color: #a8e6c1; color: #12402a; }
+.flow-step.next { background: #fff; border-color: #fff; color: var(--ink); }
+.flow-step.next .fs-no { border-color: var(--beni); color: var(--beni); }
+.flow-step.next .fs-text { color: var(--ink-soft); }
+.flow-step.next .fs-title { color: var(--beni); }
+.flow-step.here { box-shadow: 0 0 0 2.5px #ff8095; }
+.flow-step.arrived { animation: flow-arrive 1.2s ease-out 1; }
+@keyframes flow-arrive { 0% { transform: translateY(-4px); box-shadow: 0 0 0 8px rgba(255, 128, 149, .6); } 100% { transform: none; } }
+@media (max-width: 1100px) { .flow-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* The closing history (history.js): one row per step, oldest first, and its overview in the sidebar. */
+.hist-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
+.hist-step { display: grid; grid-template-columns: 150px 1fr; gap: 16px; padding: 14px 0; border-top: 1px solid var(--rule); position: relative; }
+.hist-step:first-child { border-top: 0; }
+.hist-step.current { background: linear-gradient(90deg, rgba(194, 48, 74, .05), transparent 70%); }
+.hist-text { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.hist-text h3 { margin: 0; font-size: 14px; display: flex; gap: 8px; align-items: baseline; }
+.hist-no {
+  flex: none; display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--ink); color: #fff; font-size: 11.5px;
+}
+.hist-step.valid .hist-no { background: #23704a; }
+.hist-open { margin: 0; font-size: 13px; font-weight: 600; }
+.hist-open.ok { color: #1d6a45; }
+.hist-open.no { color: var(--beni); }
+.hist-next { font-size: 13px; }
+.hist-next a { color: var(--beni); font-weight: 650; }
+.hist-now { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--beni); }
+.hist-thumb { width: 150px; height: 150px; background: var(--paper); border-radius: 4px; }
+.hist-thumb .ht-sheet { fill: #fff; stroke: #c9cdc6; }
+.hist-thumb .ht-ok { fill: rgba(35, 112, 74, .18); }
+.hist-thumb .ht-bad { fill: rgba(194, 48, 74, .14); }
+.hist-thumb .ht-path { stroke: var(--ink); stroke-width: 1.6; }
+.hist-thumb .ht-missing { stroke: var(--beni); stroke-width: 1.8; stroke-dasharray: 3 3; }
+.hist-thumb .ht-leaf { fill: var(--ink); }
+.hist-thumb .ht-stub { fill: var(--beni); }
+.hist-side { margin-top: 12px; }
+.hist-side h3 { margin: 0 0 6px; font-size: 13px; }
+.hist-side ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; }
+.hist-side li a { display: block; padding: 4px 8px 4px 10px; border-left: 3px solid #cfd3cc; font-size: 12.5px; color: var(--ink); text-decoration: none; }
+.hist-side li.valid a { border-left-color: #23704a; }
+.hist-side li.open a { border-left-color: var(--beni); }
+.hist-side li.current a { font-weight: 700; background: #fff; }
+body[data-view="work"] #shelf { display: none; }
