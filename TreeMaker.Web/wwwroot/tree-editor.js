@@ -41,12 +41,14 @@ function fitLayout(raw, width, height) {
 /**
  * Bilateral layout for a tree with left–right mirror pairs (the centipedes): the body is a straight vertical
  * line, and each mirrored flap hangs off it on its own side, drawn as the exact mirror image of its partner.
- * The body is the path through the vertices halfway between each mirror pair (equal tree distance to both).
+ * The body is the path through the vertex halfway between each mirror pair (the middle of the path joining them).
  * Returns null when the pairs don't describe such a body, and the caller falls back to the radial layout.
+ * Used by the tree editor (a sketch: short body segments are spaced out) and by the folded base (`toScale`: the
+ * stick figure keeps the true edge lengths; `edges` and `lengths` are the base's own).
  */
-function bilateralLayout(info, mirrors) {
-  if (!mirrors.length || !isTree(info, state.edges)) return null;
-  const lengthOf = (edge) => Math.max(0.05, Number(state.edges[edge].length) || 0.05);
+function bilateralLayout(info, mirrors, { edges = state.edges, lengths = null, toScale = false } = {}) {
+  if (!mirrors.length || !isTree(info, edges)) return null;
+  const lengthOf = (edge) => Math.max(0.05, Number(lengths ? lengths[edge] : edges[edge].length) || 0.05);
   // Tree distances from a vertex, and the path between two vertices.
   const walk = (from) => {
     const dist = new Map([[from, 0]]), prev = new Map([[from, null]]);
@@ -63,10 +65,12 @@ function bilateralLayout(info, mirrors) {
   for (const { a, b } of mirrors) {
     if (!info.adjacency.has(a) || !info.adjacency.has(b)) continue;
     side.set(a, -1); side.set(b, +1);
-    const fromA = walk(a), fromB = walk(b);
-    for (let v = b; v != null; v = fromA.prev.get(v)) {
-      if (Math.abs(fromA.dist.get(v) - fromB.dist.get(v)) < 1e-9) axis.add(v);
-    }
+    // The body vertex between a pair is the middle vertex of the path joining them, counted in edges, so it
+    // doesn't move when strain makes the two sides' lengths differ slightly.
+    const { prev: back } = walk(a);
+    const path = [];
+    for (let v = b; v != null; v = back.get(v)) path.push(v);
+    if (path.length % 2 === 1) axis.add(path[(path.length - 1) / 2]);
   }
   if (!axis.size) return null;
   // The body: the smallest subtree joining the axis vertices. It must be a path to be drawn as a line.
@@ -77,7 +81,7 @@ function bilateralLayout(info, mirrors) {
   const ends = [...body].filter((v) => info.adjacency.get(v).filter(({ to }) => body.has(to)).length <= 1);
   if (ends.length > 2) return null;
   // Order the body from one end to the other; the end that appears first in the edge list is the head (top).
-  const firstIndex = (v) => state.edges.findIndex((e) => e.from === v || e.to === v);
+  const firstIndex = (v) => edges.findIndex((e) => e.from === v || e.to === v);
   const head = ends.length === 2 ? (firstIndex(ends[0]) <= firstIndex(ends[1]) ? ends[0] : ends[1]) : start;
   const spine = [head];
   const y = new Map([[head, 0]]);
@@ -99,13 +103,13 @@ function bilateralLayout(info, mirrors) {
       if (!fromBody.has(to)) { fromBody.set(to, fromBody.get(v) + lengthOf(edge)); queue.push(to); }
     }
   }
-  // Space the body out to at least 60% of a typical flap's reach, so short body segments between long legs
-  // don't stack the legs on top of each other. The drawing is a sketch of the tree, not to scale.
+  // Unless the drawing must be to scale (the folded base), space the body out to at least 60% of a typical
+  // flap's reach, so short body segments between long legs don't stack the legs on top of each other.
   const reaches = info.vertices.filter((v) => info.adjacency.get(v).length === 1).map((v) => fromBody.get(v)).sort((p, q) => p - q);
   const typical = reaches.length ? reaches[Math.floor(reaches.length / 2)] : 1;
   for (let k = 1; k < spine.length; k++) {
     const step = info.adjacency.get(spine[k - 1]).find(({ to }) => to === spine[k]).edge;
-    y.set(spine[k], y.get(spine[k - 1]) + Math.max(lengthOf(step), 0.6 * typical));
+    y.set(spine[k], y.get(spine[k - 1]) + (toScale ? lengthOf(step) : Math.max(lengthOf(step), 0.6 * typical)));
   }
   for (const v of spine) raw.set(v, [0, y.get(v)]);
   // Each flap: the subtree off a body vertex. Its side comes from its paired leaves; unpaired flaps go on the axis.
