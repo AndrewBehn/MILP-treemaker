@@ -78,17 +78,43 @@ const PRESETS = {
   ],
 };
 
-/** Left–right mirror pairs for the centipede presets: Lk ↔ Rk, and the antennae and tail pairs. */
-function presetMirrors(value, edges) {
-  if (!value.startsWith("centipede")) return [];
+/**
+ * The symmetry each bilateral preset is folded with (Pure MILP spec, Sections 7.3 and 7.4): its left–right mirror
+ * pairs, and the unpaired flaps (head, tail, stinger) that lie on the mirror line. Every pair has equal edge lengths
+ * in the preset, and every preset with axis leaves has an even grid size, as the axis condition needs.
+ */
+const PRESET_SYMMETRY = {
+  bird: { pairs: [["1", "2"], ["3", "4"], ["5", "6"]] },
+  beetle: { pairs: [["antL", "antR"], ["L1", "R1"], ["L2", "R2"], ["L3", "R3"]], axis: ["abd"] },
+  deer: { pairs: [["earL", "earR"], ["t1", "t3"], ["t2", "t4"], ["FL", "FR"], ["HL", "HR"]], axis: ["snt", "tail"] },
+  dragon: {
+    pairs: [["hnL", "hnR"], ["wL1", "wR1"], ["wL2", "wR2"], ["wL3", "wR3"], ["FL", "FR"], ["HL", "HR"]],
+    axis: ["snt", "tail"],
+  },
+  scorpion: {
+    pairs: [["pL1", "pR1"], ["pL2", "pR2"], ["L1", "R1"], ["L2", "R2"], ["L3", "R3"], ["L4", "R4"]],
+    axis: ["stg"],
+  },
+};
+
+/** A preset's mirror pairs and leaf conditions: the table above, or for the centipedes Lk ↔ Rk, antennae and cerci. */
+function presetSymmetry(value, edges) {
   const leaves = new Set(treeInfo(edges.map(([from, to, length]) => ({ from, to, length }))).leaves);
-  const pairs = [];
+  const known = PRESET_SYMMETRY[value];
+  if (known) {
+    return {
+      mirrors: known.pairs.filter(([a, b]) => leaves.has(a) && leaves.has(b)).map(([a, b]) => ({ a, b })),
+      conditions: Object.fromEntries((known.axis ?? []).filter((l) => leaves.has(l)).map((l) => [l, { kind: "OnSymmetryAxis", x: "", y: "" }])),
+    };
+  }
+  if (!value.startsWith("centipede")) return { mirrors: [], conditions: {} };
+  const mirrors = [];
   for (const leaf of leaves) {
     const m = /^L(\d+)$/.exec(leaf);
-    if (m && leaves.has("R" + m[1])) pairs.push({ a: leaf, b: "R" + m[1] });
+    if (m && leaves.has("R" + m[1])) mirrors.push({ a: leaf, b: "R" + m[1] });
   }
-  for (const [a, b] of [["antL", "antR"], ["cL", "cR"]]) if (leaves.has(a) && leaves.has(b)) pairs.push({ a, b });
-  return pairs;
+  for (const [a, b] of [["antL", "antR"], ["cL", "cR"]]) if (leaves.has(a) && leaves.has(b)) mirrors.push({ a, b });
+  return { mirrors, conditions: {} };
 }
 
 /** Each preset's grid size: the largest tested N at which every solver it is enabled in solves it within 60 s. */
@@ -1231,7 +1257,7 @@ async function init() {
     } else if (PRESETS[value]) {
       loadEdges(PRESETS[value]);
       if (PRESET_GRID[value]) $("gridSize").value = PRESET_GRID[value];
-      state.mirrors = presetMirrors(value, PRESETS[value]);
+      ({ mirrors: state.mirrors, conditions: state.conditions } = presetSymmetry(value, PRESETS[value]));
       // Redraw with the mirror pairs known, so the body is a straight line with a leg on each side.
       resetTreeLayout();
       renderLeafControls();

@@ -142,7 +142,18 @@ Whether a layout can be closed with small strains depends on which optimal layou
 **Load a preset** lists the same trees in every solver.
 
 - **Grid size.** Each preset sets its own grid size N: the largest tested N at which every solver that offers the preset solves it within the 60 s limit.
-- **Mirror pairs.** The centipede presets also load left–right mirror pairs: legs Lk ↔ Rk, and for the full centipede the antennae and the tail flaps.
+- **Symmetry.** Every bilateral preset loads the conditions it would be folded with (Pure MILP spec, Sections 7.3 and 7.4): left–right mirror pairs for its paired flaps, and the symmetry axis for its unpaired ones. They show in **Leaf conditions** and can be removed there.
+
+  | Preset | Mirror pairs | On the symmetry axis |
+  |---|---|---|
+  | Bird-base–like | 1 ↔ 2, 3 ↔ 4, 5 ↔ 6 | — |
+  | Centipedes | Lk ↔ Rk; for the full centipede also the antennae and the tail flaps | — |
+  | Beetle | antennae, legs L1–L3 ↔ R1–R3 | abdomen (abd) |
+  | Deer with antlers | ears, antler tines t1 ↔ t3 and t2 ↔ t4, fore and hind legs | snout (snt), tail |
+  | Dragon with wings | horns, wing fingers wL1–wL3 ↔ wR1–wR3, fore and hind legs | snout (snt), tail |
+  | Scorpion | pincer fingers pL1, pL2 ↔ pR1, pR2, legs L1–L4 ↔ R1–R4 | stinger (stg) |
+
+  The star, caterpillar and running-example presets have none.
 - **Greyed out.** A preset a solver cannot solve in reasonable time at any useful grid size is greyed out there, marked *too slow here; use the Scalable MILP*. The Tree node offers every preset.
 
 Times are to the 1% gap, at the preset's N. "off" means greyed out in that solver. The base model column covers Pure MILP and Symmetry-Breaking MILP; the optimized column covers Optimized MILP and Lattice-Hull MILP, which offer the same presets.
@@ -152,19 +163,21 @@ Times are to the 1% gap, at the preset's N. "off" means greyed out in that solve
 | Running example | 4 | 8 | 28 s | 0.1 s | under 1 s |
 | Star, 4 legs | 4 | 6 | 6 s | 0.1 s | under 1 s |
 | Star, 5 legs | 5 | 16 | off | 8 s | under 1 s |
-| Bird-base–like (centipede, 3 leg pairs) | 6 | 8 | off | 46 s | under 1 s |
+| Bird-base–like (centipede, 3 leg pairs) | 6 | 8 | off | 46 s ¹ | under 1 s |
 | Caterpillar | 6 | 10 | off | 25 s | under 1 s |
 | Centipede, 2 leg pairs (mirrored) | 4 | 12 | 6 s | 0.3 s | under 1 s |
 | Centipede, 4 leg pairs (mirrored) | 8 | 12 | off | 35 s | under 1 s |
 | Centipede, 5 leg pairs (mirrored) | 10 | 8 | off | 23 s | under 1 s |
 | Centipede, 6 leg pairs (mirrored) | 12 | 8 | off | 13 s | under 1 s |
 | Centipede, 8 leg pairs (mirrored) | 16 | 13 | off | off | under 1 s |
-| Beetle | 9 | 12 | off | off | under 1 s |
-| Deer with antlers | 12 | 12 | off | off | under 1 s |
-| Dragon with wings | 14 | 14 | off | off | about 1 s |
-| Scorpion | 13 | 14 | off | off | under 1 s |
+| Beetle (mirrored) | 9 | 12 | off | off | under 1 s ¹ |
+| Deer with antlers (mirrored) | 12 | 12 | off | off | under 1 s ¹ |
+| Dragon with wings (mirrored) | 14 | 14 | off | off | about 1 s ¹ |
+| Scorpion (mirrored) | 13 | 14 | off | off | under 1 s ¹ |
 | Centipede with antennae and tail (mirrored) | 18 | 16 | off | off | about 1 s |
 | Random, 25 / 50 / 100 leaves | 25 to 100 | about 3.2·√leaves | not listed | not listed | 1 to 3 s |
+
+¹ Timed before these presets loaded their mirror pairs and axis conditions. The conditions fix leaves and roughly halve the free ones, so they should only make the solves faster, but they can lower the best scale; the times and grid sizes have not been re-measured.
 
 The base and optimized times come from Python prototypes of their algorithms, with HiGHS standing in for SCIP. The prototypes swept N = 4, 6, 8, … for the optimized search, and N = 4, 5, 6, … for the base model. They are not timings of the C# solvers.
 
