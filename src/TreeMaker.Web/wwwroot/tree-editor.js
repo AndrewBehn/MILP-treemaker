@@ -528,6 +528,16 @@ function renderTreePreview() {
   const hover = treeUi.hover;
   const dragging = treeUi.drag;
 
+  // Leaf circles (on by default): each leaf's circle passes through the joint it hangs from, so its radius is the
+  // leaf edge as drawn. The sketch is not to scale, so the circles show each flap's reach, not the paper it needs.
+  if ($("treeCircles")?.checked !== false) {
+    for (const v of info.leaves) {
+      const [{ to } = {}] = info.adjacency.get(v) ?? [];
+      const a = px.get(v), b = px.get(to);
+      if (a && b) svg.append(el("circle", { cx: a[0], cy: a[1], r: Math.hypot(b[0] - a[0], b[1] - a[1]), class: "leaf-reach" }));
+    }
+  }
+
   // Edges: a wide invisible stroke for clicking, then the drawn edge.
   state.edges.forEach((e, index) => {
     const a = px.get(e.from.trim()), b = px.get(e.to.trim());
@@ -988,6 +998,12 @@ function followPointer(down, onMove, onEnd) {
 
 function initTreeEditor() {
   const svg = $("treeView");
+  const circles = $("treeCircles");
+  try { circles.checked = localStorage.getItem("treemaker.treeCircles") !== "off"; } catch { /* default: on */ }
+  circles.addEventListener("change", () => {
+    try { localStorage.setItem("treemaker.treeCircles", circles.checked ? "on" : "off"); } catch { /* not kept */ }
+    renderTreePreview();
+  });
 
   // Vertex drags. Moves and the release are followed on the window rather than through pointer capture, which
   // behaves differently across Safari, Firefox and Chrome and is lost when the drawing is redrawn mid-drag.

@@ -1174,3 +1174,5 @@ body[data-node="stubs"] #layoutView { cursor: crosshair; }
 .hist-side li.open a { border-left-color: var(--beni); }
 .hist-side li.current a { font-weight: 700; background: #fff; }
 body[data-view="work"] #shelf { display: none; }
+.tree-view .leaf-reach { fill: rgba(194, 48, 74, .045); stroke: rgba(194, 48, 74, .32); stroke-width: 1; stroke-dasharray: 3 4; pointer-events: none; }
+.small-check { font-size: 12px; gap: 5px; margin-right: 6px; }
