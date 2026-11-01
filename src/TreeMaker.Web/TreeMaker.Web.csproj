@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>TreeMaker.Web</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TreeMaker.Core\TreeMaker.Core.csproj" />
+    <ProjectReference Include="..\TreeMaker.Pure\TreeMaker.Pure.csproj" />
+    <ProjectReference Include="..\TreeMaker.Optimized\TreeMaker.Optimized.csproj" />
+    <ProjectReference Include="..\TreeMaker.Scalable\TreeMaker.Scalable.csproj" />
+  </ItemGroup>
+
+</Project>

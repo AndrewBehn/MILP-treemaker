@@ -1,5 +1,5 @@
 # Mock of the TreeMaker app's API, for testing the front end in a browser without .NET. Geometry is real (exact
-# distances, hull); solving is fake. Usage: python3 tools/mock_api.py 5099 TreeMaker.Web/wwwroot
+# distances, hull); solving is fake. Usage: python3 tools/mock_api.py 5099 src/TreeMaker.Web/wwwroot
 import json, math, sys, time, random
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from functools import partial

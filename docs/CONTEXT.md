@@ -30,20 +30,20 @@ The owner's next aim was to scale to about 100 leaves and to get foldable soluti
 
 To edit a doc, use the Claude Docs tools with container `{"kind":"project","id":"<slug>"}` and ref `{"object":"node","id":"<tab node>"}`. Its source must be read before it is republished.
 
-**Packaged copies.** Since 1 November 2026 the app carries a copy of every doc (`TreeMaker.Web/wwwroot/specs/`) and shows it on its own docs page, opened in a separate tab (README.md, "The specs, in the app"). The copies at that date: Pure rev 40, Symmetry-Breaking rev 16, Lattice-Hull rev 27, Optimized rev 44, Scalable rev 48, Polygon Closing rev 14, Crease Pattern rev 12 (`manifest.json`). The figures (45: 20, 6, 10, 8, 1, 0, 0) are compiled from each figure node's JSX source to static SVG; the docs' Markdown export drops them. CLAUDE.md has the refresh steps.
+**Packaged copies.** Since 1 November 2026 the app carries a copy of every doc (`src/TreeMaker.Web/wwwroot/specs/`) and shows it on its own docs page, opened in a separate tab (README.md, "The specs, in the app"). The copies at that date: Pure rev 40, Symmetry-Breaking rev 16, Lattice-Hull rev 27, Optimized rev 44, Scalable rev 48, Polygon Closing rev 14, Crease Pattern rev 12 (`manifest.json`). The figures (45: 20, 6, 10, 8, 1, 0, 0) are compiled from each figure node's JSX source to static SVG; the docs' Markdown export drops them. CLAUDE.md has the refresh steps.
 
 ## The app
 
 Since 31 October 2026 there is one app, `TreeMaker.Web` (port 5080), in place of the three separate apps (ports 5080, 5081 and 5082). Its first screen is a map of the specs and the steps after them; each box opens the matching part of the app, and a workbench carries the tree, the layout, the closed polygons and the crease pattern from one part to the next. README.md, "The map" and "The workbench", has the details.
 
-| Map node | Library | What it does |
+| Map node | Project | What it does |
 |---|---|---|
-| Pure MILP | `PureMilpTreeMaker/` | The base model as one MILP: one binary per pair and grid offset, solved with SCIP. It also has edge optimization (common stretch) and strain optimization. |
-| Symmetry-Breaking MILP | `PureMilpTreeMaker/` | The base model with C:5 (anchor leaf in the fundamental domain) and C:6 (siblings in order), via `ProblemSpec.SymmetryBreaking`. `SymmetryBreaking.cs` moved into the base library on 31 October so that both families use it. |
-| Lattice-Hull MILP | `OptimizedMilpTreeMaker/` | Lattice hulls (one binary per hull facet) and bisection over candidate scales √s/ℓ, with incremental solving, and symmetry breaking locked off. |
-| Optimized MILP | `OptimizedMilpTreeMaker/` | The same, with symmetry breaking. |
-| Scalable MILP | `ScalableMilpTreeMaker/` | No optimality proof; meant for 25 to 100 leaves. Four stages, listed below. |
-| Close the polygons, Crease pattern, Folded base | `PureMilpTreeMaker/` | The steps after any solver, specified (31 October) in Polygon Closing TreeMaker and Crease Pattern TreeMaker. |
+| Pure MILP | `src/TreeMaker.Pure/` | The base model as one MILP: one binary per pair and grid offset, solved with SCIP. It also has edge optimization (common stretch) and strain optimization. |
+| Symmetry-Breaking MILP | `src/TreeMaker.Pure/` (rows), `src/TreeMaker.Core/SymmetryBreaking.cs` | The base model with C:5 (anchor leaf in the fundamental domain) and C:6 (siblings in order), via `ProblemSpec.SymmetryBreaking`. `SymmetryBreaking.cs` is shared, so both families use it. |
+| Lattice-Hull MILP | `src/TreeMaker.Optimized/` | Lattice hulls (one binary per hull facet) and bisection over candidate scales √s/ℓ, with incremental solving, and symmetry breaking locked off. |
+| Optimized MILP | `src/TreeMaker.Optimized/` | The same, with symmetry breaking. |
+| Scalable MILP | `src/TreeMaker.Scalable/` | No optimality proof; meant for 25 to 100 leaves. Four stages, listed below. |
+| Close the polygons, Crease pattern, Folded base | `src/TreeMaker.Core/` | The steps after any solver, specified (31 October) in Polygon Closing TreeMaker and Crease Pattern TreeMaker. |
 
 The scalable pipeline's stages:
 1. Continuous layout by sequential LP (GLOP).
@@ -51,7 +51,7 @@ The scalable pipeline's stages:
 3. Large neighbourhood search over collision and subtree windows.
 4. A foldability finish: CP-SAT maximization of tight pairs, then a SCIP closing MILP with the leaves still free to move, polished by an LP.
 
-Shared library code in `PureMilpTreeMaker/src/PureMilpTreeMaker` (every solver uses it):
+Shared library code in `src/TreeMaker.Core` (every solver uses it; on 1 November it moved out of the base solver's project, and the repository took its `src/` and `tests/` layout):
 - `ActivePaths`: the polygon validity test.
 - `PolygonCompletion`: closing the polygons by strain, with the leaves fixed.
 - `StrainNeeded`: the strain LPs behind **Find the strain needed**.
@@ -91,4 +91,4 @@ Shared library code in `PureMilpTreeMaker/src/PureMilpTreeMaker` (every solver u
 
 ## Testing the front end without .NET
 
-`tools/mock_api.py` serves `TreeMaker.Web/wwwroot` and answers every API route with real geometry (exact distances, the hull, tight pairs) and fake solves. `tools/ui_flow.js` drives Chrome through the map, a solve, the three steps, a second solver starting from the workbench layout, and a reload. `tools/ui_reader.js` checks the docs tab: opening it from the map and from a part of the app, reusing one tab, every doc with its figures and typeset maths, links within and between docs and back to the app's tab, and the app keeping a solve's results. On 1 November both passed with no page errors; the C# behind the same routes has not been compiled yet.
+`tools/mock_api.py` serves `src/TreeMaker.Web/wwwroot` and answers every API route with real geometry (exact distances, the hull, tight pairs) and fake solves. `tools/ui_flow.js` drives Chrome through the map, a solve, the three steps, a second solver starting from the workbench layout, and a reload. `tools/ui_reader.js` checks the docs tab: opening it from the map and from a part of the app, reusing one tab, every doc with its figures and typeset maths, links within and between docs and back to the app's tab, and the app keeping a solve's results. On 1 November both passed with no page errors; the C# behind the same routes has not been compiled yet.

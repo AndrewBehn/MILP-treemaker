@@ -19,7 +19,7 @@ dotnet build
 dotnet test
 ```
 
-The root project, `TreeMaker.csproj`, is only the entry point: it compiles nothing itself, builds the app (`TreeMaker.Web`), the three solver libraries and their three test projects, runs the app, and hands `dotnet test` to the test projects. Open it in an IDE to get all of them.
+The root project, `TreeMaker.csproj`, is only the entry point: it compiles nothing itself; it builds the app (`src/TreeMaker.Web`), the shared library and the three solvers (`src/`) and their four test projects (`tests/`), runs the app, and hands `dotnet test` to the test projects. Open it in an IDE to get all of them.
 
 ## The map
 
@@ -39,7 +39,7 @@ The first screen is a map of the specs and the steps after them, drawn like the 
 
 Every box links its spec. The step specs are Polygon Closing TreeMaker (which builds on Pure MILP, cites Scalable MILP and hands off to Crease Pattern) and Crease Pattern TreeMaker (which builds on Polygon Closing and Pure MILP); their references follow the pipeline arrows. The solver boxes sit in one frame with the references between their specs drawn as in the document graph: the four derived specs build on Pure MILP, Pure MILP hands off to Optimized MILP, Lattice-Hull MILP cites Symmetry-Breaking MILP, and Scalable MILP cites Optimized MILP. Each solver box also says whether it suits the tree in the editor, from the timings below.
 
-The node definitions are in `TreeMaker.Web/wwwroot/nodes.js`. What a solver family sends and shows is in `solvers.js`; the map is `map.js`.
+The node definitions are in `src/TreeMaker.Web/wwwroot/nodes.js`. What a solver family sends and shows is in `solvers.js`; the map is `map.js`.
 
 ## The specs, in the app
 
@@ -52,7 +52,7 @@ All seven specification documents are packaged with the app and served by it, so
 - **Links.** The docs tab's address holds the passage, such as `docs.html#/scalable:A-4`, so a link to it can be shared. The live docs on claude.ai are only where the specs are written; reading them here needs no network and no claude.ai account.
 - **Keeping them current.** The packaged copies are `wwwroot/specs/*.md` (text) and `*.figures.json` (figures), with `manifest.json` recording each doc's revision. They are refreshed from the live docs with `tools/extract_spec_exports.py` (CLAUDE.md, "Specification documents", has the steps). The docs tab shows the revision and export date of the copy it shows.
 
-The docs page is `TreeMaker.Web/wwwroot/docs.html`, driven by `specs.js`.
+The docs page is `src/TreeMaker.Web/wwwroot/docs.html`, driven by `specs.js`.
 
 ## The workbench
 
@@ -70,16 +70,18 @@ The workbench holds what carries over from one part of the app to the next. The 
 - **Leaving during a solve.** A solve keeps running if you go back to the map. Its layout goes on the workbench when it finishes. One solve runs at a time, in any solver.
 - **Kept between visits.** The workbench is stored in the browser (`localStorage`). It survives a reload, and **Clear** on a card empties that slot.
 
-The workbench is `TreeMaker.Web/wwwroot/workbench.js`.
+The workbench is `src/TreeMaker.Web/wwwroot/workbench.js`.
 
 ## Where the code is
 
 | Folder | Contents |
 |---|---|
-| `TreeMaker.Web/` | The app: `Program.cs` maps the API groups; `Pure/`, `Optimized/` and `Scalable/` hold each solver family's request shapes and endpoints; `Shared/` holds the steps after a solve and the one-solve-at-a-time coordinator; `wwwroot/` is the page, with the packaged specs in `wwwroot/specs/`. |
-| `PureMilpTreeMaker/` | The base library: the tree, definitions, base model (with optional symmetry breaking), layout checks, polygons, closing, strain LPs, crease pattern. Its tests. |
-| `OptimizedMilpTreeMaker/` | Lattice hulls, candidate scales, bisection and incremental generation. Its tests. |
-| `ScalableMilpTreeMaker/` | The four-stage pipeline. Its tests. |
+| `src/TreeMaker.Web/` | The app: `Program.cs` maps the API groups; `Shared/` holds the request shapes every solver shares, the steps after a solve and the one-solve-at-a-time coordinator; `Pure/`, `Optimized/` and `Scalable/` hold each solver's own options and endpoints; `wwwroot/` is the page, with the packaged specs in `wwwroot/specs/`. |
+| `src/TreeMaker.Core/` | Shared by every solver and the app: the tree, definitions, the problem, layout checks, symmetry breaking, polygons and closing, strain LPs, the crease pattern, and the running example. |
+| `src/TreeMaker.Pure/` | The base model (Pure MILP and Symmetry-Breaking MILP) and its model-size predictor. |
+| `src/TreeMaker.Optimized/` | Lattice hulls, candidate scales, bisection and incremental generation (Optimized MILP and Lattice-Hull MILP). |
+| `src/TreeMaker.Scalable/` | The four-stage pipeline (Scalable MILP). |
+| `tests/` | One xUnit project per library: `TreeMaker.Core.Tests`, `TreeMaker.Pure.Tests`, `TreeMaker.Optimized.Tests`, `TreeMaker.Scalable.Tests`. |
 | `tools/` | Packaging the specs (`extract_spec_exports.py`, `render_spec_figures.js`) and front-end checks without .NET (`mock_api.py`, `ui_flow.js`, `ui_reader.js`). |
 
 ## The tree editor
@@ -95,12 +97,13 @@ Every solver and the Tree node use the same editor, `tree-editor.js`.
 - **Pure MILP and Symmetry-Breaking MILP only:** click an edge to add it to, or remove it from, the stretch set S, which edge optimization uses.
 - **Layout.** **Tidy** lays the tree out again. **Enlarge** opens the editor nearly full screen.
 - **Mirrored trees.** A tree with mirror pairs, such as the centipede presets, is drawn bilaterally: the body is a straight vertical line and each leg sits on its own side, opposite its partner. The longest flaps at the head and tail (antennae, cerci) point forward and back. The drawing is a sketch, not to scale: short body segments are spaced out so the legs don't overlap. The mirror pairs themselves make every solver place each pair symmetrically about the sheet's vertical axis, x_a + x_b = N. The folded base draws its stick figure the same way, to scale: the body straight and each leg opposite its partner.
+- **Facing the sheet.** Once there is a layout on the workbench for this tree, the tree drawing and the folded base turn to face the way the leaves sit on the sheet: a centipede's head points where its first legs landed, and left and right match the crease pattern. A tree without mirror pairs is turned by the rotation (or mirror image) that best matches its leaves' directions. A drawing you've arranged by dragging stays as you left it; **Tidy** re-orients it.
 
 The server tells the browser not to cache the page, and the scripts are versioned, so an updated app always loads its new scripts.
 
 ## Toward a crease pattern (the steps after a solve)
 
-After a solve, the **Toward a crease pattern** panel under the sheet checks whether the layout can carry a crease pattern. The same panel (`polygons.js`) is the Close the polygons and Crease pattern nodes of the map, each showing its own part of it, and it runs the library code in `PureMilpTreeMaker/src/PureMilpTreeMaker`.
+After a solve, the **Toward a crease pattern** panel under the sheet checks whether the layout can carry a crease pattern. The same panel (`polygons.js`) is the Close the polygons and Crease pattern nodes of the map, each showing its own part of it, and it runs the code in `src/TreeMaker.Core`.
 
 1. **Check the polygons** (`ActivePaths`, `POST /api/polygons`). TreeMaker's universal-molecule construction needs the tight pairs (active paths) to divide the leaves' convex hull into polygons. Each polygon must be convex, bounded by tight paths, and empty of leaves. The panel lists what's missing: open boundary pieces, crossing paths, non-convex polygons, leaves inside a polygon, and uncovered area. The polygons are drawn on the sheet: valid ones are shaded, invalid ones hatched, and the missing boundary is dotted.
 2. **Close the polygons** (`PolygonCompletion`, `POST /api/complete`). The leaves and the scale stay fixed. The edge lengths change (strain σₑ within your bounds) so the pairs of a triangulation that keeps the existing tight pairs become exactly tight, and every other pair still fits. Boundary pairs come first, since the polygons cannot cover the hull without them. A second solve then uses the least total strain. **Use these lengths in the tree** copies the new lengths into the editor.
