@@ -24,7 +24,7 @@ const treeUi = {
 };
 
 /** In the Add stubs node the tree is the workbench layout's: it can be looked at and rearranged, not edited. */
-const treeLocked = () => document.body.dataset.node === "stubs";
+const treeLocked = () => ["stubs", "close", "creases", "fold"].includes(document.body.dataset.node);
 
 // ───────────────────────── Leaf conditions on the drawing ─────────────────────────
 // The same state as the sidebar's Leaf conditions table and Mirror pairs (state.conditions, state.mirrors), set by
@@ -99,6 +99,7 @@ function vertexClicked(v) {
   const info = treeInfo(state.edges);
   const leaf = info.leaves.includes(v);
   if (treeLocked()) {
+    if (document.body.dataset.node !== "stubs") { linked.pin(leaf ? v : null); return; }
     if (!stubTool.jointClicked(v)) say(leaf ? "A stub hangs from a joint: click a vertex with two or more edges." : "Pick an open region first.");
     return;
   }
@@ -550,7 +551,7 @@ function renderTreePreview() {
       : `${e.from}–${e.to}: click to ${e.stretch ? "remove from" : "add to"} the stretch set S`;
     hit.append(title);
     svg.append(
-      el("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], class: "edge" + (e.stretch ? " stretch" : "") + (target ? " target" : "") }),
+      el("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], class: "edge" + (e.stretch ? " stretch" : "") + (target ? " target" : ""), "data-edge-line": index }),
       hit,
     );
   });
@@ -672,6 +673,7 @@ function renderTreePreview() {
   const msg = $("treeMessage");
   msg.textContent = treeUi.message;
   msg.hidden = !treeUi.message;
+  linked.apply();
 }
 
 function binRect() {

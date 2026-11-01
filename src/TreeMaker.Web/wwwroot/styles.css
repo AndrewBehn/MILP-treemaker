@@ -1176,3 +1176,44 @@ body[data-node="stubs"] #layoutView { cursor: crosshair; }
 body[data-view="work"] #shelf { display: none; }
 .tree-view .leaf-reach { fill: rgba(194, 48, 74, .045); stroke: rgba(194, 48, 74, .32); stroke-width: 1; stroke-dasharray: 3 4; pointer-events: none; }
 .small-check { font-size: 12px; gap: 5px; margin-right: 6px; }
+
+/* ───────────── One widget: the tree beside the sheet (index.html .duo, linked.js) ───────────── */
+.app { grid-template-columns: 420px minmax(0, 1fr); }
+.stage-area { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.duo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.duo:has(> #resultCard[hidden]) { grid-template-columns: minmax(0, 1fr); }
+.duo-tree { background: var(--panel); color: var(--ink); border-radius: 8px; padding: 14px 16px 6px; box-shadow: 0 10px 22px rgba(10, 30, 22, .28); }
+.duo-tree .block-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.duo-tree .block-head h2 { margin: 0; }
+.duo-tree .block-head .row { flex-wrap: wrap; }
+.duo-tree #preset { max-width: 190px; }
+.duo .tree-view { height: auto; aspect-ratio: 1 / 1; max-height: 680px; }
+.duo .tree-stage.expanded .tree-view { aspect-ratio: auto; max-height: none; }
+body[data-kind="step"] .duo-tree .block-head .row, body[data-kind="step"] .tree-tools .drag-chip, body[data-kind="step"] .tree-tools .chip-label { display: none; }
+#stageArea > #metricsCard { position: static; }
+#stageArea > #metricsCard .metrics { display: flex; flex-wrap: wrap; gap: 8px 36px; }
+#stageArea > #metricsCard .metric-group { min-width: 220px; flex: 1; }
+
+/* What the sheet shows: one row of toggles above it. */
+.layer-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 10px; }
+.layer-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--mat-ink-soft); margin-right: 4px; }
+.layer { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px 0 8px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, .25); font-size: 12.5px; font-weight: 600; color: var(--mat-ink); cursor: pointer; }
+.layer[hidden] { display: none; }
+.layer:has(input:checked) { background: rgba(255, 255, 255, .92); color: var(--ink); border-color: #fff; }
+.layer input { accent-color: var(--beni); margin: 0; }
+
+/* Shared highlight: the rest fades, what you point at stands out in both drawings. */
+#layoutView.has-lit .leaf:not(.lit), #layoutView.has-lit .leaf-label:not(.lit) { opacity: .35; }
+#layoutView.has-lit .pair:not(.lit) { opacity: .25; }
+#layoutView .leaf.lit { fill: var(--beni); }
+#layoutView .leaf-label.lit { fill: var(--beni); }
+#layoutView .leaf-circle.lit { fill: rgba(194, 48, 74, .14); stroke: var(--beni); stroke-width: 2; }
+#layoutView .pair.lit { stroke: var(--beni); stroke-width: 5; opacity: 1; }
+#layoutView .pair { pointer-events: stroke; cursor: help; }
+#layoutView .pair.loose { pointer-events: none; }
+#layoutView .leaf, #layoutView .leaf-label { cursor: pointer; }
+#treeView.has-lit .edge:not(.lit-path) { opacity: .35; }
+#treeView .edge.lit-path { stroke: var(--beni); stroke-width: 5; opacity: 1; }
+#treeView .vertex-group.lit .vertex { fill: var(--beni); stroke: var(--beni); }
+#treeView .vertex-group.lit .vertex-label { fill: var(--beni); }
+@media (max-width: 1250px) { .duo { grid-template-columns: minmax(0, 1fr); } }

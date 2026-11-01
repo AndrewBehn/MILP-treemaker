@@ -304,6 +304,8 @@ const creaseReadiness = (() => {
     const showCreases = !!ui.creases?.result?.built && q("showCreases").checked;
     q("polyKeys").hidden = true;
     q("polyTodo").hidden = true;
+    document.querySelector('[data-layer="polygons"]').hidden = !current();
+    document.querySelector('[data-layer="creases"]').hidden = !ui.creases?.result?.built;
     if (!report || !ui.context || (!showPolygons && !showCreases)) return;
     const n = ui.context.gridSize;
     const unit = (SIZE - 2 * PAD) / n;

@@ -672,7 +672,7 @@ function renderLayout(r, request) {
         const p = position.get(leaf);
         if (!p) continue;
         const length = lengths.get(i) ?? e.length;
-        g.append(el("circle", { cx: X(p.x), cy: Y(p.y), r: r.scale * length * unit, class: "leaf-circle" }));
+        g.append(el("circle", { cx: X(p.x), cy: Y(p.y), r: r.scale * length * unit, class: "leaf-circle", "data-leaf": leaf }));
       }
     });
     svg.append(g);
@@ -684,7 +684,7 @@ function renderLayout(r, request) {
     if (!p.tight && !showAll) continue;
     const a = position.get(p.a), b = position.get(p.b);
     if (!a || !b) continue;
-    const line = el("line", { x1: X(a.x), y1: Y(a.y), x2: X(b.x), y2: Y(b.y), class: "pair " + (p.tight ? "tight" : "loose") });
+    const line = el("line", { x1: X(a.x), y1: Y(a.y), x2: X(b.x), y2: Y(b.y), class: "pair " + (p.tight ? "tight" : "loose"), "data-a": p.a, "data-b": p.b });
     line.style.setProperty("--len", Math.hypot(X(a.x) - X(b.x), Y(a.y) - Y(b.y)).toFixed(1));
     const title = el("title");
     title.textContent = `${p.a}–${p.b}: D = ${fmt(p.distance, 4)}, required ${fmt(p.required, 4)}, slack ${fmt(p.slack, 4)}`;
@@ -693,7 +693,7 @@ function renderLayout(r, request) {
   }
 
   r.layout.forEach((p, i) => {
-    const dot = el("circle", { cx: X(p.x), cy: Y(p.y), r: 7, class: "leaf", style: `--i:${i}` });
+    const dot = el("circle", { cx: X(p.x), cy: Y(p.y), r: 7, class: "leaf", style: `--i:${i}`, "data-leaf": p.leaf });
     const title = el("title");
     title.textContent = `${p.leaf} at (${p.x}, ${p.y})`;
     dot.append(title);
@@ -701,11 +701,12 @@ function renderLayout(r, request) {
     const right = p.x > N * 0.85, top = p.y > N * 0.9;
     const label = el("text", {
       x: X(p.x) + (right ? -11 : 11), y: Y(p.y) + (top ? 20 : -11),
-      "text-anchor": right ? "end" : "start", class: "leaf-label", style: `--i:${i}`,
+      "text-anchor": right ? "end" : "start", class: "leaf-label", style: `--i:${i}`, "data-leaf": p.leaf,
     });
     label.textContent = p.leaf;
     svg.append(dot, label);
   });
+  linked.apply();
 }
 
 function renderMessages(v) {
@@ -937,9 +938,9 @@ async function showStep(node) {
   const held = workbench.layout;
   const summary = $("heldSummary");
   renderHeldSummary(summary);
-  $("stageArea").hidden = false;
+  $("resultCard").hidden = false;
   if (!held) {
-    $("stageArea").hidden = true;
+    $("resultCard").hidden = true;
     showNeed("No layout on the workbench yet", "Every step after a solve starts from a layout. Solve the tree with one of the layout solvers, or open a layout file.",
       [["Pick a solver on the map", "#/", true], ["Edit the tree", "#/tree"]]);
     return;
@@ -968,14 +969,22 @@ async function showStep(node) {
     renderPairs(v);
     const context = { problem: held.problem, gridSize: held.gridSize, layout: v.layout, scale: v.scale, edgeLengths: held.edgeLengths ?? null };
     if (node.id !== "fold" || workbench.creases?.result?.built) {
-      creaseReadiness.focus(node.step);
+      // Close, Crease pattern and Folded base are one page: the whole panel, scrolled to this node's part.
+      creaseReadiness.focus(node.id === "stubs" ? "stubs" : "all");
       await creaseReadiness.restore(context, heldSteps());
       if (node.id === "stubs" && seq === state.viewSeq) stubTool.show(held, creaseReadiness._state.before);
+      if (seq === state.viewSeq) scrollToStep(node.id);
     }
     renderNextBar();
   } catch (e) {
     if (seq === state.viewSeq) { console.error(e.stack); setStatus("Could not show the workbench layout: " + e.message, "error"); }
   }
+}
+
+/** Close the polygons, Crease pattern and Folded base share one page; each scrolls to its own part of it. */
+function scrollToStep(id) {
+  const target = { creases: document.querySelector(".crease-build"), fold: $("foldCard") }[id];
+  if (target && !target.closest("[hidden]")) target.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function renderHeldMetrics(held, v) {
@@ -1170,6 +1179,7 @@ function enterNode(id) {
   window.scrollTo(0, 0);
   document.title = `${node.title} · TreeMaker`;
   state.flowNext = undefined;   // entering a node is not "moving on"
+  linked.reset();
   renderNextBar();
   closingHistory.render();
 
@@ -1208,6 +1218,8 @@ function enterNode(id) {
     : "Drag vertices to move them, or onto another vertex to re-attach. Click a leaf to pin it to an edge, a corner or the axis, or to mirror it with another leaf. Click a length to edit it, double-click a vertex to rename it.";
   if (node.id === "stubs") {
     $("treeHelp").textContent = "The workbench layout's tree, locked: edit the tree in the Tree node. The dashed edge is the proposed stub; click a joint to hang it there, click it again to let the search choose.";
+  } else if (node.kind === "step") {
+    $("treeHelp").textContent = "The workbench layout's tree, locked: edit it in the Tree node. Point at a leaf here or on the sheet to see it in both; point at a pair on the sheet to see the tree path it measures. Click a leaf to keep it lit.";
   }
   if (node.lockOptions?.symmetryBreaking === false) {
     $("optSymmetry").checked = false;
@@ -1232,11 +1244,11 @@ function enterNode(id) {
   renderTreePreview();
   renderShelf();
   if (node.kind === "solver") {
-    $("stageArea").hidden = false;
+    $("resultCard").hidden = false;
     scheduleAnalyze();
     showHeldOnSolver();
   } else if (node.kind === "tree") {
-    $("stageArea").hidden = true;
+    $("resultCard").hidden = true;
     renderTreeStats();
     renderPick();
   } else {
@@ -1348,6 +1360,7 @@ async function init() {
   });
   creaseReadiness.init();
   stubTool.init();
+  linked.init();
   creaseReadiness.hooks.afterDraw = () => stubTool.draw();
   foldedView.init();
   appMap.init();

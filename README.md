@@ -105,7 +105,18 @@ The workbench is `src/TreeMaker.Web/wwwroot/workbench.js`.
 
 ## The tree editor
 
-Every solver and the Tree node use the same editor, `tree-editor.js`.
+Every part of the app shows the tree and the sheet side by side, as one widget: the tree editor (`tree-editor.js`) on the left and the sheet on the right. What you point at in one lights up in the other (`linked.js`):
+- Point at a leaf on either side: the leaf, its circle and its tight pairs on the sheet, and its edge in the tree.
+- Point at a tight pair on the sheet: the path between its two leaves in the tree, which is the path whose length sets that pair's spacing.
+- Click a leaf on the sheet to keep it lit.
+
+A row of toggles above the sheet chooses what it shows: leaf circles, every pair and, once they exist, the polygons and the creases.
+
+In the steps after a layout (Close the polygons, Add stubs, Crease pattern, Folded base), the tree is the workbench layout's, and it is locked. Edit it in the Tree node or a solver.
+
+Close the polygons, Crease pattern and Folded base are one page. Each map box opens it at its own part.
+
+The editor works the same everywhere it can edit.
 
 - **Add a leaf.** Drag the **Leaf** chip onto a vertex, or onto an edge to branch from its midpoint.
 - **Split an edge.** Drag the **Joint** chip onto the edge.
