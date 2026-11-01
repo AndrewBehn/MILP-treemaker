@@ -2,6 +2,24 @@
 
 One app for TreeMaker's circle-packing problem on an N × N grid, with every specification and the steps after it in one place. It is a C# / .NET 10 ASP.NET Core app with a browser UI that runs in the same process as the solvers (SCIP, GLOP and CP-SAT through Google OR-Tools).
 
+## The specs
+
+Every part of the app implements one of these model and algorithm specifications. Read them in the running app (**Specs ↗**, with figures and typeset maths), in the repository as Markdown, or as the live documents on claude.ai, where they are written.
+
+| Spec | What it specifies | In the app (map node) | Code | Read it |
+|---|---|---|---|---|
+| [Pure MILP TreeMaker](src/TreeMaker.Web/wwwroot/specs/pure.md) | The base model: TreeMaker's scale optimization as one exact MILP on an N × N grid, with edge and strain stages. | Tree, Pure MILP | `src/TreeMaker.Pure`, `src/TreeMaker.Core` | [in the repo](src/TreeMaker.Web/wwwroot/specs/pure.md) · [live doc](https://claude.ai/artifact/1L1y2Ey5CzUT8AzfJ2sev4) |
+| [Symmetry-Breaking MILP TreeMaker](src/TreeMaker.Web/wwwroot/specs/sym.md) | The base model plus an anchor leaf in the fundamental domain (C:5) and siblings in order (C:6). | Symmetry-Breaking MILP | `src/TreeMaker.Pure`, `src/TreeMaker.Core/SymmetryBreaking.cs` | [in the repo](src/TreeMaker.Web/wwwroot/specs/sym.md) · [live doc](https://claude.ai/artifact/4bhD37EK1NQy66fV4zhTaN) |
+| [Lattice-Hull MILP TreeMaker](src/TreeMaker.Web/wwwroot/specs/hull.md) | Lattice hulls at a fixed scale, bisection over candidate scales and incremental generation, without symmetry breaking. | Lattice-Hull MILP | `src/TreeMaker.Optimized` | [in the repo](src/TreeMaker.Web/wwwroot/specs/hull.md) · [live doc](https://claude.ai/artifact/NwmqiYzpRCSneZiobahka6) |
+| [Optimized MILP TreeMaker](src/TreeMaker.Web/wwwroot/specs/optimized.md) | The exact model made fast: lattice hulls, symmetry breaking, scale search and incremental solving together. | Optimized MILP | `src/TreeMaker.Optimized` | [in the repo](src/TreeMaker.Web/wwwroot/specs/optimized.md) · [live doc](https://claude.ai/artifact/LxhWqnKYWWuTrdmJ3hrKdq) |
+| [Scalable MILP TreeMaker](src/TreeMaker.Web/wwwroot/specs/scalable.md) | Good layouts for 25 to 100 leaves without an optimality proof: continuous LPs, CP-SAT repair, neighbourhood search and a closing finish. | Scalable MILP | `src/TreeMaker.Scalable` | [in the repo](src/TreeMaker.Web/wwwroot/specs/scalable.md) · [live doc](https://claude.ai/artifact/Qz1WL7RZDpnMwKYdVT2G29) |
+| [Polygon Closing TreeMaker](src/TreeMaker.Web/wwwroot/specs/closing.md) | After a layout: the polygon test, closing the polygons by strain, strain bounds and the strain needed. | Close the polygons | `src/TreeMaker.Core` | [in the repo](src/TreeMaker.Web/wwwroot/specs/closing.md) · [live doc](https://claude.ai/artifact/FtbYLxEKTVszvyrLtcniK4) |
+| [Crease Pattern TreeMaker](src/TreeMaker.Web/wwwroot/specs/crease.md) | From closed polygons to creases: universal molecules, the folded base and its check, and pleats. | Crease pattern, Folded base | `src/TreeMaker.Core/CreasePattern.cs` | [in the repo](src/TreeMaker.Web/wwwroot/specs/crease.md) · [live doc](https://claude.ai/artifact/1B22HTcwzUwAjaMqyfdTXp) |
+
+- **In the repo.** The Markdown copies are the ones the app serves, refreshed from the live docs (revisions in [`manifest.json`](src/TreeMaker.Web/wwwroot/specs/manifest.json)). GitHub shows their text and TeX source; the figures appear only in the app, where they are drawn from `*.figures.json`, and in the live docs.
+- **Live docs.** The claude.ai links are the documents as they are being written. They open for people the owner has shared them with.
+- **How they relate.** The four derived solver specs build on Pure MILP; Pure MILP hands off to Optimized MILP; Lattice-Hull MILP cites Symmetry-Breaking MILP; Scalable MILP cites Optimized MILP. Polygon Closing builds on Pure MILP and cites Scalable MILP, and hands off to Crease Pattern, which builds on Polygon Closing and Pure MILP. The app's map draws the same graph.
+
 ## Run
 
 You need the .NET 10 SDK. From this folder (the repository root):
@@ -27,15 +45,15 @@ The first screen is a map of the specs and the steps after them, drawn like the 
 
 | Map node | Route | Spec, and where in it | What runs | API |
 |---|---|---|---|---|
-| Tree | `#/tree` | Pure MILP, parameters P:1–P:3 | The tree editor, grid size, leaf conditions and mirror pairs | none |
-| Pure MILP | `#/pure` | Pure MILP, Sections 3–8 and 11 | The base model as one MILP (SCIP); scale, edge and strain stages | `/api/pure/*` |
-| Symmetry-Breaking MILP | `#/sym` | Symmetry-Breaking MILP, C:5 and C:6 | The base model with the anchor leaf in the fundamental domain and siblings in order | `/api/pure/*` with `symmetryBreaking: true` |
-| Lattice-Hull MILP | `#/hull` | Lattice-Hull MILP, Sections 8 and 10 | Lattice-hull feasibility tests and bisection over candidate scales, without symmetry breaking | `/api/optimized/*` with `options.symmetryBreaking: false` |
-| Optimized MILP | `#/optimized` | Optimized MILP, Section 7 | Lattice hulls, symmetry breaking, pair and facet generation, leaf windows, border seed | `/api/optimized/*` |
-| Scalable MILP | `#/scalable` | Scalable MILP, Section 9 | Continuous LP, CP-SAT repair, neighbourhood search, foldability finish | `/api/scalable/*` |
-| Close the polygons | `#/close` | Polygon Closing, A:1 to A:4 (Sections 4–7) | Check the polygons; close them by strain; find the strain needed | `/api/polygons`, `/api/complete`, `/api/strain-needed` |
-| Crease pattern | `#/creases` | Crease Pattern, A:1 and A:3 (Sections 4, 5, 7 and 8) | Universal molecules, pleats, .fold and .svg | `/api/creases` |
-| Folded base | `#/fold` | Crease Pattern, A:2 (Section 6) | The base in 3D | (from the crease pattern) |
+| Tree | `#/tree` | [Pure MILP](src/TreeMaker.Web/wwwroot/specs/pure.md), parameters P:1–P:3 | The tree editor, grid size, leaf conditions and mirror pairs | none |
+| Pure MILP | `#/pure` | [Pure MILP](src/TreeMaker.Web/wwwroot/specs/pure.md), Sections 3–8 and 11 | The base model as one MILP (SCIP); scale, edge and strain stages | `/api/pure/*` |
+| Symmetry-Breaking MILP | `#/sym` | [Symmetry-Breaking MILP](src/TreeMaker.Web/wwwroot/specs/sym.md), C:5 and C:6 | The base model with the anchor leaf in the fundamental domain and siblings in order | `/api/pure/*` with `symmetryBreaking: true` |
+| Lattice-Hull MILP | `#/hull` | [Lattice-Hull MILP](src/TreeMaker.Web/wwwroot/specs/hull.md), Sections 8 and 10 | Lattice-hull feasibility tests and bisection over candidate scales, without symmetry breaking | `/api/optimized/*` with `options.symmetryBreaking: false` |
+| Optimized MILP | `#/optimized` | [Optimized MILP](src/TreeMaker.Web/wwwroot/specs/optimized.md), Section 7 | Lattice hulls, symmetry breaking, pair and facet generation, leaf windows, border seed | `/api/optimized/*` |
+| Scalable MILP | `#/scalable` | [Scalable MILP](src/TreeMaker.Web/wwwroot/specs/scalable.md), Section 9 | Continuous LP, CP-SAT repair, neighbourhood search, foldability finish | `/api/scalable/*` |
+| Close the polygons | `#/close` | [Polygon Closing](src/TreeMaker.Web/wwwroot/specs/closing.md), A:1 to A:4 (Sections 4–7) | Check the polygons; close them by strain; find the strain needed | `/api/polygons`, `/api/complete`, `/api/strain-needed` |
+| Crease pattern | `#/creases` | [Crease Pattern](src/TreeMaker.Web/wwwroot/specs/crease.md), A:1 and A:3 (Sections 4, 5, 7 and 8) | Universal molecules, pleats, .fold and .svg | `/api/creases` |
+| Folded base | `#/fold` | [Crease Pattern](src/TreeMaker.Web/wwwroot/specs/crease.md), A:2 (Section 6) | The base in 3D | (from the crease pattern) |
 
 Every box links its spec. The step specs are Polygon Closing TreeMaker (which builds on Pure MILP, cites Scalable MILP and hands off to Crease Pattern) and Crease Pattern TreeMaker (which builds on Polygon Closing and Pure MILP); their references follow the pipeline arrows. The solver boxes sit in one frame with the references between their specs drawn as in the document graph: the four derived specs build on Pure MILP, Pure MILP hands off to Optimized MILP, Lattice-Hull MILP cites Symmetry-Breaking MILP, and Scalable MILP cites Optimized MILP. Each solver box also says whether it suits the tree in the editor, from the timings below.
 
