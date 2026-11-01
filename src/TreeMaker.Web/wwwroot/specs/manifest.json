@@ -11,8 +11,8 @@
     "pure": {
       "title": "Pure MILP TreeMaker",
       "url": "https://claude.ai/artifact/1L1y2Ey5CzUT8AzfJ2sev4",
-      "rev": 40,
-      "exportedAt": "2026-11-01T15:57:31.651Z",
+      "rev": 41,
+      "exportedAt": "2026-11-01T22:02:49.150Z",
       "file": "pure.md",
       "figureCount": 20
     },
@@ -55,5 +55,5 @@
       "figureCount": 6
     }
   },
-  "packagedAt": "2026-11-01T21:59:13Z"
+  "packagedAt": "2026-11-01T22:03:08Z"
 }

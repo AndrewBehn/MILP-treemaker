@@ -45,7 +45,7 @@ The first screen is a map of the specs and the steps after them, drawn like the 
 
 | Map node | Route | Spec, and where in it | What runs | API |
 |---|---|---|---|---|
-| Tree | `#/tree` | [Pure MILP](src/TreeMaker.Web/wwwroot/specs/pure.md), parameters P:1–P:3 | The tree editor, grid size, leaf conditions and mirror pairs | none |
+| Tree | `#/tree` | [Pure MILP](src/TreeMaker.Web/wwwroot/specs/pure.md), parameters P:1–P:3; conditions, Sections 7.1–7.5 | The tree editor, grid size, leaf conditions and mirror pairs | none |
 | Pure MILP | `#/pure` | [Pure MILP](src/TreeMaker.Web/wwwroot/specs/pure.md), Sections 3–8 and 11 | The base model as one MILP (SCIP); scale, edge and strain stages | `/api/pure/*` |
 | Symmetry-Breaking MILP | `#/sym` | [Symmetry-Breaking MILP](src/TreeMaker.Web/wwwroot/specs/sym.md), C:5 and C:6 | The base model with the anchor leaf in the fundamental domain and siblings in order | `/api/pure/*` with `symmetryBreaking: true` |
 | Lattice-Hull MILP | `#/hull` | [Lattice-Hull MILP](src/TreeMaker.Web/wwwroot/specs/hull.md), Sections 8 and 10 | Lattice-hull feasibility tests and bisection over candidate scales, without symmetry breaking | `/api/optimized/*` with `options.symmetryBreaking: false` |
