@@ -54,7 +54,7 @@ const base = 'http://127.0.0.1:5099/';
   await app.click('#nodeSpec a.xref >> nth=0'); await app.waitForTimeout(1200);
   log.headerLink = docs.url();
   check('headerLinkToDocsTab', /docs\.html#\/pure:/.test(docs.url()) && ctx.pages().length === tabs);
-  await app.click('aside .ref >> nth=0'); await app.waitForTimeout(1200);
+  await app.click('aside .ref:visible >> nth=0'); await app.waitForTimeout(1200);
   log.sidebarRef = docs.url();
   check('resultsKept', await app.evaluate(() => !document.getElementById('metricsCard').hidden && location.hash === '#/pure'));
   await app.screenshot({ path: `${out}/app-tab.png` });

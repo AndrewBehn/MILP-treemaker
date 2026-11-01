@@ -14,6 +14,7 @@ const appMap = (() => {
     optimized: { x: 562, y: 288, w: W },
     scalable: { x: 562, y: 406, w: W },
     close: { x: 826, y: 226, w: SW },
+    stubs: { x: 826, y: 392, w: SW },
     creases: { x: 1006, y: 226, w: SW },
     fold: { x: 1186, y: 226, w: SW },
   };
@@ -63,6 +64,12 @@ const appMap = (() => {
       if (wb.layout.polygonsValid) return { cls: "held", text: "Already closed" };
       if (wb.closure) return { cls: "slow", text: "Tried; not closed yet" };
       return { cls: "fit", text: "Ready: layout waiting" };
+    }
+    if (id === "stubs") {
+      if (!wb.layout) return { cls: "need", text: "Needs a layout" };
+      if (wb.layout.stubs?.length) return { cls: "held", text: `${wb.layout.stubs.length} stub${wb.layout.stubs.length === 1 ? "" : "s"} added` };
+      if (wb.layout.polygonsValid) return { cls: "held", text: "Not needed: closed" };
+      return { cls: "fit", text: "Optional: open polygons" };
     }
     if (id === "creases") {
       if (wb.creases?.result?.built) return { cls: "held", text: `Built · ${wb.creases.result.creases.length} creases` };
@@ -120,6 +127,15 @@ const appMap = (() => {
     for (const [key, a, b] of flows) {
       const on = lit.has(key);
       svgEl("path", { d: `M${a[0]},${a[1]} L${b[0] - 2},${b[1]}`, class: "map-flow" + (on ? " lit" : ""), "marker-end": `url(#mk-${on ? "lit" : "flow"})` }, svg);
+    }
+    // The stubs detour: down from Close the polygons into Add stubs, and back up with the new layout.
+    {
+      const cx = BOX.close.x + SW / 2, top = BOX.stubs.y, bottom = BOX.close.y + H;
+      const on = !!wb.layout?.stubs?.length;
+      svgEl("path", { d: `M${cx - 22},${bottom} L${cx - 22},${top - 2}`, class: "map-flow side" + (on ? " lit" : ""), "marker-end": `url(#mk-${on ? "lit" : "flow"})` }, svg);
+      svgEl("path", { d: `M${cx + 22},${top} L${cx + 22},${bottom + 2}`, class: "map-flow side" + (on ? " lit" : ""), "marker-end": `url(#mk-${on ? "lit" : "flow"})` }, svg);
+      const t = svgEl("text", { x: cx + 32, y: (top + bottom) / 2 + 4, class: "map-frame-sub" }, svg);
+      t.textContent = "then close again";
     }
     // Inside the frame: from the frame's left edge into the base spec, and the solver that holds the layout out to the right.
     if (wb.layout && BOX[wb.layout.node]) {

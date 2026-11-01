@@ -1088,3 +1088,29 @@ pre.code { background: var(--panel); padding: 8px 10px; border-radius: 4px; over
 .poly-todo { flex-basis: 100%; margin: 2px 0 0; font-size: 13px; font-weight: 600; }
 .poly-todo.no { color: #ffb3c0; }
 .poly-todo.ok { color: #a8e6c1; }
+
+/* Add stubs (stubs.js): the card, the stub on the tree and on the sheet. */
+.crease[data-focus="stubs"] .crease-complete, .crease[data-focus="stubs"] .crease-build { display: none; }
+body[data-node="stubs"] .block-head .row, body[data-node="stubs"] .tree-tools .drag-chip, body[data-node="stubs"] .tree-tools .chip-label { display: none; }
+.stub-state { margin: 6px 0; font-size: 13px; font-weight: 600; }
+.stub-regions { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.stub-region {
+  text-align: left; height: auto; min-height: 30px; padding: 5px 10px; border-radius: 5px;
+  border: 1px solid #cfd3cc; background: var(--paper); font-size: 12.5px; cursor: pointer;
+}
+.stub-region[aria-pressed="true"] { border-color: var(--beni); box-shadow: inset 3px 0 0 var(--beni); font-weight: 650; }
+.stub-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; margin-top: 10px; }
+.stub-actions .btn-note { margin-bottom: 8px; }
+.tree-view .stub-preview line { stroke: var(--beni); stroke-width: 2.4; stroke-dasharray: 6 4; }
+.tree-view .stub-preview circle { fill: #fff; stroke: var(--beni); stroke-width: 2; }
+.tree-view .stub-preview text { font-size: 12px; font-weight: 700; fill: var(--beni); }
+#stubLayer { pointer-events: none; }
+#stubLayer .stub-region-outline { fill: none; stroke: var(--beni); stroke-width: 3; stroke-linejoin: round; opacity: .55; }
+#stubLayer .stub-path { stroke: var(--beni); stroke-width: 2.4; }
+#stubLayer .stub-circle { fill: rgba(194, 48, 74, .08); stroke: var(--beni); stroke-width: 1.4; stroke-dasharray: 4 4; }
+#stubLayer .stub-leaf { fill: var(--beni); stroke: #fff; stroke-width: 2; }
+#stubLayer .stub-label { font-size: 13px; font-weight: 700; fill: var(--beni); paint-order: stroke; stroke: #fff; stroke-width: 3px; }
+body[data-node="stubs"] #layoutView { cursor: crosshair; }
+.crease-views .btn-note { flex-basis: 100%; }
+.crease-views { flex-wrap: wrap; }
+.map-flow.side { fill: none; }

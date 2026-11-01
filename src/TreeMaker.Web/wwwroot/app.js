@@ -529,6 +529,7 @@ const ALL_PANES = ["metrics", "messages", "pairsTable", "traceTable", "roundTabl
 /** Removes everything an earlier solve or node left on the page (sheet, polygons, creases, folded base, tables). */
 function clearResults({ solving = false } = {}) {
   state.viewSeq++;
+  stubTool.hide();
   state.lastResponse = null;
   state.lastView = null;
   creaseReadiness.update(null);
@@ -900,7 +901,7 @@ async function showHeldOnSolver() {
     const from = NODES[held.node]?.title ?? "a layout file";
     setStatus(held.node === node.id ? "The workbench layout from this solver." : `Showing the workbench layout from ${from}; the next solve starts from it.`);
   } catch (e) {
-    if (seq === state.viewSeq) setStatus("Could not show the workbench layout: " + e.message, "error");
+    if (seq === state.viewSeq) { console.error(e.stack); setStatus("Could not show the workbench layout: " + e.message, "error"); }
   }
 }
 
@@ -969,10 +970,11 @@ async function showStep(node) {
     if (node.id !== "fold" || workbench.creases?.result?.built) {
       creaseReadiness.focus(node.step);
       await creaseReadiness.restore(context, heldSteps());
+      if (node.id === "stubs" && seq === state.viewSeq) stubTool.show(held, creaseReadiness._state.before);
     }
     renderNextBar();
   } catch (e) {
-    if (seq === state.viewSeq) setStatus("Could not show the workbench layout: " + e.message, "error");
+    if (seq === state.viewSeq) { console.error(e.stack); setStatus("Could not show the workbench layout: " + e.message, "error"); }
   }
 }
 
@@ -1002,6 +1004,7 @@ function renderHeldSummary(box) {
   }
   const c = wb.closure;
   lines.push(["Closed polygons", c ? (c.completion?.after?.valid ? `closed within ±${fmt(c.strainMax, 3)}` : "tried, not closed yet") : l?.polygonsValid ? "already valid" : "not yet", !!c?.completion?.after?.valid || !!l?.polygonsValid]);
+  if (l?.stubs?.length) lines.push(["Stubs", l.stubs.join(", "), true]);
   const k = wb.creases;
   lines.push(["Crease pattern", k?.result?.built ? `${k.result.creases.length} creases` : "not built yet", !!k?.result?.built]);
   box.replaceChildren(...lines.map(([key, value, on]) => {
@@ -1023,6 +1026,7 @@ function renderNextBar() {
   const links = [];
   if (wb.layout) {
     if (node.id !== "close") links.push(["Close the polygons", "#/close", !wb.polygonsValid()]);
+    if (node.id === "close" && !wb.polygonsValid()) links.push(["Add stubs", "#/stubs", false]);
     if (wb.polygonsValid() && node.id !== "creases") links.push(["Crease pattern", "#/creases", !wb.creases?.result?.built]);
     if (wb.creases?.result?.built && node.id !== "fold") links.push(["Folded base", "#/fold", true]);
   }
@@ -1173,6 +1177,9 @@ function enterNode(id) {
   $("treeHelp").textContent = node.stretch
     ? "Drag vertices to move them, or onto another vertex to re-attach. Click a leaf to pin it to an edge, a corner or the axis, or to mirror it with another leaf. Click an edge to toggle S, click a length to edit it, double-click a vertex to rename it."
     : "Drag vertices to move them, or onto another vertex to re-attach. Click a leaf to pin it to an edge, a corner or the axis, or to mirror it with another leaf. Click a length to edit it, double-click a vertex to rename it.";
+  if (node.id === "stubs") {
+    $("treeHelp").textContent = "The workbench layout's tree, locked: edit the tree in the Tree node. The dashed edge is the proposed stub; click a joint to hang it there, click it again to let the search choose.";
+  }
   if (node.lockOptions?.symmetryBreaking === false) {
     $("optSymmetry").checked = false;
     $("optSymmetry").disabled = true;
@@ -1311,6 +1318,8 @@ async function init() {
     openButtons: ["openFile", "mapOpen", "stepOpenFile"],
   });
   creaseReadiness.init();
+  stubTool.init();
+  creaseReadiness.hooks.afterDraw = () => stubTool.draw();
   foldedView.init();
   appMap.init();
 

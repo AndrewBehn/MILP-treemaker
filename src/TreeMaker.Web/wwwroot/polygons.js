@@ -15,7 +15,7 @@
 const creaseReadiness = (() => {
   const SIZE = 600, PAD = 40;   // must match the sheet drawing in app.js
   const ui = { context: null, before: null, completion: null, view: "before", seq: 0, creases: null };
-  const hooks = { onReport: null, onCompletion: null, onCreases: null };
+  const hooks = { onReport: null, onCompletion: null, onCreases: null, afterDraw: null };
   const call = (name, ...args) => { try { hooks[name]?.(...args); } catch (e) { console.error(e); } };
 
   const q = (id) => document.getElementById(id);
@@ -292,6 +292,11 @@ const creaseReadiness = (() => {
 
   /** Draws the polygons of the current view onto the sheet (call after the sheet is redrawn). */
   function draw() {
+    drawPolygons();
+    call("afterDraw");
+  }
+
+  function drawPolygons() {
     const svg = document.getElementById("layoutView");
     svg.querySelector("#polygonLayer")?.remove();
     const report = current();
@@ -682,5 +687,8 @@ ${lines.join("\n")}
     q("creaseCard").dataset.focus = step ?? "all";
   }
 
-  return { init, update, restore, draw, focus, hooks, _state: ui };
+  /** The report the sheet shows now (as solved, or after closing). */
+  function report() { return current(); }
+
+  return { init, update, restore, draw, focus, report, hooks, _state: ui };
 })();

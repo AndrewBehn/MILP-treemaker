@@ -20,7 +20,11 @@ const treeUi = {
   message: "",
   handPlaced: false,    // true once a vertex was dragged: a new layout then doesn't re-orient the drawing
   pick: null,           // { from: leaf } while choosing the leaf that mirrors `from`
+  stub: null,           // Add stubs node (stubs.js): { attach, label } draws the proposed stub from that joint
 };
+
+/** In the Add stubs node the tree is the workbench layout's: it can be looked at and rearranged, not edited. */
+const treeLocked = () => document.body.dataset.node === "stubs";
 
 // ───────────────────────── Leaf conditions on the drawing ─────────────────────────
 // The same state as the sidebar's Leaf conditions table and Mirror pairs (state.conditions, state.mirrors), set by
@@ -94,6 +98,10 @@ function cancelMirrorPick() {
 function vertexClicked(v) {
   const info = treeInfo(state.edges);
   const leaf = info.leaves.includes(v);
+  if (treeLocked()) {
+    if (!stubTool.jointClicked(v)) say(leaf ? "A stub hangs from a joint: click a vertex with two or more edges." : "Pick an open region first.");
+    return;
+  }
   if (treeUi.pick) {
     const from = treeUi.pick.from;
     treeUi.pick = null;
@@ -178,14 +186,11 @@ function openLeafMenu(leaf) {
 
   // Beside the leaf (right of it if there is room, else left), kept inside the drawing.
   stage.append(menu);
-  const view = svg.getBoundingClientRect(), box = stage.getBoundingClientRect();
-  const k = view.width / treeUi.geometry.width;
-  const [vx, vy] = treeUi.geometry.px.get(leaf);
-  const x = view.left - box.left + vx * k, y = view.top - box.top + vy * k;
+  const spot = toStage(...treeUi.geometry.px.get(leaf));
   const w = menu.offsetWidth, h = menu.offsetHeight;
-  const minX = view.left - box.left + 4, maxX = view.right - box.left - w - 4;
-  const left = x + 18 <= maxX ? x + 18 : Math.max(minX, x - 18 - w);
-  const top = Math.min(Math.max(view.top - box.top + 4, y - h / 2), view.bottom - box.top - h - 4);
+  const minX = spot.minX + 4, maxX = spot.maxX - w - 4;
+  const left = spot.x + 18 <= maxX ? spot.x + 18 : Math.max(minX, spot.x - 18 - w);
+  const top = Math.min(Math.max(spot.minY + 4, spot.y - h / 2), spot.maxY - h - 4);
   menu.style.left = `${left}px`;
   menu.style.top = `${top}px`;
   (menu.querySelector("[aria-pressed=true]") ?? menu.querySelector("button"))?.focus();
@@ -574,13 +579,40 @@ function renderTreePreview() {
     svg.append(line);
   }
 
+  // The proposed stub (Add stubs node): a dashed edge out from its joint, away from the joint's other edges.
+  const stub = treeLocked() ? treeUi.stub : null;
+  if (stub?.attach && px.has(stub.attach)) {
+    const [ax, ay] = px.get(stub.attach);
+    // Out through the widest gap between the joint's edges.
+    const angles = (info.adjacency.get(stub.attach) ?? []).map(({ to }) => {
+      const [wx, wy] = px.get(to);
+      return Math.atan2(wy - ay, wx - ax);
+    }).sort((a, b) => a - b);
+    let dir = -Math.PI / 2;
+    if (angles.length) {
+      let gap = -1;
+      angles.forEach((a, k) => {
+        const next = k + 1 < angles.length ? angles[k + 1] : angles[0] + 2 * Math.PI;
+        if (next - a > gap) { gap = next - a; dir = a + gap / 2; }
+      });
+    }
+    const [dx, dy] = [Math.cos(dir), Math.sin(dir)];
+    const [sx, sy] = [ax + dx * 46, ay + dy * 46];
+    const g = el("g", { class: "stub-preview" });
+    g.append(el("line", { x1: ax, y1: ay, x2: sx, y2: sy }), el("circle", { cx: sx, cy: sy, r: 7 }),
+      Object.assign(el("text", { x: sx + (dx >= 0 ? 10 : -10), y: sy + 4, "text-anchor": dx >= 0 ? "start" : "end" }), { textContent: stub.label }));
+    svg.append(g);
+  }
+
   const picking = treeUi.pick;
   for (const v of info.vertices) {
     const [x, y] = px.get(v);
     const leaf = info.adjacency.get(v).length === 1;
     const isDragged = dragging?.kind === "vertex" && dragging.v === v;
     const target = hover?.kind === "vertex" && hover.v === v;
-    const pickClass = picking ? (v === picking.from ? " pick-from" : leaf ? " pickable" : "") : "";
+    const stubbing = treeUi.stub && treeLocked();
+    const pickClass = picking ? (v === picking.from ? " pick-from" : leaf ? " pickable" : "")
+      : stubbing && !leaf ? (v === treeUi.stub.attach ? " pick-from" : " pickable") : "";
     const g = el("g", { class: "vertex-group" + (isDragged ? " dragged" : "") + (target ? " target" : "") + pickClass, "data-vertex": v });
     g.append(
       el("circle", { cx: x, cy: y, r: HIT_VERTEX, class: "vertex-hit" }),
@@ -589,9 +621,11 @@ function renderTreePreview() {
     const t = el("text", { x: x + 11, y: y - 10, class: "vertex-label" });
     t.textContent = v;
     const title = el("title");
-    title.textContent = leaf
-      ? `${v}: click to pin it or mirror it; drag to move or re-attach, double-click to rename`
-      : `${v}: drag to move or re-attach, double-click to rename`;
+    title.textContent = treeLocked()
+      ? (leaf ? v : `${v}: click to hang the stub here (click again to let the search choose)`)
+      : leaf
+        ? `${v}: click to pin it or mirror it; drag to move or re-attach, double-click to rename`
+        : `${v}: drag to move or re-attach, double-click to rename`;
     g.append(t, title);
     // The leaf's condition, as a small tag under its name.
     const tag = leaf ? conditionTag(state.conditions[v]) : "";
@@ -860,6 +894,20 @@ function renameVertex(oldName, newName) {
 
 // ───────────────────────── Inline editing ─────────────────────────
 
+/**
+ * A point of the drawing (viewBox units) in the tree stage's CSS pixels, for placing an editor or menu there. SVG
+ * elements have no offsetLeft, and the drawing is scaled to its box, so this goes through the bounding boxes.
+ */
+function toStage(vx, vy) {
+  const svg = $("treeView"), stage = svg.parentElement;
+  const view = svg.getBoundingClientRect(), box = stage.getBoundingClientRect();
+  const k = view.width / (treeUi.geometry?.width || view.width);
+  return {
+    x: view.left - box.left + vx * k, y: view.top - box.top + vy * k,
+    minX: view.left - box.left, maxX: view.right - box.left, minY: view.top - box.top, maxY: view.bottom - box.top,
+  };
+}
+
 function inlineEdit(x, y, value, onCommit, { numeric = false, label = "" } = {}) {
   closeInlineEdit();
   const stage = $("treeView").parentElement;
@@ -869,9 +917,10 @@ function inlineEdit(x, y, value, onCommit, { numeric = false, label = "" } = {})
   input.value = value;
   input.className = "inline-edit";
   input.setAttribute("aria-label", label);
-  const svg = $("treeView");
-  input.style.left = `${x + svg.offsetLeft}px`;
-  input.style.top = `${y + svg.offsetTop}px`;
+  // Centred on the point, kept inside the drawing (the input is 84 × 30 and centred by a transform).
+  const at = toStage(x, y);
+  input.style.left = `${Math.min(Math.max(at.x, at.minX + 46), at.maxX - 46)}px`;
+  input.style.top = `${Math.min(Math.max(at.y, at.minY + 19), at.maxY - 19)}px`;
   let done = false;
   const finish = (commit) => {
     if (done) return;
@@ -973,7 +1022,7 @@ function initTreeEditor() {
       treeUi.hover = null;
       if (drag?.kind === "vertex" && !drag.moved && !cancelled) return vertexClicked(drag.v);
       if (drag?.kind !== "vertex" || !drag.moved) return;
-      if (cancelled || !hover) return renderTreePreview();
+      if (cancelled || !hover || treeLocked()) return renderTreePreview();
       if (hover.kind === "vertex") {
         // Put the vertex beside its new neighbour rather than on top of it.
         const [tu, tw] = treeUi.pos.get(hover.v);
@@ -986,6 +1035,7 @@ function initTreeEditor() {
   });
 
   svg.addEventListener("click", (event) => {
+    if (treeLocked()) return;
     const lengthLabel = event.target.closest("[data-length]");
     if (lengthLabel) {
       const index = Number(lengthLabel.dataset.length);
@@ -1003,7 +1053,7 @@ function initTreeEditor() {
 
   svg.addEventListener("keydown", (event) => {
     const tag = event.target.closest?.("[data-length]");
-    if (!tag || (event.key !== "Enter" && event.key !== " ")) return;
+    if (!tag || treeLocked() || (event.key !== "Enter" && event.key !== " ")) return;
     event.preventDefault();
     const index = Number(tag.dataset.length);
     const box = tag.getBBox();
@@ -1012,7 +1062,7 @@ function initTreeEditor() {
 
   svg.addEventListener("dblclick", (event) => {
     const group = event.target.closest("[data-vertex]");
-    if (!group) return;
+    if (!group || treeLocked()) return;
     const v = group.dataset.vertex;
     closeLeafMenu();
     const [x, y] = treeUi.geometry.px.get(v);
