@@ -135,7 +135,27 @@ The server tells the browser not to cache the page, and the scripts are versione
 
 ## Toward a crease pattern (the steps after a solve)
 
-After a solve, the **Toward a crease pattern** panel under the sheet checks whether the layout can carry a crease pattern. The same panel (`polygons.js`) is the Close the polygons and Crease pattern nodes of the map, each showing its own part of it, and it runs the code in `src/TreeMaker.Core`. The panel lays the work out as three numbered steps. Each step's heading shows where it stands (to do, needs closing, closed, ready, built), and a short line under each button says what pressing it does.
+After a solve, everything else happens in **the session**: one page that grows with every step (`workflow.js`). The Close the polygons, Add stubs, Crease pattern and Folded base boxes on the map all open it, each with its own move ready. Solving, closing by strain, adding stubs and building the crease pattern are all moves on one state (the tree, the leaf positions, the edge lengths and the conditions) toward polygons that are all valid.
+
+- **Each step shows its input and its output as tree widgets.** Each widget is the state's tree beside its sheet, both in grid units, with:
+  - the leaf circles and the polygons;
+  - the tight paths and the loose hull sides;
+  - the creases, once built.
+
+  The output marks what the step changed: added edges and stubs in red, changed lengths in amber with their new values, and moved leaves with a ghost where they were. Under the widgets are the step's notes and what is still open.
+- **Add a step** sits at the end of the page. It holds the live widget, which is the current state (point at leaves and pairs, or pick a stub on it), and four moves:
+  - **Solve** with any of the five solvers, using that solver's settings from its own page, with a time limit. It can **solve all leaves**, starting from the current layout. A warning says this can move every leaf, making large changes and throwing away earlier refinements such as stub placements and closed lengths. Or it can **solve just the stubs**, holding every other leaf where it is as a Fixed condition. A running solve shows as a step in progress with **Cancel**.
+  - **Close the polygons**: automatically (the strain needed) or within bounds you choose.
+  - **Add a stub** (below).
+  - **Build the crease pattern**, optionally pleated, once every polygon is valid. The folded base shows below the session.
+
+  The moves that fit the current state are marked *suggested*, and the last step says what to try next.
+- **Steps are only added.** **Continue from here** keeps the steps up to that one and drops the rest. **Redo from here** drops that step and the ones after it, so you can choose its move again from its input.
+- **Save the session** writes the whole document, with every step's input and output, as a `treemaker-session` file (`schemas/treemaker-session.schema.json`, [docs/FILE-FORMATS.md](docs/FILE-FORMATS.md)). **Open…** reads it back.
+- **A new layout starts a new session.** That means a solve on a solver's own page, or opening a layout file. The last step's output is always what the workbench holds.
+- **The sidebar lists the steps**, for a quick overview.
+
+The moves run the code in `src/TreeMaker.Core`:
 
 1. **Check the polygons** (`ActivePaths`, `POST /api/polygons`). TreeMaker's universal-molecule construction needs the tight pairs (active paths) to divide the leaves' convex hull into polygons. Each polygon must be convex, bounded by tight paths, and empty of leaves. The panel lists what's missing: open boundary pieces, crossing paths, non-convex polygons, leaves inside a polygon, and uncovered area. The sheet marks what still needs closing:
    - Valid polygons are shaded.
@@ -143,12 +163,12 @@ After a solve, the **Toward a crease pattern** panel under the sheet checks whet
    - Hull outline that no polygon covers yet is hatched too.
    - Hull sides that aren't tight paths yet are dashed red.
 
-   A key under the sheet explains the marks, with a line such as "To close before a crease pattern: 3 hull sides to make tight, 1 polygon not valid".
+   A key under the live sheet explains the marks, with a line such as "To close before a crease pattern: 3 hull sides to make tight, 1 polygon not valid".
 2. **Close the polygons** (`PolygonCompletion`, `POST /api/complete`). There are two ways, and you pick one:
    - **Find the strain needed and close** (recommended): finds the smallest bound for you (below).
    - **Close within these bounds**: uses the σ_min and σ_max you type.
 
-   The leaves and the scale stay fixed. The edge lengths change (strain σₑ within your bounds) so the pairs of a triangulation that keeps the existing tight pairs become exactly tight, and every other pair still fits. Boundary pairs come first, since the polygons cannot cover the hull without them. A second solve then uses the least total strain. **Use these lengths in the tree** copies the new lengths into the editor.
+   The leaves and the scale stay fixed. The edge lengths change (strain σₑ within your bounds) so the pairs of a triangulation that keeps the existing tight pairs become exactly tight, and every other pair still fits. Boundary pairs come first, since the polygons cannot cover the hull without them. A second solve then uses the least total strain.
 
 3. **Build the crease pattern** (`CreasePatternBuilder`, `POST /api/creases`). This fills every polygon with Lang's universal molecule. Each polygon shrinks, with all sides moving inward at the same rate and the corners sliding along their bisectors, which traces the **ridge** creases. It stops when two corners meet or when a shortened diagonal becomes tight. In the second case it splits along that diagonal (a **gusset**) and repeats on each piece. **Hinge** creases run perpendicular to each side at every internal tree node along its path. The creases are drawn on the sheet. **Download .fold** gives a FOLD file that Origami Simulator and other tools can open; **Download .svg** gives a drawing styled by crease type.
 4. **The folded base** (`folded.js`). Every facet is mapped to its folded position: it lies over one tree edge, at its height above the axis. The base is drawn in 3D: drag to turn it, or pick a view from above, from the side, or three-quarter. Seen from above it is the tree's stick figure. The builder also checks the fold: every vertex must fold to one point from all its facets, and every facet must keep its shape. The result of that check is shown with the pattern.
@@ -162,16 +182,10 @@ If **Build the crease pattern** stays greyed out, the polygons aren't valid yet.
 - The first step not yet done is marked **next**, and the marker moves on by itself as soon as a step is satisfied.
 - The card for the part you're in is outlined. Click any card to go there.
 
-**How the closing went** (`history.js`) lists every state the workbench layout has been through on its way to valid polygons, oldest first. A solve or a layout file starts the list, and each stub added and each closing tried adds a row, so the page grows as you work.
-- Each row has a small drawing of the sheet and says what changed and what is still open.
-- The latest row says what to try next.
-- Every earlier row has **Start over from here**, which puts that state (layout, tree and closing) back on the workbench and drops the rows after it.
-- The sidebar lists the same steps in short, for a quick overview.
-
-**Add stubs** (`#/stubs`, `stubs.js`, optional; the map shows it under Close the polygons) splits an open polygon the TreeMaker way. A stub is a new short leaf edge hung from a joint of the tree, with its leaf inside the polygon. Its leaf goes on a grid point X, so the layout stays a grid layout. Hung from joint v, at the layout's scale m, the longest stub that keeps every pair feasible is ℓ = min over leaves a of (|X − P_a| / m − d(v, a)), and the leaves that reach that minimum are tight to it.
-- The node shows the same two widgets as the rest of the app. The tree editor is locked against edits: the proposed stub is a dashed edge, and clicking a joint hangs the stub there. On the sheet, the open region is outlined and the stub is drawn with its circle and its tight paths. Clicking a grid point inside the region moves the stub there.
+**Add a stub** (`stubs.js`; the map's Add stubs box opens the session at this move) splits an open polygon the TreeMaker way. A stub is a new short leaf edge hung from a joint of the tree, with its leaf inside the polygon. Its leaf goes on a grid point X, so the layout stays a grid layout. Hung from joint v, at the layout's scale m, the longest stub that keeps every pair feasible is ℓ = min over leaves a of (|X − P_a| / m − d(v, a)), and the leaves that reach that minimum are tight to it.
+- It works on the live widget. The tree editor is locked against edits: the proposed stub is a dashed edge, and clicking a joint hangs the stub there. On the sheet, the open region is outlined and the stub is drawn with its circle and its tight paths. Clicking a grid point inside the region moves the stub there.
 - **Find the best stub here** tries every joint and free grid point in the region. It prefers the most leaves tight, then the longest stub.
-- **Add this stub** adds the leaf `s1`, `s2`, … to the tree and to the workbench layout, at the same scale. The polygons are then checked again. A grid point seldom makes three leaves tight at once, so close the polygons afterwards to tighten what is left.
+- **Add this stub** adds the leaf `s1`, `s2`, … to the tree and to the layout, at the same scale, as a new step. A grid point seldom makes three leaves tight at once, so afterwards either solve just the stubs or close the polygons to tighten what is left.
 
 The spec has stubs only as an open problem so far.
 
