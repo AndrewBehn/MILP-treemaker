@@ -193,6 +193,12 @@ def html_unescape(s):
     return html.unescape(s)
 
 
+def for_github(md):
+    """The export marks display maths as ```latex fences, which GitHub shows as code. GitHub typesets ```math
+    fences, and so does the app's reader (specs.js), so the packaged copy uses those."""
+    return re.sub(r"^```latex[ \t]*$", "```math", md, flags=re.M)
+
+
 def main():
     here = os.path.dirname(os.path.abspath(__file__))
     default_out = os.path.join(here, "..", "src", "TreeMaker.Web", "wwwroot", "specs")
@@ -233,7 +239,7 @@ def main():
             manifest = json.load(f)
     for key, spec in sorted(best.items()):
         with open(os.path.join(args.out, key + ".md"), "w", encoding="utf-8") as f:
-            f.write(spec["text"])
+            f.write(for_github(spec["text"]))
         manifest["specs"][key] = {
             "title": spec["title"], "url": spec["url"], "rev": spec["rev"],
             "exportedAt": spec["when"] or dt.datetime.now(dt.timezone.utc).replace(tzinfo=None).isoformat() + "Z",

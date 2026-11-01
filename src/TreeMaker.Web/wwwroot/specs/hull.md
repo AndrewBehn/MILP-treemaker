@@ -16,7 +16,7 @@ Labels P:n, D:n, and C:n number the parameters, definitions, and constraints of 
 
 **TreeMaker's scale optimization.** Lang's TreeMaker places the leaves of a weighted tree in the unit square and maximizes the scale m, the paper length per unit of tree length. Folding never stretches paper, so two flap tips must start at least as far apart on the sheet as their tree path length, times the scale.
 
-```latex
+```math
 \max_{m,\ u} \ m \qquad \text{subject to} \qquad \|u_i - u_j\|_2 \geq m\, \ell_{ij} \ \ \forall\, \{i, j\} \in \mathcal{P}, \qquad u_i \in [0, 1]^2 \ \ \forall\, i \in L
 ```
 
@@ -28,7 +28,7 @@ Labels P:n, D:n, and C:n number the parameters, definitions, and constraints of 
 
 **Scale conversion.** TreeMaker's sheet has side 1 and this one has side N, so the two scales differ by a factor of N.
 
-```latex
+```math
 m_{\mathrm{TreeMaker}} = m / N
 ```
 
@@ -83,31 +83,31 @@ Every symbol and term not defined in Sections 3–8 is listed here.
 
 **Leaves.** The leaves of the input tree T = (V, E) (Section 4) are its vertices of degree 1, the flap tips; n is their number.
 
-```latex
+```math
 L = \{\, v \in V : \deg(v) = 1 \,\} \subseteq V, \qquad n = |L|
 ```
 
 **Leaf pairs.** The set of unordered pairs of distinct leaves.
 
-```latex
+```math
 \mathcal{P} = \{\, \{i, j\} : i, j \in L,\ i \neq j \,\}
 ```
 
 **Integer lattice and grid.** The integer lattice ℤ² is the set of points whose two coordinates are both integers. The sheet is the square \[0, N\]², and its grid points are the lattice points it contains.
 
-```latex
+```math
 \mathbb{Z}^2 = \{\, (p, q) : p, q \in \mathbb{Z} \,\}, \qquad G_N = \mathbb{Z}^2 \cap [0, N]^2 = \{0, 1, \dots, N\}^2, \qquad |G_N| = (N + 1)^2
 ```
 
 **Pair offsets.** The offset of a leaf pair is the difference of the two leaves' positions uᵢ (Section 6). Fix an order i < j for each pair so the offset has a sign.
 
-```latex
+```math
 \delta_{ij} = u_i - u_j \in \mathbb{Z}^2 \qquad \forall\, \{i, j\} \in \mathcal{P},\ i < j
 ```
 
 **Candidate offsets.** Every value a pair offset can take on the N × N grid. Both coordinates of two grid points lie in {0, …, N}, so their difference lies in {−N, …, N}². The zero offset is excluded because two leaves cannot share a grid point when the scale is positive.
 
-```latex
+```math
 \Delta_N = \{-N, \dots, N\}^2 \setminus \{(0, 0)\}, \qquad |\Delta_N| = (2N + 1)^2 - 1, \qquad \delta_{ij} \in \Delta_N \ \ \forall\, \{i, j\} \in \mathcal{P}
 ```
 
@@ -117,43 +117,43 @@ P:1–P:3 describe the problem and stay fixed throughout. P:4–P:7 are fixed fo
 
 **P:1 Tree.** The input tree: a finite vertex set V and an edge set E saying which vertices are joined. A tree is connected and has no cycles, so it has exactly one fewer edge than vertices.
 
-```latex
+```math
 T = (V, E), \qquad E \subseteq \{\, \{u, v\} : u, v \in V,\ u \neq v \,\}, \qquad T \text{ connected}, \qquad |E| = |V| - 1
 ```
 
 **P:2 Edge lengths.** Positive edge lengths in tree units. They need not be integers: the scale m converts them to grid units.
 
-```latex
+```math
 \ell_e > 0 \qquad \forall\, e \in E
 ```
 
 **P:3 Grid size.** The number of grid squares along each side of the sheet, fixed in advance.
 
-```latex
+```math
 N \in \mathbb{Z}_{\geq 1}
 ```
 
 **P:4 Trial scale.** The scale tested by one solve. It is a parameter, not a variable; the procedure takes its values from the candidate scales of D:5.
 
-```latex
+```math
 m > 0
 ```
 
 **P:5 Active pairs.** The pairs whose spacing rows are in the model. All other pairs are left out and checked after the solve.
 
-```latex
+```math
 A \subseteq \mathcal{P}
 ```
 
 **P:6 Inner polygon points.** For each active pair, a set of its forbidden offsets at the trial scale (D:2).
 
-```latex
+```math
 Q_{ij} \subseteq F(m\, \ell_{ij}) \qquad \forall\, \{i, j\} \in A
 ```
 
 **P:7 Leaf windows.** For each leaf, a box of the grid with integer bounds. Full windows, Wᵢ = \[0, N\]², allow the whole sheet.
 
-```latex
+```math
 W_i = [\underline{x}_i, \overline{x}_i] \times [\underline{y}_i, \overline{y}_i] \subseteq [0, N]^2 \qquad \forall\, i \in L
 ```
 
@@ -163,7 +163,7 @@ Every quantity below is computed before solving, from the parameters; D:2 and D:
 
 **D:1 Tree metric and path lengths.** The tree metric d is the total edge length along the unique path between two vertices. Between two leaves it gives the path length ℓᵢⱼ, which the scale converts into that pair's minimum separation. The largest path length is ℓmax.
 
-```latex
+```math
 d(u, v) = \sum_{e \in \mathrm{path}(u, v)} \ell_e, \qquad \ell_{ij} = d(i, j) \ \ \forall\, \{i, j\} \in \mathcal{P}, \qquad \ell_{\max} = \max_{\{i, j\} \in \mathcal{P}} \ell_{ij}
 ```
 
@@ -175,7 +175,7 @@ In the running example, leaves 1 and 4 are farthest apart along the tree, so ℓ
 
 **D:2 Forbidden offsets and their lattice hull.** For a radius r: the grid offsets shorter than r, their convex hull P(r), and its facets K(r), written with integer coefficients. Facets that no offset in {−N, …, N}² can cross are left out of K(r). A pair at trial scale m uses the radius r = m·ℓᵢⱼ.
 
-```latex
+```math
 F(r) = \{\, \delta \in \{-N, \dots, N\}^2 : \|\delta\|_2 < r \,\}, \qquad P(r) = \operatorname{conv} F(r) = \{\, \delta \in \mathbb{R}^2 : a_k^{\top} \delta \leq b_k \ \ \forall\, k \in K(r) \,\}, \qquad a_k \in \mathbb{Z}^2,\ \gcd(a_{k1}, a_{k2}) = 1,\ b_k \in \mathbb{Z}
 ```
 
@@ -185,7 +185,7 @@ Used in: P:6, D:6, and the starting choices of the procedure.
 
 **D:3 Offset distance lookup table.** The Euclidean length of every candidate offset in Δ\_N. It depends only on N.
 
-```latex
+```math
 D : \Delta_N \to \mathbb{R}_{> 0}, \qquad D(\delta) = \|\delta\|_2 = \sqrt{\delta_1^2 + \delta_2^2}, \qquad D(\pm\delta_1, \pm\delta_2) = D(\delta_1, \delta_2)
 ```
 
@@ -195,7 +195,7 @@ Used in: the candidate scales D:5. No constraint reads it; the hulls of D:2 repl
 
 **D:4 Scale upper bound.** No two grid points are farther apart than the sheet's diagonal, √2·N, and the pair with the longest path needs m·ℓmax of that.
 
-```latex
+```math
 \bar{m} = \frac{\sqrt{2}\, N}{\ell_{\max}}
 ```
 
@@ -207,7 +207,7 @@ The bound is usually loose because other pairs also need room. In the running ex
 
 **D:5 Candidate scales.** Every lookup-table distance divided by a pair's path length, up to the scale bound m̄. They are sorted as c₁ < c₂ < … < c\_K.
 
-```latex
+```math
 \mathcal{C} = \left\{ \frac{D(\delta)}{\ell_{ij}} : \delta \in \Delta_N,\ \{i, j\} \in \mathcal{P} \right\} \cap [0, \bar{m}] = \{\, c_1 < c_2 < \dots < c_K \,\}
 ```
 
@@ -219,7 +219,7 @@ For the running example, the 9 × 9 grid has 50 distinct squared lengths and the
 
 **D:6 Inner polygon.** The lattice hull of an active pair's points Qᵢⱼ (P:6), with facets K(Qᵢⱼ) written with integer data as in D:2. With Qᵢⱼ = F(m·ℓᵢⱼ) it is the full hull P(m·ℓᵢⱼ).
 
-```latex
+```math
 \operatorname{conv} Q_{ij} = \{\, \delta : a_k^{\top} \delta \leq b_k \ \ \forall\, k \in K(Q_{ij}) \,\} \subseteq P(m\, \ell_{ij})
 ```
 
@@ -235,13 +235,13 @@ The scale is not a variable: it is the trial scale P:4 of each solve.
 
 **Leaf coordinates.** Integer coordinates, so each leaf sits on a grid point (C:1).
 
-```latex
+```math
 x_i,\ y_i \in \mathbb{Z} \cap [0, N], \qquad u_i = (x_i, y_i) \qquad \forall\, i \in L
 ```
 
 **Facet selectors.** For each active pair, one binary per facet of its inner polygon; 1 means the pair lies beyond that facet.
 
-```latex
+```math
 z_{ijk} \in \{0, 1\} \qquad \forall\, \{i, j\} \in A,\ k \in K(Q_{ij})
 ```
 
@@ -249,13 +249,13 @@ z_{ijk} \in \{0, 1\} \qquad \forall\, \{i, j\} \in A,\ k \in K(Q_{ij})
 
 **C:1 Leaves on grid points in their windows.** Every leaf lies on a grid point inside its window. With full windows this is the whole N × N sheet.
 
-```latex
+```math
 u_i \in W_i \cap G_N \qquad \forall\, i \in L
 ```
 
 **D:7 Facet big-M.** For each active pair and facet of its inner polygon, the constant that switches that facet's row of C:2 off when its selector is 0. It is computed from the windows, coordinate by coordinate; with full windows it is bₖ + 1 + ‖aₖ‖₁·N. A facet that cannot be crossed inside the windows is left out.
 
-```latex
+```math
 M_{ijk} = b_k + 1 - \min_{u_i \in W_i,\ u_j \in W_j} a_k^{\top} (u_i - u_j), \qquad W_i = W_j = [0, N]^2 \ \Longrightarrow\ M_{ijk} = b_k + 1 + \|a_k\|_1\, N
 ```
 
@@ -269,7 +269,7 @@ With both leaves confined to 3 × 3 windows, the facet row's left side ranges ov
 
 **C:2 Spacing through the inner polygons.** Each active pair's offset lies strictly outside its inner polygon, beyond at least one facet.
 
-```latex
+```math
 \begin{aligned}
 &a_k^{\top} (u_i - u_j) \geq b_k + 1 - M_{ijk} (1 - z_{ijk}) && \forall\, k \in K(Q_{ij}) \\
 &\textstyle\sum_{k \in K(Q_{ij})} z_{ijk} \geq 1
@@ -287,13 +287,13 @@ Both models below have no objective: each asks whether a layout exists at one tr
 
 **The restricted model R (single solve).** C:1 and C:2 over the leaf coordinates and facet selectors, for given P:4–P:7. Every solve in the procedure is one solve of R.
 
-```latex
+```math
 \mathrm{R}(m; A, Q, W): \quad \text{find } u, z \ \text{ satisfying C:1 and C:2}
 ```
 
 **The full feasibility model Feas(m).** R with every pair active, every inner polygon equal to its full hull, and full windows. It is the lattice-hull model of TreeMaker at scale m: it has a solution exactly when a grid layout exists with every pair at least m·ℓᵢⱼ apart (Section 11).
 
-```latex
+```math
 \mathrm{Feas}(m) = \mathrm{R}\big(m;\ \mathcal{P},\ Q^{\mathrm{full}},\ W^{\mathrm{full}}\big), \qquad Q^{\mathrm{full}}_{ij} = F(m\, \ell_{ij}), \qquad W^{\mathrm{full}}_i = [0, N]^2
 ```
 
@@ -303,7 +303,7 @@ The procedure never has to build Feas(m) in full. It decides the same question w
 
 Maximize the scale, exactly as TreeMaker does, over the candidate scales of D:5. Because each model fixes the scale, the maximum is taken outside the solver, by the bisection of Section 10.
 
-```latex
+```math
 m^{*} = \max \{\, m \in \mathcal{C} : \mathrm{Feas}(m) \text{ has a solution} \,\}
 ```
 
@@ -373,7 +373,7 @@ Each feasible layout can also be passed to the next solve as a starting solution
 - **The big-M is large enough.** D:7 subtracts the smallest value aₖᵀ(uᵢ − uⱼ) can take inside the windows, so a row whose selector is 0 always holds there.
 - **Leaving out uncrossable facets loses nothing,** because no offset in the windows could use them.
 
-```latex
+```math
 \delta \in \{-N, \dots, N\}^2: \quad \delta \notin P(r) \iff \|\delta\|_2 \geq r, \qquad a_k^{\top} \delta > b_k \iff a_k^{\top} \delta \geq b_k + 1, \qquad \mathrm{Feas}(m) \iff \|u_i - u_j\|_2 \geq m\, \ell_{ij} \ \ \forall\, \{i, j\} \in \mathcal{P}
 ```
 
@@ -382,7 +382,7 @@ Each feasible layout can also be passed to the next solve as a starting solution
 - **m* is a candidate.*\* At an optimal layout some pair is tight; otherwise every pair would have room to spare and the same layout would work at a slightly larger scale. That pair's distance is a table value D(δ) and equals m\*·ℓᵢⱼ, so m\* = D(δ)/ℓᵢⱼ, and m\* ≤ m̄.
 - **Feasibility is monotone in the scale.** A layout that works at scale m also works at every smaller scale, because each pair's required distance only shrinks. The sorted candidates split into a feasible lower part and an infeasible upper part, and bisection finds the boundary.
 
-```latex
+```math
 m^{*} \in \mathcal{C}, \qquad \mathrm{Feas}(m) \text{ has a solution and } m' \leq m \ \Longrightarrow\ \mathrm{Feas}(m') \text{ has a solution}
 ```
 
@@ -395,7 +395,7 @@ m^{*} \in \mathcal{C}, \qquad \mathrm{Feas}(m) \text{ has a solution and } m' \l
 - **The loop ends.** Every pass that does not stop adds at least one pair or one lattice point, and there are finitely many of both. In the worst case R grows into Feas(m).
 - **The carried state stays valid.** Any subset of the real pairs gives a relaxation at every scale, so A carries both ways. The forbidden sets are nested, so points carry upward; at a lower scale some points may be long enough, and keeping them would forbid valid offsets, so they are dropped.
 
-```latex
+```math
 m < m' \ \Longrightarrow\ F(m\, \ell_{ij}) \subseteq F(m'\, \ell_{ij})
 ```
 
@@ -423,7 +423,7 @@ At the running example's optimum, the six pairs' hulls have 72 crossable facets 
 
 **Incremental solving.** Each round of R has one binary per facet of each active pair's inner polygon, instead of one per crossable facet of every pair's full hull.
 
-```latex
+```math
 \underbrace{\textstyle\sum_{\{i, j\} \in A} |K(Q_{ij})|}_{\text{one round of R}} \quad \text{instead of} \quad \underbrace{\textstyle\sum_{\{i, j\} \in \mathcal{P}} |K(m\, \ell_{ij})|}_{\mathrm{Feas}(m)}
 ```
 
@@ -431,7 +431,7 @@ Binding pairs in TreeMaker layouts tend to form a sparse, roughly planar pattern
 
 **Rows and nonzeros.** Each facet row of C:2 touches at most five variables (four coordinates and its selector), so a pair has at most 6|K(Qᵢⱼ)| nonzeros, against about 4(2N + 1)² in the selector model.
 
-```latex
+```math
 \underbrace{O(n^2 N^2)}_{\text{selector model: one solve}}
 \quad \longrightarrow \quad
 \underbrace{O\big(n^2 N^{2/3}\big)}_{\text{Feas}(m)\text{, per test}} \ \times \ \underbrace{O\big(\log (N^2 n^2)\big)}_{\text{tests}}

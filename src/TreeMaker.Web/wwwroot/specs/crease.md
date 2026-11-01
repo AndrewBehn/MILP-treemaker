@@ -56,7 +56,7 @@ In the folded base every facet stands vertically over one tree edge. Its *along*
 
 **D:1 Tree points and tree distance.** A *tree point* is a node of T, or a point inside edge e at offset x ∈ (0, ℓₑ) from its first node. The tree distance d(p, q) is the length of the tree path between two tree points, and walk(p, q, s) is the tree point at distance s from p toward q. Inset polygon corners map to tree points that need not be nodes.
 
-```latex
+```math
 d(p, q) = \text{length of the path from } p \text{ to } q, \qquad d(p, \operatorname{walk}(p, q, s)) = s \ \ (0 \le s \le d(p, q))
 ```
 
@@ -64,7 +64,7 @@ Used in: D:3, D:4, A:1 and A:2.
 
 **D:2 Corner speed and cotangent.** When every side of a convex polygon moves inward by the same distance h, corner i slides along its angle bisector at the speed rᵢ that keeps it at distance h from both adjacent sides; cᵢ is how fast it moves along the next side, the cotangent of half the corner's angle. With aᵢ and bᵢ the unit vectors from corner i to its previous and next corners, and nᵢ the inward normal of the next side (bᵢ turned 90° counter-clockwise):
 
-```latex
+```math
 \beta_i = \frac{a_i + b_i}{\lVert a_i + b_i \rVert}\ (\text{or } n_i \text{ when } a_i + b_i = 0), \qquad r_i = \frac{\beta_i}{\beta_i \cdot n_i}, \qquad c_i = r_i \cdot b_i
 ```
 
@@ -72,7 +72,7 @@ Used in: D:3, A:1 and Lemma 1.
 
 **D:3 Reduced path length.** As the polygon shrinks by h, the tree path between corners i and j, with tree points τᵢ and τⱼ, loses h·cᵢ at each end. Its reduced length is what the inset corners' distance must stay at or above.
 
-```latex
+```math
 L_{ij}(h) = m\, d(\tau_i, \tau_j) - h\,(c_i + c_j)
 ```
 
@@ -80,7 +80,7 @@ Used in: A:1, Lemma 1 and Lemma 2.
 
 **D:4 Band and fold map.** The *band* of side i, from corner qᵢ to qⱼ at elevation e, is the quadrilateral between that side and its inset. With unit vector u along the side and inward normal n, a paper point x has coordinates s = (x − qᵢ)·u and t = (x − qᵢ)·n, and folds to a tree point and an elevation.
 
-```latex
+```math
 \varphi(x) = \Big( \operatorname{walk}\big(\tau_i, \tau_j, \max(0, s)/m\big),\ e + t \Big)
 ```
 
@@ -92,7 +92,7 @@ Each polygon shrinks, all sides moving inward together, until the first event: t
 
 **Lemma 1.** Adjacent corners i and j = i + 1 meet at h = ‖qⱼ − qᵢ‖ / (cᵢ + cⱼ). Non-adjacent corners become exactly tight at the smallest positive root h of the quadratic below with Lᵢⱼ(h) ≥ 0, where u = qᵢ − qⱼ, v = rᵢ − rⱼ, w = cᵢ + cⱼ and L = m d(τᵢ, τⱼ). *Proof.* An inset side keeps its direction and loses h·c at each end (D:2), so it vanishes at that h. The inset corners are q + h r, and squaring ‖u + h v‖ = L − h w gives the quadratic.
 
-```latex
+```math
 (v \cdot v - w^2)\,h^2 + 2\,(u \cdot v + L w)\,h + (u \cdot u - L^2) = 0
 ```
 
@@ -153,7 +153,7 @@ A tall base can be lowered by pleating every flap: each facet is cut along the e
 
 **D:5 Pleated height.** The height of elevation z once folded to H, a triangle wave.
 
-```latex
+```math
 \operatorname{pl}_H(z) = H - \big\lvert (z \bmod 2H) - H \big\rvert
 ```
 
