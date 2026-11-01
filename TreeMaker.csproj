@@ -1,0 +1,40 @@
+<Project>
+
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+
+  <!--
+    The repository's entry point, so the usual commands work from the root:
+      dotnet build   builds the app, the three solver libraries and their tests
+      dotnet run     runs the app (TreeMaker.Web) on http://localhost:5080
+      dotnet test    runs every test project
+    It compiles nothing of its own. The app is TreeMaker.Web; the libraries are in *MilpTreeMaker/src.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <IsPackable>false</IsPackable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AppProject>$(MSBuildThisFileDirectory)TreeMaker.Web/TreeMaker.Web.csproj</AppProject>
+    <!-- `dotnet run` starts the app, already built through the reference below, with its launch settings. -->
+    <RunCommand>dotnet</RunCommand>
+    <RunArguments>run --project "$(AppProject)" --no-build -c $(Configuration)</RunArguments>
+    <RunWorkingDirectory>$(MSBuildThisFileDirectory)</RunWorkingDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(AppProject)" ReferenceOutputAssembly="false" />
+    <TestProject Include="PureMilpTreeMaker/tests/PureMilpTreeMaker.Tests/PureMilpTreeMaker.Tests.csproj" />
+    <TestProject Include="OptimizedMilpTreeMaker/tests/OptimizedMilpTreeMaker.Tests/OptimizedMilpTreeMaker.Tests.csproj" />
+    <TestProject Include="ScalableMilpTreeMaker/tests/ScalableMilpTreeMaker.Tests/ScalableMilpTreeMaker.Tests.csproj" />
+    <ProjectReference Include="@(TestProject)" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+
+  <!-- `dotnet test` asks this project to run its tests: hand that to each test project, with the same settings.
+       Defined after the SDK's targets so it replaces the SDK's own VSTest target. -->
+  <Target Name="VSTest">
+    <MSBuild Projects="@(TestProject)" Targets="VSTest" />
+  </Target>
+
+</Project>

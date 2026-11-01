@@ -813,6 +813,7 @@ function applyProblem(p) {
   $("gridSize").value = p.gridSize ?? 9;
   for (const c of p.leafConditions ?? []) state.conditions[c.leaf] = { kind: c.kind, x: c.x ?? "", y: c.y ?? "" };
   state.mirrors = (p.mirrorPairs ?? []).map((m) => ({ a: m.a, b: m.b }));
+  if (state.mirrors.length) resetTreeLayout();
   if (p.targetScale != null) $("targetScale").value = p.targetScale;
   renderLeafControls();
   changed();
@@ -1068,15 +1069,20 @@ function renderShelf() {
 // ───────────────────────── Routing between the map and the nodes ─────────────────────────
 
 function route() {
-  // `#/<node>?read=<doc>:<anchor>`: the part of the app, and the spec open beside it (specs.js).
+  // `#/<node>`: the part of the app. The specs open in their own tab (docs.html), so a link from before the split,
+  // `#/<node>?read=<doc>:<anchor>`, opens that passage there and keeps the node here.
   const [path, query = ""] = location.hash.replace(/^#\/?/, "").split("?");
+  const read = new URLSearchParams(query).get("read");
+  if (read != null) {
+    const [doc, at] = read.split(":");
+    history.replaceState(null, "", `#/${path}`);
+    specLinks.open(doc || null, at || null);
+  }
   const id = NODES[path] ? path : "";
-  // Opening or moving the reader changes only the query: the page and its results stay as they are.
   if (id !== (state.node?.id ?? "") || !state.routed) {
     state.routed = true;
     if (!id) showMap(); else enterNode(id);
   }
-  specReader.sync(new URLSearchParams(query));
 }
 
 function showMap() {
@@ -1113,8 +1119,8 @@ function enterNode(id) {
   $("crumbNode").textContent = node.title;
   $("crumbSpec").hidden = !doc;
   if (doc) {
-    const t = specReader.firstTarget(node.section, node.doc);
-    $("crumbSpec").href = specReader.href(t.doc, t.at, id);
+    const t = specLinks.firstTarget(node.section, node.doc);
+    $("crumbSpec").href = specLinks.href(t.doc, t.at);
     $("crumbSpec").title = `Read ${doc.title}: ${node.section}`;
   }
   $("nodeKicker").textContent = node.kicker;
@@ -1124,10 +1130,8 @@ function enterNode(id) {
   spec.replaceChildren();
   if (doc) {
     spec.append("Spec: ");
-    const a = document.createElement("a");
-    a.href = specReader.href(node.doc, null, id); a.textContent = doc.title;
-    // Every label and section the node cites opens the reader there.
-    spec.append(a, " · ", specReader.linkify(node.section, node.doc, id));
+    // The doc, and every label and section the node cites, open in the docs tab.
+    spec.append(specLinks.link(doc.title, node.doc, null), " · ", specLinks.linkify(node.section, node.doc));
   } else {
     spec.textContent = "Spec: none yet.";
   }
@@ -1195,6 +1199,7 @@ function applyPresetAvailability(node) {
 // ───────────────────────── Start-up ─────────────────────────
 
 async function init() {
+  window.name = APP_TAB;     // links from the docs tab ("Run it") come back to this tab
   $("addEdge").addEventListener("click", () => {
     state.edges.push({ from: "", to: "", length: 1, stretch: false });
     renderEdges();
@@ -1227,6 +1232,8 @@ async function init() {
       loadEdges(PRESETS[value]);
       if (PRESET_GRID[value]) $("gridSize").value = PRESET_GRID[value];
       state.mirrors = presetMirrors(value, PRESETS[value]);
+      // Redraw with the mirror pairs known, so the body is a straight line with a leg on each side.
+      resetTreeLayout();
       renderLeafControls();
       changed();
     }

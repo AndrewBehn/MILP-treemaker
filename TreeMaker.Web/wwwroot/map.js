@@ -173,14 +173,15 @@ const appMap = (() => {
       // The spec pill, outside the box's link so it opens the document instead.
       const doc = nodeDoc(node);
       if (doc) {
-        // Opens the packaged doc beside the map, at the first section or label the node cites.
-        const t = specReader.firstTarget(node.section, node.doc);
-        const pill = svgEl("a", { href: specReader.href(t.doc, t.at, ""), class: "map-spec" }, g);
+        // Opens the packaged doc in the docs tab, at the first section or label the node cites; the box itself
+        // opens the part of the app.
+        const t = specLinks.firstTarget(node.section, node.doc);
+        const pill = svgEl("a", { href: specLinks.href(t.doc, t.at), target: SPEC_TAB, class: "map-spec" }, g);
         const pt = svgEl("title", {}, pill);
         pt.textContent = `Read the spec: ${doc.title} (${node.section})`;
         svgEl("rect", { x: b.x + b.w - 56, y: b.y + 8, width: 46, height: 18, rx: 9 }, pill);
         const tx = svgEl("text", { x: b.x + b.w - 33, y: b.y + 21, "text-anchor": "middle" }, pill);
-        tx.textContent = "Spec";
+        tx.textContent = "Spec ↗";
       }
     }
     renderBench();

@@ -27,10 +27,169 @@ function resetTreeLayout() {
 
 // ───────────────────────── Layout ─────────────────────────
 
+/** Fits raw coordinates (any scale, y down) into the unit square of a width × height box, keeping the shape. */
+function fitLayout(raw, width, height) {
+  const out = new Map();
+  const xs = [...raw.values()].map((p) => p[0]), ys = [...raw.values()].map((p) => p[1]);
+  const [minX, maxX, minY, maxY] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  const fit = Math.min(width / Math.max(1e-9, maxX - minX), height / Math.max(1e-9, maxY - minY));
+  const offX = (width - fit * (maxX - minX)) / 2, offY = (height - fit * (maxY - minY)) / 2;
+  for (const [v, [x, y]] of raw) out.set(v, [(offX + (x - minX) * fit) / width, (offY + (y - minY) * fit) / height]);
+  return out;
+}
+
+/**
+ * Bilateral layout for a tree with left–right mirror pairs (the centipedes): the body is a straight vertical
+ * line, and each mirrored flap hangs off it on its own side, drawn as the exact mirror image of its partner.
+ * The body is the path through the vertices halfway between each mirror pair (equal tree distance to both).
+ * Returns null when the pairs don't describe such a body, and the caller falls back to the radial layout.
+ */
+function bilateralLayout(info, mirrors) {
+  if (!mirrors.length || !isTree(info, state.edges)) return null;
+  const lengthOf = (edge) => Math.max(0.05, Number(state.edges[edge].length) || 0.05);
+  // Tree distances from a vertex, and the path between two vertices.
+  const walk = (from) => {
+    const dist = new Map([[from, 0]]), prev = new Map([[from, null]]);
+    const queue = [from];
+    for (let k = 0; k < queue.length; k++) {
+      for (const { to, edge } of info.adjacency.get(queue[k])) {
+        if (!dist.has(to)) { dist.set(to, dist.get(queue[k]) + lengthOf(edge)); prev.set(to, queue[k]); queue.push(to); }
+      }
+    }
+    return { dist, prev };
+  };
+  const side = new Map();        // leaf -> -1 (left, the pair's first leaf) | +1 (right)
+  const axis = new Set();
+  for (const { a, b } of mirrors) {
+    if (!info.adjacency.has(a) || !info.adjacency.has(b)) continue;
+    side.set(a, -1); side.set(b, +1);
+    const fromA = walk(a), fromB = walk(b);
+    for (let v = b; v != null; v = fromA.prev.get(v)) {
+      if (Math.abs(fromA.dist.get(v) - fromB.dist.get(v)) < 1e-9) axis.add(v);
+    }
+  }
+  if (!axis.size) return null;
+  // The body: the smallest subtree joining the axis vertices. It must be a path to be drawn as a line.
+  const start = [...axis][0];
+  const { prev } = walk(start);
+  const body = new Set();
+  for (const v of axis) for (let u = v; u != null && !body.has(u); u = prev.get(u)) body.add(u);
+  const ends = [...body].filter((v) => info.adjacency.get(v).filter(({ to }) => body.has(to)).length <= 1);
+  if (ends.length > 2) return null;
+  // Order the body from one end to the other; the end that appears first in the edge list is the head (top).
+  const firstIndex = (v) => state.edges.findIndex((e) => e.from === v || e.to === v);
+  const head = ends.length === 2 ? (firstIndex(ends[0]) <= firstIndex(ends[1]) ? ends[0] : ends[1]) : start;
+  const spine = [head];
+  const y = new Map([[head, 0]]);
+  for (;;) {
+    const last = spine[spine.length - 1];
+    const next = info.adjacency.get(last).find(({ to }) => body.has(to) && !y.has(to));
+    if (!next) break;
+    y.set(next.to, y.get(last) + lengthOf(next.edge));
+    spine.push(next.to);
+  }
+  if (spine.length !== body.size) return null;
+
+  const raw = new Map(spine.map((v) => [v, [0, y.get(v)]]));
+  // Each vertex's tree distance from the body, to tell long flaps from short ones.
+  const fromBody = new Map(spine.map((v) => [v, 0]));
+  for (const queue = [...spine]; queue.length;) {
+    const v = queue.shift();
+    for (const { to, edge } of info.adjacency.get(v)) {
+      if (!fromBody.has(to)) { fromBody.set(to, fromBody.get(v) + lengthOf(edge)); queue.push(to); }
+    }
+  }
+  // Space the body out to at least 60% of a typical flap's reach, so short body segments between long legs
+  // don't stack the legs on top of each other. The drawing is a sketch of the tree, not to scale.
+  const reaches = info.vertices.filter((v) => info.adjacency.get(v).length === 1).map((v) => fromBody.get(v)).sort((p, q) => p - q);
+  const typical = reaches.length ? reaches[Math.floor(reaches.length / 2)] : 1;
+  for (let k = 1; k < spine.length; k++) {
+    const step = info.adjacency.get(spine[k - 1]).find(({ to }) => to === spine[k]).edge;
+    y.set(spine[k], y.get(spine[k - 1]) + Math.max(lengthOf(step), 0.6 * typical));
+  }
+  for (const v of spine) raw.set(v, [0, y.get(v)]);
+  // Each flap: the subtree off a body vertex. Its side comes from its paired leaves; unpaired flaps go on the axis.
+  const leavesUnder = (root, parent) => {
+    const out = [];
+    const stack = [[root, parent]];
+    while (stack.length) {
+      const [v, p] = stack.pop();
+      const next = info.adjacency.get(v).filter(({ to }) => to !== p);
+      if (!next.length) out.push(v);
+      for (const { to } of next) stack.push([to, v]);
+    }
+    return out;
+  };
+  const partner = new Map();
+  for (const { a, b } of mirrors) { partner.set(a, b); partner.set(b, a); }
+  // A side-independent key, so a left flap and its right mirror sort to the same place.
+  const keyOf = (leaves) => leaves.map((l) => (side.get(l) === +1 ? partner.get(l) : l)).sort()[0] ?? "";
+  // Draws a flap as a small fan around a direction (radians, x right, y down), mirrored on the right.
+  const place = (root, parent, origin, dir, spread, mirror) => {
+    const fan = (v, p, at, angle, width) => {
+      const kids = info.adjacency.get(v).filter(({ to }) => to !== p)
+        .map(({ to, edge }) => ({ to, edge, leaves: leavesUnder(to, v) }))
+        .sort((s, t) => (keyOf(s.leaves) < keyOf(t.leaves) ? -1 : 1));
+      const total = kids.reduce((s, k) => s + k.leaves.length, 0);
+      let a = angle - width / 2;
+      for (const k of kids) {
+        const w = width * k.leaves.length / total;
+        const theta = a + w / 2;
+        const len = lengthOf(k.edge);
+        const pt = [at[0] + mirror * len * Math.cos(theta), at[1] + len * Math.sin(theta)];
+        raw.set(k.to, pt);
+        fan(k.to, v, pt, theta, w * 0.8);
+        a += w;
+      }
+    };
+    const len = lengthOf(info.adjacency.get(parent).find(({ to }) => to === root).edge);
+    const pt = [origin[0] + mirror * len * Math.cos(dir), origin[1] + len * Math.sin(dir)];
+    raw.set(root, pt);
+    fan(root, parent, pt, dir, spread);
+  };
+  spine.forEach((s, i) => {
+    const flaps = info.adjacency.get(s).filter(({ to }) => !body.has(to)).map(({ to }) => {
+      const leaves = leavesUnder(to, s);
+      const sides = new Set(leaves.map((l) => side.get(l) ?? 0));
+      return { to, leaves, side: sides.size === 1 ? [...sides][0] : 0 };
+    });
+    const isHead = i === 0, isTail = i === spine.length - 1;
+    // Left flaps point left (angle π, x right and y down), spread from up-left to down-left: forward at the
+    // head, backward at the tail, straight out in the middle. Each right flap is drawn as its left mate's mirror.
+    const [up, down] = isHead && isTail ? [0.35, 0.35] : isHead ? [0.45, 0.1] : isTail ? [0.1, 0.45] : [0.2, 0.2];
+    // At the head the longest flaps (antennae) lean furthest forward, at the tail the longest (cerci) furthest back.
+    const reach = (f) => Math.max(...f.leaves.map((l) => fromBody.get(l)));
+    const byKey = (f, g) => (keyOf(f.leaves) < keyOf(g.leaves) ? -1 : 1);
+    const order = isHead && !isTail ? (f, g) => reach(g) - reach(f) || byKey(f, g)
+      : isTail && !isHead ? (f, g) => reach(f) - reach(g) || byKey(f, g) : byKey;
+    const left = flaps.filter((f) => f.side === -1).sort(order);
+    const right = flaps.filter((f) => f.side === +1);
+    const n = left.length;
+    left.forEach((f, k) => {
+      const t = n === 1 ? 0.5 : k / (n - 1);
+      const dir = Math.PI + Math.PI * (up - t * (up + down));
+      const spread = Math.min(0.8, Math.PI * (up + down) / Math.max(1, n));
+      place(f.to, s, [0, y.get(s)], dir, spread, 1);
+      const mate = right.find((g) => keyOf(g.leaves) === keyOf(f.leaves));
+      if (mate) place(mate.to, s, [0, y.get(s)], dir, spread, -1);
+    });
+    // Right flaps without a left mate, then flaps on the axis (out of the head or the tail).
+    for (const g of right) if (!raw.has(g.to)) place(g.to, s, [0, y.get(s)], Math.PI, 0.6, -1);
+    const middle = flaps.filter((f) => f.side === 0);
+    middle.forEach((f, k) => {
+      const dir = isHead && !isTail ? -Math.PI / 2 : Math.PI / 2;    // out of the head upward, else downward
+      place(f.to, s, [0, y.get(s)], dir + (k - (middle.length - 1) / 2) * 0.35, 0.5, 1);
+    });
+  });
+  return raw.size === info.vertices.length ? raw : null;
+}
+
 /** Radial layout from the centre, in unit coordinates fitted to the drawing's aspect ratio. */
 function autoLayout(info, width, height) {
   const out = new Map();
   if (!info.vertices.length) return out;
+  const bilateral = bilateralLayout(info, state.mirrors ?? []);
+  if (bilateral) return fitLayout(bilateral, width, height);
   if (!isTree(info, state.edges)) {
     info.vertices.forEach((v, k) => {
       const a = (2 * Math.PI * k) / info.vertices.length - Math.PI / 2;
