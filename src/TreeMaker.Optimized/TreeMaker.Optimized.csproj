@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Optimized MILP TreeMaker (and Lattice-Hull MILP): lattice hulls, bisection over candidate scales, incremental generation. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>TreeMaker.Optimized</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TreeMaker.Core\TreeMaker.Core.csproj" />
+    <!-- The base model, for its predicted size and the optional comparison solve. -->
+    <ProjectReference Include="..\TreeMaker.Pure\TreeMaker.Pure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="TreeMaker.Optimized.Tests" />
+  </ItemGroup>
+
+</Project>

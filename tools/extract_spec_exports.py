@@ -5,8 +5,8 @@ The specs are Claude Docs artifacts. Exporting one to Markdown (the Docs `export
 the file inline as base64, and the session transcript records that result. This script scans one or more transcript
 JSONL files (or plain .md files), keeps the newest export of each spec, and writes
 
-    TreeMaker.Web/wwwroot/specs/<key>.md
-    TreeMaker.Web/wwwroot/specs/manifest.json
+    src/TreeMaker.Web/wwwroot/specs/<key>.md
+    src/TreeMaker.Web/wwwroot/specs/manifest.json
 
 Usage:
     python3 tools/extract_spec_exports.py [--out DIR] SOURCE [SOURCE ...]
@@ -195,7 +195,7 @@ def html_unescape(s):
 
 def main():
     here = os.path.dirname(os.path.abspath(__file__))
-    default_out = os.path.join(here, "..", "TreeMaker.Web", "wwwroot", "specs")
+    default_out = os.path.join(here, "..", "src", "TreeMaker.Web", "wwwroot", "specs")
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", default=default_out)
     ap.add_argument("sources", nargs="+")

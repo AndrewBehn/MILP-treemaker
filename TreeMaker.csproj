@@ -4,17 +4,17 @@
 
   <!--
     The repository's entry point, so the usual commands work from the root:
-      dotnet build   builds the app, the three solver libraries and their tests
+      dotnet build   builds the app, the shared library, the three solvers and their tests
       dotnet run     runs the app (TreeMaker.Web) on http://localhost:5080
       dotnet test    runs every test project
-    It compiles nothing of its own. The app is TreeMaker.Web; the libraries are in *MilpTreeMaker/src.
+    It compiles nothing of its own. The app and the libraries are in src/, their tests in tests/.
   -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <EnableDefaultItems>false</EnableDefaultItems>
     <IsPackable>false</IsPackable>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <AppProject>$(MSBuildThisFileDirectory)TreeMaker.Web/TreeMaker.Web.csproj</AppProject>
+    <AppProject>$(MSBuildThisFileDirectory)src/TreeMaker.Web/TreeMaker.Web.csproj</AppProject>
     <!-- `dotnet run` starts the app, already built through the reference below, with its launch settings. -->
     <RunCommand>dotnet</RunCommand>
     <RunArguments>run --project "$(AppProject)" --no-build -c $(Configuration)</RunArguments>
@@ -23,9 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="$(AppProject)" ReferenceOutputAssembly="false" />
-    <TestProject Include="PureMilpTreeMaker/tests/PureMilpTreeMaker.Tests/PureMilpTreeMaker.Tests.csproj" />
-    <TestProject Include="OptimizedMilpTreeMaker/tests/OptimizedMilpTreeMaker.Tests/OptimizedMilpTreeMaker.Tests.csproj" />
-    <TestProject Include="ScalableMilpTreeMaker/tests/ScalableMilpTreeMaker.Tests/ScalableMilpTreeMaker.Tests.csproj" />
+    <TestProject Include="tests/*/*.Tests.csproj" />
     <ProjectReference Include="@(TestProject)" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
