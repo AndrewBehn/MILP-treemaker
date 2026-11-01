@@ -529,13 +529,20 @@ function renderTreePreview() {
   const hover = treeUi.hover;
   const dragging = treeUi.drag;
 
-  // Leaf circles (on by default): each leaf's circle passes through the joint it hangs from, so its radius is the
-  // leaf edge as drawn. The sketch is not to scale, so the circles show each flap's reach, not the paper it needs.
+  // Leaf circles (on by default): radius = the leaf edge's length ℓ × one scale for the whole drawing, chosen so
+  // the longest leaf edge reaches a quarter of the drawing. Dragging moves a circle but never resizes it, and the
+  // circles keep the proportions of the sheet's leaf circles (m × ℓ).
   if ($("treeCircles")?.checked !== false) {
-    for (const v of info.leaves) {
-      const [{ to } = {}] = info.adjacency.get(v) ?? [];
-      const a = px.get(v), b = px.get(to);
-      if (a && b) svg.append(el("circle", { cx: a[0], cy: a[1], r: Math.hypot(b[0] - a[0], b[1] - a[1]), class: "leaf-reach" }));
+    const leafLength = new Map();
+    state.edges.forEach((e) => {
+      const from = e.from.trim(), to = e.to.trim();
+      for (const v of [from, to]) if (info.leaves.includes(v)) leafLength.set(v, Number(e.length));
+    });
+    const longest = Math.max(0, ...[...leafLength.values()].filter((l) => l > 0));
+    const k = longest > 0 ? (0.25 * Math.min(width, height)) / longest : 0;
+    for (const [v, l] of leafLength) {
+      const a = px.get(v);
+      if (a && l > 0) svg.append(el("circle", { cx: a[0], cy: a[1], r: l * k, class: "leaf-reach" }));
     }
   }
 
