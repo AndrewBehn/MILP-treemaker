@@ -112,6 +112,7 @@ Every solver and the Tree node use the same editor, `tree-editor.js`.
 - **Delete.** Drag a vertex to **Drop to delete**.
 - **Change a length.** Click the length tag on an edge, or Tab to it and press Enter. Type the new length, then press Enter to save or Esc to cancel.
 - **Rename a vertex.** Double-click it.
+- **Pin or mirror a leaf.** Click a leaf to open its menu. The small square stands for the sheet: click a corner or a side to pin the leaf there, or the centre to free it. The menu can also put the leaf on the symmetry axis (2x = N, N even) or at a grid point. **Mirror with another leaf…** then a click on the partner makes a mirror pair (x_a + x_b = N, y_a = y_b). The drawing shows each condition as a tag under the leaf and each pair as a dashed line, and the leaf conditions list in the sidebar follows. Esc or a click elsewhere closes the menu or cancels the pick.
 - **Pure MILP and Symmetry-Breaking MILP only:** click an edge to add it to, or remove it from, the stretch set S, which edge optimization uses.
 - **Layout.** **Tidy** lays the tree out again. **Enlarge** opens the editor nearly full screen.
 - **Mirrored trees.** A tree with mirror pairs, such as the centipede presets, is drawn bilaterally: the body is a straight vertical line and each leg sits on its own side, opposite its partner. The longest flaps at the head and tail (antennae, cerci) point forward and back. The drawing is a sketch, not to scale: short body segments are spaced out so the legs don't overlap. The mirror pairs themselves make every solver place each pair symmetrically about the sheet's vertical axis, x_a + x_b = N. The folded base draws its stick figure the same way, to scale: the body straight and each leg opposite its partner.
@@ -121,10 +122,20 @@ The server tells the browser not to cache the page, and the scripts are versione
 
 ## Toward a crease pattern (the steps after a solve)
 
-After a solve, the **Toward a crease pattern** panel under the sheet checks whether the layout can carry a crease pattern. The same panel (`polygons.js`) is the Close the polygons and Crease pattern nodes of the map, each showing its own part of it, and it runs the code in `src/TreeMaker.Core`.
+After a solve, the **Toward a crease pattern** panel under the sheet checks whether the layout can carry a crease pattern. The same panel (`polygons.js`) is the Close the polygons and Crease pattern nodes of the map, each showing its own part of it, and it runs the code in `src/TreeMaker.Core`. The panel lays the work out as three numbered steps. Each step's heading shows where it stands (to do, needs closing, closed, ready, built), and a short line under each button says what pressing it does.
 
-1. **Check the polygons** (`ActivePaths`, `POST /api/polygons`). TreeMaker's universal-molecule construction needs the tight pairs (active paths) to divide the leaves' convex hull into polygons. Each polygon must be convex, bounded by tight paths, and empty of leaves. The panel lists what's missing: open boundary pieces, crossing paths, non-convex polygons, leaves inside a polygon, and uncovered area. The polygons are drawn on the sheet: valid ones are shaded, invalid ones hatched, and the missing boundary is dotted.
-2. **Close the polygons** (`PolygonCompletion`, `POST /api/complete`). The leaves and the scale stay fixed. The edge lengths change (strain σₑ within your bounds) so the pairs of a triangulation that keeps the existing tight pairs become exactly tight, and every other pair still fits. Boundary pairs come first, since the polygons cannot cover the hull without them. A second solve then uses the least total strain. **Use these lengths in the tree** copies the new lengths into the editor.
+1. **Check the polygons** (`ActivePaths`, `POST /api/polygons`). TreeMaker's universal-molecule construction needs the tight pairs (active paths) to divide the leaves' convex hull into polygons. Each polygon must be convex, bounded by tight paths, and empty of leaves. The panel lists what's missing: open boundary pieces, crossing paths, non-convex polygons, leaves inside a polygon, and uncovered area. The sheet marks what still needs closing:
+   - Valid polygons are shaded.
+   - Invalid polygons are hatched, with a tag saying why (a leaf inside, not convex, not closed), and a ring marks any leaf inside one.
+   - Hull outline that no polygon covers yet is hatched too.
+   - Hull sides that aren't tight paths yet are dashed red.
+
+   A key under the sheet explains the marks, with a line such as "To close before a crease pattern: 3 hull sides to make tight, 1 polygon not valid".
+2. **Close the polygons** (`PolygonCompletion`, `POST /api/complete`). There are two ways, and you pick one:
+   - **Find the strain needed and close** (recommended): finds the smallest bound for you (below).
+   - **Close within these bounds**: uses the σ_min and σ_max you type.
+
+   The leaves and the scale stay fixed. The edge lengths change (strain σₑ within your bounds) so the pairs of a triangulation that keeps the existing tight pairs become exactly tight, and every other pair still fits. Boundary pairs come first, since the polygons cannot cover the hull without them. A second solve then uses the least total strain. **Use these lengths in the tree** copies the new lengths into the editor.
 
 3. **Build the crease pattern** (`CreasePatternBuilder`, `POST /api/creases`). This fills every polygon with Lang's universal molecule. Each polygon shrinks, with all sides moving inward at the same rate and the corners sliding along their bisectors, which traces the **ridge** creases. It stops when two corners meet or when a shortened diagonal becomes tight. In the second case it splits along that diagonal (a **gusset**) and repeats on each piece. **Hinge** creases run perpendicular to each side at every internal tree node along its path. The creases are drawn on the sheet. **Download .fold** gives a FOLD file that Origami Simulator and other tools can open; **Download .svg** gives a drawing styled by crease type.
 4. **The folded base** (`folded.js`). Every facet is mapped to its folded position: it lies over one tree edge, at its height above the axis. The base is drawn in 3D: drag to turn it, or pick a view from above, from the side, or three-quarter. Seen from above it is the tree's stick figure. The builder also checks the fold: every vertex must fold to one point from all its facets, and every facet must keep its shape. The result of that check is shown with the pattern.
@@ -142,7 +153,18 @@ Whether a layout can be closed with small strains depends on which optimal layou
 **Load a preset** lists the same trees in every solver.
 
 - **Grid size.** Each preset sets its own grid size N: the largest tested N at which every solver that offers the preset solves it within the 60 s limit.
-- **Mirror pairs.** The centipede presets also load left–right mirror pairs: legs Lk ↔ Rk, and for the full centipede the antennae and the tail flaps.
+- **Symmetry.** Every bilateral preset loads the conditions it would be folded with (Pure MILP spec, Sections 7.3 and 7.4): left–right mirror pairs for its paired flaps, and the symmetry axis for its unpaired ones. They show in **Leaf conditions** and can be removed there.
+
+  | Preset | Mirror pairs | On the symmetry axis |
+  |---|---|---|
+  | Bird-base–like | 1 ↔ 2, 3 ↔ 4, 5 ↔ 6 | — |
+  | Centipedes | Lk ↔ Rk; for the full centipede also the antennae and the tail flaps | — |
+  | Beetle | antennae, legs L1–L3 ↔ R1–R3 | abdomen (abd) |
+  | Deer with antlers | ears, antler tines t1 ↔ t3 and t2 ↔ t4, fore and hind legs | snout (snt), tail |
+  | Dragon with wings | horns, wing fingers wL1–wL3 ↔ wR1–wR3, fore and hind legs | snout (snt), tail |
+  | Scorpion | pincer fingers pL1, pL2 ↔ pR1, pR2, legs L1–L4 ↔ R1–R4 | stinger (stg) |
+
+  The star, caterpillar and running-example presets have none.
 - **Greyed out.** A preset a solver cannot solve in reasonable time at any useful grid size is greyed out there, marked *too slow here; use the Scalable MILP*. The Tree node offers every preset.
 
 Times are to the 1% gap, at the preset's N. "off" means greyed out in that solver. The base model column covers Pure MILP and Symmetry-Breaking MILP; the optimized column covers Optimized MILP and Lattice-Hull MILP, which offer the same presets.
@@ -152,19 +174,21 @@ Times are to the 1% gap, at the preset's N. "off" means greyed out in that solve
 | Running example | 4 | 8 | 28 s | 0.1 s | under 1 s |
 | Star, 4 legs | 4 | 6 | 6 s | 0.1 s | under 1 s |
 | Star, 5 legs | 5 | 16 | off | 8 s | under 1 s |
-| Bird-base–like (centipede, 3 leg pairs) | 6 | 8 | off | 46 s | under 1 s |
+| Bird-base–like (centipede, 3 leg pairs) | 6 | 8 | off | 46 s ¹ | under 1 s |
 | Caterpillar | 6 | 10 | off | 25 s | under 1 s |
 | Centipede, 2 leg pairs (mirrored) | 4 | 12 | 6 s | 0.3 s | under 1 s |
 | Centipede, 4 leg pairs (mirrored) | 8 | 12 | off | 35 s | under 1 s |
 | Centipede, 5 leg pairs (mirrored) | 10 | 8 | off | 23 s | under 1 s |
 | Centipede, 6 leg pairs (mirrored) | 12 | 8 | off | 13 s | under 1 s |
 | Centipede, 8 leg pairs (mirrored) | 16 | 13 | off | off | under 1 s |
-| Beetle | 9 | 12 | off | off | under 1 s |
-| Deer with antlers | 12 | 12 | off | off | under 1 s |
-| Dragon with wings | 14 | 14 | off | off | about 1 s |
-| Scorpion | 13 | 14 | off | off | under 1 s |
+| Beetle (mirrored) | 9 | 12 | off | off | under 1 s ¹ |
+| Deer with antlers (mirrored) | 12 | 12 | off | off | under 1 s ¹ |
+| Dragon with wings (mirrored) | 14 | 14 | off | off | about 1 s ¹ |
+| Scorpion (mirrored) | 13 | 14 | off | off | under 1 s ¹ |
 | Centipede with antennae and tail (mirrored) | 18 | 16 | off | off | about 1 s |
 | Random, 25 / 50 / 100 leaves | 25 to 100 | about 3.2·√leaves | not listed | not listed | 1 to 3 s |
+
+¹ Timed before these presets loaded their mirror pairs and axis conditions. The conditions fix leaves and roughly halve the free ones, so they should only make the solves faster, but they can lower the best scale; the times and grid sizes have not been re-measured.
 
 The base and optimized times come from Python prototypes of their algorithms, with HiGHS standing in for SCIP. The prototypes swept N = 4, 6, 8, … for the optimized search, and N = 4, 5, 6, … for the base model. They are not timings of the C# solvers.
 

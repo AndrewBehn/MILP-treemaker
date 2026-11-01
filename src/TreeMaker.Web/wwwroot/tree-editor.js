@@ -8,6 +8,8 @@
 //   Click an edge          toggle it in the stretch set S
 //   Click a length tag     edit it in place (Enter saves, Esc cancels; Tab also reaches the tags)
 //   Double-click a vertex  rename it
+//   Click a leaf           pin it to an edge, a corner, the symmetry axis or a grid point, or mirror it with
+//                          another leaf (then click that leaf); the conditions show on the drawing
 "use strict";
 
 const treeUi = {
@@ -17,7 +19,177 @@ const treeUi = {
   geometry: null,       // last render: { width, height, pad, px: Map(name -> [x, y]) }
   message: "",
   handPlaced: false,    // true once a vertex was dragged: a new layout then doesn't re-orient the drawing
+  pick: null,           // { from: leaf } while choosing the leaf that mirrors `from`
 };
+
+// ───────────────────────── Leaf conditions on the drawing ─────────────────────────
+// The same state as the sidebar's Leaf conditions table and Mirror pairs (state.conditions, state.mirrors), set by
+// clicking a leaf. Pure MILP spec, Sections 7.1–7.5.
+
+/** The places a leaf can be pinned on the sheet, as a 3 × 3 picture of it (top row = top of the sheet). */
+const SHEET_PINS = [
+  ["TopLeftCorner", "top-left corner"], ["TopEdge", "top edge"], ["TopRightCorner", "top-right corner"],
+  ["LeftEdge", "left edge"], ["", "free"], ["RightEdge", "right edge"],
+  ["BottomLeftCorner", "bottom-left corner"], ["BottomEdge", "bottom edge"], ["BottomRightCorner", "bottom-right corner"],
+];
+
+/** The short tag a condition shows beside its leaf. */
+function conditionTag(c) {
+  if (!c?.kind) return "";
+  if (c.kind === "OnSymmetryAxis") return "on axis";
+  if (c.kind === "Fixed") return `at (${c.x === "" ? "?" : c.x}, ${c.y === "" ? "?" : c.y})`;
+  return SHEET_PINS.find(([k]) => k === c.kind)?.[1] ?? c.kind;
+}
+
+function setCondition(leaf, kind, x = "", y = "") {
+  state.conditions[leaf] = { kind, x: kind === "Fixed" ? String(x) : "", y: kind === "Fixed" ? String(y) : "" };
+  renderLeafControls();
+  changed();
+  say(kind ? `${leaf} is pinned: ${conditionTag(state.conditions[leaf])}.` : `${leaf} is free to go anywhere on the sheet.`);
+}
+
+function mirrorOf(leaf) {
+  const m = state.mirrors.find((p) => p.a === leaf || p.b === leaf);
+  return m ? (m.a === leaf ? m.b : m.a) : null;
+}
+
+/** Pairs two leaves (x_a + x_b = N, y_a = y_b), dropping any pair either was in. */
+function setMirror(a, b) {
+  const dropped = state.mirrors.filter((p) => [p.a, p.b].some((l) => l === a || l === b));
+  state.mirrors = state.mirrors.filter((p) => !dropped.includes(p));
+  state.mirrors.push({ a, b });
+  renderLeafControls();
+  changed();
+  const len = (leaf) => Number(state.edges.find((e) => e.from.trim() === leaf || e.to.trim() === leaf)?.length);
+  const note = len(a) !== len(b)
+    ? ` Their edges differ (${fmt(len(a), 3)} and ${fmt(len(b), 3)}), so the layout mirrors but the flaps won't match.`
+    : "";
+  const was = dropped.length ? ` (replacing ${dropped.map((p) => `${p.a} ↔ ${p.b}`).join(", ")})` : "";
+  say(`${a} ↔ ${b} mirror each other${was}.${note}`);
+}
+
+function removeMirror(leaf) {
+  const other = mirrorOf(leaf);
+  state.mirrors = state.mirrors.filter((p) => p.a !== leaf && p.b !== leaf);
+  renderLeafControls();
+  changed();
+  say(`${leaf} and ${other} no longer mirror each other.`);
+}
+
+function startMirrorPick(leaf) {
+  closeLeafMenu();
+  treeUi.pick = { from: leaf };
+  say(`Click the leaf that mirrors ${leaf}. Esc cancels.`);
+  renderTreePreview();
+}
+
+function cancelMirrorPick() {
+  if (!treeUi.pick) return;
+  treeUi.pick = null;
+  say("");
+  renderTreePreview();
+}
+
+/** A click (no drag) on a vertex: finishes a mirror pick, or opens the leaf's menu. */
+function vertexClicked(v) {
+  const info = treeInfo(state.edges);
+  const leaf = info.leaves.includes(v);
+  if (treeUi.pick) {
+    const from = treeUi.pick.from;
+    treeUi.pick = null;
+    if (leaf && v !== from) setMirror(from, v);
+    else { say(leaf ? "" : "Only leaves can mirror each other."); renderTreePreview(); }
+    return;
+  }
+  if (leaf) openLeafMenu(v);
+}
+
+function closeLeafMenu() {
+  document.querySelector(".leaf-menu")?.remove();
+}
+
+/** The menu a click on a leaf opens: pin it on the sheet, put it on the axis or at a point, or mirror it. */
+function openLeafMenu(leaf) {
+  closeLeafMenu();
+  const stage = $("treeView").parentElement;
+  const svg = $("treeView");
+  const c = state.conditions[leaf] ?? { kind: "", x: "", y: "" };
+  const n = Number($("gridSize").value);
+  const node = (tag, attrs = {}, ...kids) => {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v == null || v === false) continue;
+      if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else e.setAttribute(k, v);
+    }
+    e.append(...kids);
+    return e;
+  };
+  const menu = node("div", { class: "leaf-menu", role: "dialog", "aria-label": `Conditions for leaf ${leaf}` });
+  const close = node("button", { type: "button", class: "lm-close", "aria-label": "Close", text: "✕" });
+  close.addEventListener("click", closeLeafMenu);
+  menu.append(node("div", { class: "lm-head" }, node("b", { text: leaf }), node("span", { class: "lm-now", text: conditionTag(c) || "free" }), close));
+
+  // Pin on the sheet: a little picture of the sheet with its corners, edges and centre.
+  menu.append(node("div", { class: "lm-label", text: "Pin to the sheet" }));
+  const sheet = node("div", { class: "lm-sheet", role: "group", "aria-label": "Pin to the sheet" });
+  SHEET_PINS.forEach(([kind, label], k) => {
+    const spot = k === 4 ? "free" : [0, 2, 6, 8].includes(k) ? "corner" : "edge";
+    const b = node("button", { type: "button", class: `lm-pin ${spot} p${k}`, title: label, "aria-label": label, "aria-pressed": String(c.kind === kind) });
+    if (k === 4) b.textContent = "free";
+    b.addEventListener("click", () => { setCondition(leaf, kind); closeLeafMenu(); });
+    sheet.append(b);
+  });
+  menu.append(sheet);
+
+  // The symmetry axis (needs an even N) and a grid point.
+  const axis = node("button", { type: "button", class: "lm-btn", "aria-pressed": String(c.kind === "OnSymmetryAxis"), text: "On the symmetry axis (2x = N)" });
+  if (n % 2 !== 0) { axis.disabled = true; axis.title = "Needs an even grid size N, so the axis x = N/2 is a grid line"; }
+  axis.addEventListener("click", () => { setCondition(leaf, "OnSymmetryAxis"); closeLeafMenu(); });
+  const px = node("input", { type: "number", min: 0, max: n, step: 1, value: c.kind === "Fixed" ? c.x : "", "aria-label": "x", placeholder: "x" });
+  const py = node("input", { type: "number", min: 0, max: n, step: 1, value: c.kind === "Fixed" ? c.y : "", "aria-label": "y", placeholder: "y" });
+  const at = node("button", { type: "button", class: "lm-btn", "aria-pressed": String(c.kind === "Fixed"), text: "At grid point" });
+  const pinAt = () => {
+    const x = Number(px.value), y = Number(py.value);
+    if (px.value === "" || py.value === "" || ![x, y].every((v) => Number.isInteger(v) && v >= 0 && v <= n)) {
+      say(`A grid point has whole coordinates from 0 to ${n}.`);
+      return;
+    }
+    setCondition(leaf, "Fixed", x, y);
+    closeLeafMenu();
+  };
+  at.addEventListener("click", pinAt);
+  for (const input of [px, py]) input.addEventListener("keydown", (e) => { if (e.key === "Enter") pinAt(); });
+  menu.append(node("div", { class: "lm-row" }, axis), node("div", { class: "lm-row" }, at, px, py));
+
+  // Mirror pair.
+  menu.append(node("div", { class: "lm-label", text: "Mirror (book symmetry)" }));
+  const other = mirrorOf(leaf);
+  if (other) {
+    const remove = node("button", { type: "button", class: "lm-btn", text: "Remove" });
+    remove.addEventListener("click", () => { removeMirror(leaf); closeLeafMenu(); });
+    const change = node("button", { type: "button", class: "lm-btn", text: "Change…" });
+    change.addEventListener("click", () => startMirrorPick(leaf));
+    menu.append(node("div", { class: "lm-row" }, node("span", { class: "lm-pair", text: `${leaf} ↔ ${other}` }), change, remove));
+  } else {
+    const pick = node("button", { type: "button", class: "lm-btn", text: "Mirror with another leaf…" });
+    pick.addEventListener("click", () => startMirrorPick(leaf));
+    menu.append(node("div", { class: "lm-row" }, pick));
+  }
+
+  // Beside the leaf (right of it if there is room, else left), kept inside the drawing.
+  stage.append(menu);
+  const view = svg.getBoundingClientRect(), box = stage.getBoundingClientRect();
+  const k = view.width / treeUi.geometry.width;
+  const [vx, vy] = treeUi.geometry.px.get(leaf);
+  const x = view.left - box.left + vx * k, y = view.top - box.top + vy * k;
+  const w = menu.offsetWidth, h = menu.offsetHeight;
+  const minX = view.left - box.left + 4, maxX = view.right - box.left - w - 4;
+  const left = x + 18 <= maxX ? x + 18 : Math.max(minX, x - 18 - w);
+  const top = Math.min(Math.max(view.top - box.top + 4, y - h / 2), view.bottom - box.top - h - 4);
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+  (menu.querySelector("[aria-pressed=true]") ?? menu.querySelector("button"))?.focus();
+}
 
 const HIT_VERTEX = 18;
 const HIT_EDGE = 10;
@@ -391,12 +563,25 @@ function renderTreePreview() {
     svg.append(tag);
   });
 
+  // Mirror pairs: a dashed line between the two leaves.
+  for (const m of state.mirrors) {
+    const a = px.get(m.a), b = px.get(m.b);
+    if (!a || !b) continue;
+    const line = el("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], class: "mirror-link" });
+    const title = el("title");
+    title.textContent = `${m.a} ↔ ${m.b}: mirrored (x_a + x_b = N, y_a = y_b)`;
+    line.append(title);
+    svg.append(line);
+  }
+
+  const picking = treeUi.pick;
   for (const v of info.vertices) {
     const [x, y] = px.get(v);
     const leaf = info.adjacency.get(v).length === 1;
     const isDragged = dragging?.kind === "vertex" && dragging.v === v;
     const target = hover?.kind === "vertex" && hover.v === v;
-    const g = el("g", { class: "vertex-group" + (isDragged ? " dragged" : "") + (target ? " target" : ""), "data-vertex": v });
+    const pickClass = picking ? (v === picking.from ? " pick-from" : leaf ? " pickable" : "") : "";
+    const g = el("g", { class: "vertex-group" + (isDragged ? " dragged" : "") + (target ? " target" : "") + pickClass, "data-vertex": v });
     g.append(
       el("circle", { cx: x, cy: y, r: HIT_VERTEX, class: "vertex-hit" }),
       el("circle", { cx: x, cy: y, r: leaf ? 7 : 6, class: "vertex" + (leaf ? " leaf" : "") }),
@@ -404,8 +589,19 @@ function renderTreePreview() {
     const t = el("text", { x: x + 11, y: y - 10, class: "vertex-label" });
     t.textContent = v;
     const title = el("title");
-    title.textContent = `${v}: drag to move or re-attach, double-click to rename`;
+    title.textContent = leaf
+      ? `${v}: click to pin it or mirror it; drag to move or re-attach, double-click to rename`
+      : `${v}: drag to move or re-attach, double-click to rename`;
     g.append(t, title);
+    // The leaf's condition, as a small tag under its name.
+    const tag = leaf ? conditionTag(state.conditions[v]) : "";
+    if (tag) {
+      const tw = 10 + tag.length * 6.2;
+      const ctag = el("g", { class: "cond-tag" });
+      ctag.append(el("rect", { x: x + 9, y: y - 4, width: tw, height: 16, rx: 8 }),
+        Object.assign(el("text", { x: x + 9 + tw / 2, y: y + 7.5, "text-anchor": "middle" }), { textContent: tag }));
+      g.append(ctag);
+    }
     svg.append(g);
   }
 
@@ -748,9 +944,15 @@ function initTreeEditor() {
   // behaves differently across Safari, Firefox and Chrome and is lost when the drawing is redrawn mid-drag.
   svg.addEventListener("pointerdown", (event) => {
     const group = event.target.closest("[data-vertex]");
-    if (!group || (event.pointerType === "mouse" && event.button !== 0)) return;
+    if (!group) {
+      // A press on empty drawing closes the leaf menu and cancels a mirror pick.
+      if (!event.target.closest("[data-length], [data-edge]")) { closeLeafMenu(); cancelMirrorPick(); }
+      return;
+    }
+    if (event.pointerType === "mouse" && event.button !== 0) return;
     event.preventDefault();
     closeInlineEdit();
+    closeLeafMenu();
     const v = group.dataset.vertex;
     const start = svgPoint(event);
     treeUi.drag = { kind: "vertex", v, moved: false };
@@ -769,6 +971,7 @@ function initTreeEditor() {
       treeUi.drag = null;
       const hover = treeUi.hover;
       treeUi.hover = null;
+      if (drag?.kind === "vertex" && !drag.moved && !cancelled) return vertexClicked(drag.v);
       if (drag?.kind !== "vertex" || !drag.moved) return;
       if (cancelled || !hover) return renderTreePreview();
       if (hover.kind === "vertex") {
@@ -811,6 +1014,7 @@ function initTreeEditor() {
     const group = event.target.closest("[data-vertex]");
     if (!group) return;
     const v = group.dataset.vertex;
+    closeLeafMenu();
     const [x, y] = treeUi.geometry.px.get(v);
     inlineEdit(x, y, v, (value) => renameVertex(v, value), { label: `Rename ${v}` });
   });
@@ -880,7 +1084,14 @@ function initTreeEditor() {
   toggle.addEventListener("click", () => setExpanded(!stage.classList.contains("expanded")));
   $("treeBackdrop").addEventListener("click", () => setExpanded(false));
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && stage.classList.contains("expanded")) setExpanded(false);
+    if (event.key !== "Escape") return;
+    if (document.querySelector(".leaf-menu")) { closeLeafMenu(); return; }
+    if (treeUi.pick) { cancelMirrorPick(); return; }
+    if (stage.classList.contains("expanded")) setExpanded(false);
+  });
+  // A press outside the drawing and the menu closes the menu.
+  document.addEventListener("pointerdown", (event) => {
+    if (!event.target.closest(".leaf-menu, #treeView")) closeLeafMenu();
   });
 
   new ResizeObserver(() => renderTreePreview()).observe(svg);
