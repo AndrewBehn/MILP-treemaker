@@ -70,6 +70,6 @@ public class LayoutImportTests
         };
         var result = PureMilpSolver.Solve(spec);
         Assert.Equal(2.0, result.Scale!.Value, 6);
-        Assert.Contains(result.Messages, m => m.Contains("imported layout"));
+        Assert.Contains(result.Messages, m => m.Contains("starting layout"));
     }
 }

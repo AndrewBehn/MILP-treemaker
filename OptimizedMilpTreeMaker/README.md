@@ -1,22 +1,16 @@
 # Optimized MILP TreeMaker
 
-A C# / .NET 10 implementation of the **Optimized MILP TreeMaker** spec, solved with SCIP through Google OR-Tools. It solves the same problem as Pure MILP TreeMaker: place the leaves on an N × N grid at the largest scale m*. Instead of one large model, it solves a series of much smaller ones. A web UI runs in the same process. It reuses the base library in `../PureMilpTreeMaker/src/PureMilpTreeMaker` for the tree, the definitions, the layout checks, and the base model it compares against. Keep the two folders side by side.
+A C# / .NET 10 implementation of the **Optimized MILP TreeMaker** spec, solved with SCIP through Google OR-Tools. It solves the same problem as Pure MILP TreeMaker: place the leaves on an N × N grid at the largest scale m*. Instead of one large model, it solves a series of much smaller ones. Its UI is the TreeMaker app's Optimized MILP and Lattice-Hull MILP nodes. It reuses the base library in `../PureMilpTreeMaker/src/PureMilpTreeMaker` for the tree, the definitions, the layout checks, and the base model it compares against. Keep the two folders side by side.
 
 ## Run it
 
-You need the .NET 10 SDK.
+This folder is a library and its tests. It runs inside the TreeMaker app, where the map's Optimized MILP and Lattice-Hull MILP nodes use it. From the repository root:
 
 ```sh
-dotnet run --project src/OptimizedMilpTreeMaker.Web
+dotnet run --project TreeMaker.Web
 ```
 
-Then open <http://localhost:5081>. The base app uses port 5080, so both can run at once.
-
-Run the tests with:
-
-```sh
-dotnet test
-```
+Then open <http://localhost:5080>. Run this library's tests with `dotnet test` in this folder.
 
 ## The optimizations
 
@@ -32,7 +26,7 @@ Every optimization except hulls and scale search can be switched off, in the UI 
 ### Where this differs from the doc
 
 - **Starting layout.** The doc starts from the rounded TreeMaker layout of base Section 9, which needs TreeMaker's continuous, nonlinear solve. This code uses a **border seed** in its place: the leaves are spread around the sheet's border in the tree's depth-first order, and the best of several rotations is kept. Like the doc's layout, it gives a known-feasible lower end for the bisection and centres the first leaf windows. It is skipped when there are position conditions or mirror pairs.
-- **Conditions.** The base app's position conditions and mirror pairs are supported. They fix the sheet's orientation, so the anchor constraint C:2 is switched off when any are present. Leaves with a condition are also left out of the sibling groups.
+- **Conditions.** The base model's position conditions and mirror pairs are supported. They fix the sheet's orientation, so the anchor constraint C:2 is switched off when any are present. Leaves with a condition are also left out of the sibling groups.
 - **Counts.** For the running example at N = 9, this code finds 192 distinct candidate scales and 80 crossable facets at m*. The doc gives 195 and 72. The worst-case facets per pair (20, 28 and 48 at N = 9, 16 and 32) match the doc exactly.
 
 ## Optimality settings
@@ -45,7 +39,7 @@ The defaults are a **1% relative gap** and a **60 s time limit** (UI → Solver 
 
 ## Toward a crease pattern (steps 1 to 3, and the folded base)
 
-After a solve, the **Toward a crease pattern** panel checks whether the layout can carry a crease pattern. Both apps share this panel (`polygons.js`) and the library code in `../PureMilpTreeMaker/src/PureMilpTreeMaker`.
+After a solve, the **Toward a crease pattern** panel checks whether the layout can carry a crease pattern. Every solver node shares this panel (`TreeMaker.Web/wwwroot/polygons.js`) and the library code in `../PureMilpTreeMaker/src/PureMilpTreeMaker`.
 
 1. **Check the polygons** (`ActivePaths`, `POST /api/polygons`). TreeMaker's universal-molecule construction needs the tight pairs (active paths) to divide the leaves' convex hull into polygons. Each polygon must be convex, bounded by tight paths, and empty of leaves. The panel lists what's missing: open boundary pieces, crossing paths, non-convex polygons, leaves inside a polygon, and uncovered area. The polygons are drawn on the sheet: valid ones are shaded, invalid ones hatched, and the missing boundary is dotted.
 2. **Close the polygons** (`PolygonCompletion`, `POST /api/complete`). The leaves and the scale stay fixed. The edge lengths change (strain σₑ within your bounds) so the pairs of a triangulation that keeps the existing tight pairs become exactly tight, and every other pair still fits. Boundary pairs come first, since the polygons cannot cover the hull without them. A second solve then uses the least total strain. **Use these lengths in the tree** copies the new lengths into the editor.

@@ -126,18 +126,18 @@ public static class OptimizedSolver
             {
                 // An imported layout: the first window centre, and a known lower end when it meets every condition.
                 var canonical = _symmetry.Canonicalize(start.ToDictionary(p => p.Vertex, p => (p.X, p.Y)));
-                var placements = _tree.Leaves.Select(v => new LeafPlacement(_tree.Name(v), v, canonical[v].X, canonical[v].Y)).ToArray();
+                var startPlacements = _tree.Leaves.Select(v => new LeafPlacement(_tree.Name(v), v, canonical[v].X, canonical[v].Y)).ToArray();
                 double startScale = SeedLayout.Scale(_defs, canonical);
                 _center = ToLeafArray(canonical);
-                if (startScale > 0 && LayoutAnalysis.Violations(_spec, placements, startScale).Count == 0)
+                if (startScale > 0 && LayoutAnalysis.Violations(_spec, startPlacements, startScale).Count == 0)
                 {
                     seedScale = startScale;
                     lo = CandidateScales.IndexAtOrBelow(candidates, startScale);
-                    _messages.Add($"Started from the imported layout, at its scale {startScale:0.######}.");
+                    _messages.Add($"Began from the starting layout (the workbench layout or a layout file), at its scale {startScale:0.######}.");
                 }
                 else
                 {
-                    _messages.Add("Started the first window around the imported layout; it breaks a condition, so its scale is not used as a lower bound.");
+                    _messages.Add("Started the first window around the starting layout; it breaks a condition, so its scale is not used as a lower bound.");
                 }
             }
             else if (_options.UseSeed)

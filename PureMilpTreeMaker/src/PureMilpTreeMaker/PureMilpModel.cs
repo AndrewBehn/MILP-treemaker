@@ -313,7 +313,47 @@ public sealed class PureMilpModel : IDisposable
             Add(level, Y[a], 1);
             Add(level, Y[b], -1);
         }
+
+        if (Spec.SymmetryBreaking)
+        {
+            AddSymmetryBreaking();
+        }
     }
+
+    // Symmetry-Breaking MILP doc, C:5 and C:6. Position conditions and mirror pairs switch the anchor off, and leaves
+    // they name leave the sibling groups (SymmetryBreaking.Create), so every layout keeps an equivalent one here.
+    private void AddSymmetryBreaking()
+    {
+        var tree = Spec.Tree;
+        int n = Spec.GridSize;
+        var symmetry = PureMilpTreeMaker.SymmetryBreaking.Create(Spec);
+        Symmetry = symmetry;
+
+        // C:5: the anchor leaf lies in the triangle 0 ≤ y ≤ x ≤ N/2.
+        if (symmetry.Anchor is int anchor)
+        {
+            int k = tree.LeafIndex(anchor);
+            X[k].SetUb(Math.Min(X[k].Ub(), Math.Floor(n / 2.0)));
+            Y[k].SetUb(Math.Min(Y[k].Ub(), Math.Floor(n / 2.0)));
+            var row = Row(double.NegativeInfinity, 0, "sym-anchor");
+            Add(row, Y[k], 1);
+            Add(row, X[k], -1);
+        }
+
+        // C:6: interchangeable siblings in lexicographic order of (N + 1)·x + y.
+        foreach (var (a, b) in symmetry.SiblingOrder)
+        {
+            int ka = tree.LeafIndex(a), kb = tree.LeafIndex(b);
+            var row = Row(double.NegativeInfinity, 0, $"sym-order[{tree.Name(a)},{tree.Name(b)}]");
+            Add(row, X[ka], n + 1);
+            Add(row, Y[ka], 1);
+            Add(row, X[kb], -(n + 1));
+            Add(row, Y[kb], -1);
+        }
+    }
+
+    /// <summary>The symmetry breaking in the model, when <see cref="ProblemSpec.SymmetryBreaking"/> is set.</summary>
+    public SymmetryBreaking? Symmetry { get; private set; }
 
     // Objective: max m (Section 8), max σ (11.2), or min Σ aₑ / min a_max (11.3).
     private void SetObjective()

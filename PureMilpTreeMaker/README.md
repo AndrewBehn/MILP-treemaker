@@ -1,29 +1,22 @@
 # Pure MILP TreeMaker
 
-A C# / .NET 10 implementation of the **Pure MILP TreeMaker** spec, solved with SCIP through Google OR-Tools, plus a small web UI that runs in the same process as the solver.
+A C# / .NET 10 implementation of the **Pure MILP TreeMaker** spec, solved with SCIP through Google OR-Tools. Its UI is the TreeMaker app's Pure MILP and Symmetry-Breaking MILP nodes.
 
 ## Run it
 
-You need the .NET 10 SDK. OR-Tools (with its bundled SCIP) comes from NuGet on the first build.
+This folder is a library and its tests. It runs inside the TreeMaker app, where the map's Pure MILP and Symmetry-Breaking MILP nodes use it. From the repository root:
 
 ```sh
-dotnet run --project src/PureMilpTreeMaker.Web
+dotnet run --project TreeMaker.Web
 ```
 
-Then open <http://localhost:5080>. To use another port, run `dotnet run --project src/PureMilpTreeMaker.Web --urls http://localhost:5199`.
-
-Run the tests with:
-
-```sh
-dotnet test
-```
+Then open <http://localhost:5080>. Run this library's tests with `dotnet test` in this folder.
 
 ## What is where
 
 | Project | Contents |
 |---|---|
 | `src/PureMilpTreeMaker` | The library: the tree and definitions (D:1–D:4), the MILP builder (C:1–C:7), the solver driver, an independent layout checker, and an exact model-size predictor. |
-| `src/PureMilpTreeMaker.Web` | An ASP.NET Core minimal API with a plain HTML/JS front end in `wwwroot` (no external dependencies). |
 | `tests/PureMilpTreeMaker.Tests` | xUnit tests. Expected optima were computed independently with HiGHS. |
 
 ## Models
@@ -58,7 +51,7 @@ Optional conditions are available for every stage:
 
 ## Toward a crease pattern (steps 1 to 3, and the folded base)
 
-After a solve, the **Toward a crease pattern** panel checks whether the layout can carry a crease pattern. Both apps share this panel (`polygons.js`) and the library code in `src/PureMilpTreeMaker`.
+After a solve, the **Toward a crease pattern** panel checks whether the layout can carry a crease pattern. Every solver node shares this panel (`TreeMaker.Web/wwwroot/polygons.js`) and the library code in `src/PureMilpTreeMaker`.
 
 1. **Check the polygons** (`ActivePaths`, `POST /api/polygons`). TreeMaker's universal-molecule construction needs the tight pairs (active paths) to divide the leaves' convex hull into polygons. Each polygon must be convex, bounded by tight paths, and empty of leaves. The panel lists what's missing: open boundary pieces, crossing paths, non-convex polygons, leaves inside a polygon, and uncovered area. The polygons are drawn on the sheet: valid ones are shaded, invalid ones hatched, and the missing boundary is dotted.
 2. **Close the polygons** (`PolygonCompletion`, `POST /api/complete`). The leaves and the scale stay fixed. The edge lengths change (strain σₑ within your bounds) so the pairs of a triangulation that keeps the existing tight pairs become exactly tight, and every other pair still fits. Boundary pairs come first, since the polygons cannot cover the hull without them. A second solve then uses the least total strain. **Use these lengths in the tree** copies the new lengths into the editor.

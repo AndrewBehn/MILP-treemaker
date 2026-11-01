@@ -42,7 +42,10 @@ public sealed record ActivePathReport
     public bool Valid { get; init; }
 }
 
-/// <summary>Builds the <see cref="ActivePathReport"/> of a layout, with exact integer geometry.</summary>
+/// <summary>
+/// Builds the <see cref="ActivePathReport"/> of a layout, with exact integer geometry: A:1 of the Polygon Closing
+/// TreeMaker spec (the valid subdivision is its D:4, the greedy triangulation its D:5).
+/// </summary>
 public static class ActivePaths
 {
     /// <summary>Turns named grid points into placements for <paramref name="tree"/>; every leaf must appear once.</summary>

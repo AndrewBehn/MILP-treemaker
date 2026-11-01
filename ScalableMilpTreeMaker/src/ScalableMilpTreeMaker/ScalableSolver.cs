@@ -51,11 +51,11 @@ public static class ScalableSolver
             {
                 best = new ContinuousLayout.Result(points, importedScale, 0, 0);
                 fromStart = true;
-                messages.Add($"Started from the imported layout (scale {importedScale:0.######}); Stage 1 was skipped.");
+                messages.Add($"Began from the starting layout (scale {importedScale:0.######}); Stage 1 was skipped.");
             }
             else
             {
-                messages.Add("The imported layout has two leaves on one point, so Stage 1 ran from the usual starts.");
+                messages.Add("The starting layout has two leaves on one point, so Stage 1 ran from the usual starts.");
             }
         }
         if (!fromStart)
@@ -78,7 +78,7 @@ public static class ScalableSolver
             LargestSolve = rounds.Where(r => r.Stage == 1).Select(r => r.Variables).DefaultIfEmpty(0).Max(),
             Milliseconds = s1.Elapsed.TotalMilliseconds,
             Note = fromStart
-                ? $"Skipped: the imported layout (m = {continuous.Scale:0.####}) takes its place."
+                ? $"Skipped: the starting layout (m = {continuous.Scale:0.####}) takes its place."
                 : $"Best of {starts} start(s): m = {continuous.Scale:0.####} off the grid, a local optimum.",
         });
 
@@ -285,7 +285,7 @@ public static class ScalableSolver
             if (final is not null)
             {
                 messages.Add(fromStart
-                    ? $"The grid layout reaches m = {reported:0.######}, from the imported layout's {continuous.Scale:0.######}. The only proved bound is m̄ = {definitions.ScaleUpperBound:0.######}."
+                    ? $"The grid layout reaches m = {reported:0.######}, from the starting layout's {continuous.Scale:0.######}. The only proved bound is m̄ = {definitions.ScaleUpperBound:0.######}."
                     : $"The grid layout reaches m = {reported:0.######}; the continuous layout reached {continuous.Scale:0.######} " +
                       $"(a local optimum off the grid, not a bound). The only proved bound is m̄ = {definitions.ScaleUpperBound:0.######}.");
                 if (polygonsValid) messages.Add("The tight paths divide the leaves' hull into valid polygons: Build the crease pattern is ready.");

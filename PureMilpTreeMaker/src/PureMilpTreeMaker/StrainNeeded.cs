@@ -26,6 +26,8 @@ public sealed record StrainNeededResult
 }
 
 /// <summary>
+/// A:3 of the Polygon Closing TreeMaker spec (model LP(K), rows M:5–M:8); the search around it is that spec's A:4,
+/// run by the page (polygons.js, findStrain).
 /// "Find the strain needed", as linear programs. With the leaves and the scale m₀ fixed, the smallest bound s that lets
 /// strains σₑ make a set T of pairs exactly tight, while every other pair still fits, is the LP
 ///     minimize s   subject to   m₀(ℓᵢⱼ + Σ ℓₑσₑ) = D   for (i, j) ∈ T,

@@ -136,7 +136,7 @@ public class StartLayoutTests
         var first = OptimizedSolver.Solve(spec);
         var again = OptimizedSolver.Solve(spec with { StartLayout = first.Layout });
         Assert.Equal(first.Scale!.Value, again.Scale!.Value, 9);
-        Assert.Contains(again.Messages, m => m.Contains("imported layout"));
+        Assert.Contains(again.Messages, m => m.Contains("starting layout"));
         Assert.True(again.Tests.Count <= first.Tests.Count);
     }
 }

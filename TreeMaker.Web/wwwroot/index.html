@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TreeMaker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
+  <link rel="stylesheet" href="styles.css?v=20261101b">
+</head>
+<body data-view="map">
+  <!-- ───────────── Top bar: the way back to the map, where you are, and the workbench ───────────── -->
+  <header class="topbar">
+    <a class="home" href="#/" title="Back to the map">
+      <svg class="mark small" viewBox="0 0 40 40" aria-hidden="true">
+        <path d="M4 4h32v32H4z" class="mark-sheet"/>
+        <path d="M4 36L36 4" class="mark-crease"/>
+        <path d="M4 4l16 16M36 36L20 20" class="mark-crease light"/>
+        <circle cx="4" cy="4" r="3.2" class="mark-leaf"/>
+        <circle cx="36" cy="36" r="3.2" class="mark-leaf"/>
+        <circle cx="36" cy="4" r="3.2" class="mark-leaf"/>
+      </svg>
+      <span>TreeMaker</span>
+    </a>
+    <nav class="crumbs" aria-label="Where you are">
+      <a id="backToMap" class="back" href="#/">← Map</a>
+      <span id="crumbNode" class="crumb-node"></span>
+      <a id="crumbSpec" class="spec-link" hidden>Spec</a>
+    </nav>
+    <div id="shelf" class="shelf" role="group" aria-label="Workbench: what carries over between steps"></div>
+    <button id="specsButton" type="button" class="specs-button" title="The specification documents, packaged with the app">Specs</button>
+  </header>
+
+  <!-- ───────────── The map: every spec and step; pick one ───────────── -->
+  <main id="mapView" class="map-view">
+    <div class="map-head">
+      <div>
+        <h1>Pick a spec to run, or a step to continue</h1>
+        <p>Each box is one specification document and the part of the app that implements it. A tree goes into one of the layout solvers; the layout it finds goes on the workbench and carries over to the steps after it. Click a box to open it; <b>← Map</b> brings you back here. A box's <b>Spec</b> tag opens its document beside the app: the models, the algorithms and why they are exact.</p>
+      </div>
+      <div class="map-tools">
+        <button id="mapOpen" type="button" class="on-mat">Open a file…</button>
+        <a id="mapSpecs" class="on-mat button-like" href="#/?read=">Read the specs</a>
+        <label class="check on-mat-check"><input id="showRefs" type="checkbox" checked> Spec references</label>
+      </div>
+    </div>
+    <div class="map-frame">
+      <svg id="mapSvg" class="map-svg" viewBox="0 0 1360 560" role="group" aria-label="Map of the specs and steps"></svg>
+    </div>
+    <div class="map-legend">
+      <span><i class="lg flow"></i>Data flows to</span>
+      <span><i class="lg build"></i>Spec builds on</span>
+      <span><i class="lg hand"></i>Spec hands off to</span>
+      <span><i class="lg cite"></i>Spec cites</span>
+      <span><i class="lg held"></i>Holds what is on the workbench</span>
+    </div>
+    <section class="bench" aria-labelledby="benchTitle">
+      <div class="bench-head">
+        <h2 id="benchTitle">Workbench</h2>
+        <p>What carries over from one part of the app to the next. Each step starts from what is here; a new result replaces the result of that step and clears the steps after it. It is kept in this browser between visits.</p>
+      </div>
+      <div id="benchCards" class="bench-cards"></div>
+    </section>
+  </main>
+
+  <!-- ───────────── The workspace: one node of the map ───────────── -->
+  <div id="workView" class="app" hidden>
+    <aside class="panel">
+      <header class="brand node-head">
+        <div>
+          <p id="nodeKicker" class="kicker"></p>
+          <h1 id="nodeTitle"></h1>
+          <p id="nodeLede"></p>
+          <p id="nodeSpec" class="node-spec"></p>
+        </div>
+      </header>
+
+      <!-- Steps after a solve: what they start from. -->
+      <section class="block" data-nodes="close creases fold">
+        <h2>Starting point</h2>
+        <div id="heldSummary" class="held-summary"></div>
+        <div class="row gap-s wrap">
+          <button id="stepOpenFile" class="quiet" type="button" title="Open a solved layout file (.json) to start from">Open a layout file…</button>
+        </div>
+      </section>
+
+      <section class="block" data-nodes="tree pure sym hull optimized scalable">
+        <div class="block-head">
+          <h2>Tree</h2>
+          <div class="row gap-s">
+            <select id="preset" aria-label="Load a preset tree">
+              <option value="">Load a preset</option>
+              <option value="example">Running example from the specs</option>
+              <option value="star4">Star, 4 equal legs</option>
+              <option value="star5">Star, 5 equal legs</option>
+              <option value="bird">Bird-base–like, 6 leaves (centipede, 3 leg pairs)</option>
+              <option value="caterpillar">Caterpillar, 6 leaves</option>
+              <option value="centipede2">Centipede, 2 leg pairs (6 nodes)</option>
+              <option value="centipede4">Centipede, 4 leg pairs (12 nodes)</option>
+              <option value="centipede5">Centipede, 5 leg pairs (15 nodes)</option>
+              <option value="centipede6">Centipede, 6 leg pairs (18 nodes)</option>
+              <option value="centipede8">Centipede, 8 leg pairs (24 nodes)</option>
+              <option value="beetle">Beetle, 9 leaves (13 nodes)</option>
+              <option value="deer">Deer with antlers, 12 leaves (17 nodes)</option>
+              <option value="dragon">Dragon with wings, 14 leaves (19 nodes)</option>
+              <option value="scorpion">Scorpion, 13 leaves (23 nodes)</option>
+              <option value="centipede">Centipede with antennae and tail, 18 leaves (25 nodes)</option>
+              <option value="random25">Random tree, 25 leaves</option>
+              <option value="random50">Random tree, 50 leaves</option>
+              <option value="random100">Random tree, 100 leaves</option>
+            </select>
+            <button id="clearTree" class="quiet" type="button">Clear</button>
+            <button id="openFile" class="quiet" type="button" title="Open a tree file or a solved layout file (.json)">Open…</button>
+            <button id="saveTree" class="quiet" type="button" title="Save this tree as a .json tree file">Save tree</button>
+          </div>
+        </div>
+        <div class="tree-stage">
+          <div class="tree-tools">
+            <span class="chip-label">Drag in</span>
+            <button type="button" class="drag-chip" data-chip="leaf" title="Drop on a vertex to add a leaf there, or on an edge to branch from its midpoint"><i class="dot leaf"></i>Leaf</button>
+            <button type="button" class="drag-chip" data-chip="joint" title="Drop on an edge to split it in two"><i class="dot"></i>Joint</button>
+            <span class="spacer"></span>
+            <button id="tidyTree" type="button" class="quiet small" title="Lay the tree out again automatically">Tidy</button>
+            <button id="expandTree" type="button" class="quiet small" aria-expanded="false">Enlarge</button>
+          </div>
+          <svg id="treeView" class="tree-view" role="img" aria-label="Tree editor"></svg>
+          <p id="treeHelp" class="tree-help">Drag vertices to move them, or onto another vertex to re-attach. Click a length to edit it, double-click a vertex to rename it.</p>
+          <div id="treeMessage" class="tree-message" role="status" hidden></div>
+          <section class="model-size" aria-live="polite" data-nodes="pure sym hull optimized scalable">
+            <h3>Model size <span id="sizeNote" class="muted">known before solving</span></h3>
+            <div id="sizeBreakdown" class="size-breakdown"></div>
+          </section>
+        </div>
+        <div id="treeBackdrop" class="tree-backdrop"></div>
+        <div id="treeError" class="error" hidden></div>
+        <details class="edge-table">
+          <summary>Edit as a table</summary>
+          <table class="edges">
+            <thead><tr><th>From</th><th>To</th><th>Length ℓₑ</th><th><abbr title="Stretch set S, used by edge optimization">In S</abbr></th><th><span class="sr">Remove</span></th></tr></thead>
+            <tbody id="edgeRows"></tbody>
+          </table>
+          <div class="row gap-s add-row">
+            <button id="addEdge" class="quiet" type="button">Add edge</button>
+            <span class="divider" aria-hidden="true"></span>
+            <button id="addLeaf" class="quiet" type="button">Add leaf to</button>
+            <select id="leafParent" aria-label="Vertex the new leaf attaches to"></select>
+          </div>
+        </details>
+        <div class="fields grid-row">
+          <label class="field">Grid size N
+            <input id="gridSize" type="number" min="1" max="60" step="1" value="9">
+          </label>
+        </div>
+      </section>
+
+      <!-- Base model settings: Pure MILP and Symmetry-Breaking MILP. -->
+      <section class="block" data-nodes="pure sym">
+        <h2>Model</h2>
+        <div class="segmented" role="radiogroup" aria-label="Which model to solve">
+          <label><input type="radio" name="stage" value="Scale" checked><span>Scale</span></label>
+          <label><input type="radio" name="stage" value="Edge"><span>Edge</span></label>
+          <label><input type="radio" name="stage" value="Strain"><span>Strain</span></label>
+        </div>
+        <p class="stage-note" data-for="Scale">Find the largest scale m at which every leaf pair fits. <span class="ref">C:1–C:4</span></p>
+        <p class="stage-note" data-for="Edge" hidden>Hold the scale at m₀ and stretch the edges in S as far as they go. <span class="ref">Pure MILP C:5</span></p>
+        <p class="stage-note" data-for="Strain" hidden>Reach a target scale m₀ by changing edge lengths as little as possible. <span class="ref">Pure MILP C:6, C:7</span></p>
+
+        <div class="toggles sym-only" data-nodes="sym">
+          <div class="toggle locked">
+            <input type="checkbox" checked disabled aria-labelledby="symLabel">
+            <span><b id="symLabel">Symmetry breaking</b> The anchor leaf in the triangle 0 ≤ y ≤ x ≤ N/2, and interchangeable siblings in order. Same m*, fewer equivalent layouts to search. <span class="ref">C:5, C:6</span></span>
+          </div>
+        </div>
+
+        <div id="edgeParams" class="fields" hidden>
+          <label class="check"><input id="autoScale" type="checkbox" checked> Solve for m* first and use it as m₀</label>
+          <label class="field">Fixed scale m₀
+            <input id="fixedScale" type="number" min="0" step="0.01" disabled placeholder="From the scale solve">
+          </label>
+        </div>
+
+        <div id="strainParams" class="fields two" hidden>
+          <label class="field">Target scale m₀
+            <input id="targetScale" type="number" min="0" step="0.01" value="1.2">
+          </label>
+          <label class="field">Minimize
+            <select id="strainObjective">
+              <option value="TotalAbsolute">Total strain Σ|σₑ|</option>
+              <option value="LargestAbsolute">Largest strain max|σₑ|</option>
+            </select>
+          </label>
+          <label class="field">Lowest strain σ_min
+            <input id="strainMin" type="number" min="-0.99" max="0" step="0.05" value="-0.5">
+          </label>
+          <label class="field">Highest strain σ_max
+            <input id="strainMax" type="number" min="0" step="0.05" value="0.5">
+          </label>
+        </div>
+      </section>
+
+      <!-- Bisection with lattice hulls: Optimized MILP and Lattice-Hull MILP. -->
+      <section class="block" data-nodes="optimized hull">
+        <h2>Search</h2>
+        <p class="stage-note">Finds the largest scale m* by bisection over the candidate scales, testing each with a small lattice-hull model. <span class="ref" id="searchRef">Sections 3 and 5</span></p>
+        <h3>Optimizations</h3>
+        <div class="toggles">
+          <label class="toggle locked">
+            <input type="checkbox" checked disabled>
+            <span><b>Lattice hulls</b> One binary per hull side instead of one per offset. Always on. <span class="ref">§3</span></span>
+          </label>
+          <label class="toggle locked">
+            <input type="checkbox" checked disabled>
+            <span><b>Scale search</b> Bisection over the candidate scales. Always on. <span class="ref">§5</span></span>
+          </label>
+          <label class="toggle" id="optSymmetryRow">
+            <input id="optSymmetry" type="checkbox" checked>
+            <span><b>Symmetry breaking</b> Keep one of the 8 rotations and reflections, and one order of identical siblings. <span class="ref" id="optSymmetryRef">§4</span></span>
+          </label>
+          <label class="toggle">
+            <input id="optPairs" type="checkbox" checked>
+            <span><b>Pair generation</b> Start with likely-tight pairs; add others only when a layout breaks them. <span class="ref">§6</span></span>
+          </label>
+          <label class="toggle">
+            <input id="optFacets" type="checkbox" checked>
+            <span><b>Facet generation</b> Start each pair with an 8-sided inner polygon and grow it as needed. <span class="ref">§6</span></span>
+          </label>
+          <div class="toggle">
+            <input id="optWindows" type="checkbox" checked aria-labelledby="optWindowsLabel">
+            <span><b id="optWindowsLabel">Leaf windows</b> Try each test first with every leaf in a box around the last layout. <span class="ref">§6</span>
+              <label class="inline-field">Half-width h <input id="optH" type="number" min="0" max="30" step="1" value="2"></label>
+            </span>
+          </div>
+          <label class="toggle">
+            <input id="optSeed" type="checkbox" checked>
+            <span><b>Border seed</b> Start from leaves spread around the border in tree order, a known lower bound.</span>
+          </label>
+          <label class="toggle">
+            <input id="optCompare" type="checkbox">
+            <span><b>Compare with the base model</b> Also solve the base model, to check m* and compare time.</span>
+          </label>
+        </div>
+      </section>
+
+      <!-- The four-stage pipeline: Scalable MILP. -->
+      <section class="block" data-nodes="scalable">
+        <h2>Search</h2>
+        <p class="stage-note">Four stages, each a small model. None of them proves optimality: the result is a good layout, and the only proved bound is m̄. <span class="ref">Sections 3–9</span></p>
+        <h3>Stages</h3>
+        <div class="toggles">
+          <div class="toggle locked">
+            <input type="checkbox" checked disabled aria-labelledby="optStage1Label">
+            <span><b id="optStage1Label">1. Continuous layout</b> TreeMaker's scale optimization off the grid, by a sequence of LPs. Always on. <span class="ref">§3</span>
+              <label class="inline-field">Starts <input id="optStarts" type="number" min="1" max="20" step="1" value="4"></label>
+            </span>
+          </div>
+          <div class="toggle locked">
+            <input type="checkbox" checked disabled aria-labelledby="optStage2Label">
+            <span><b id="optStage2Label">2. Round and repair</b> The largest scale where a CP-SAT model with every leaf near its rounded point has a layout. Always on. <span class="ref">§5</span>
+              <label class="inline-field">Half-width h <input id="optRepairH" type="number" min="1" max="4" step="1" value="1"></label>
+            </span>
+          </div>
+          <div class="toggle">
+            <input id="optLns" type="checkbox" checked aria-labelledby="optLnsLabel">
+            <span><b id="optLnsLabel">3. Neighbourhood search</b> Aim a little higher; free the leaves that collide there and re-solve. <span class="ref">§6</span>
+              <label class="inline-field">Half-width <input id="optLnsH" type="number" min="1" max="6" step="1" value="3"></label>
+            </span>
+          </div>
+          <label class="toggle">
+            <input id="optSubtrees" type="checkbox" checked>
+            <span><b>Subtree neighbourhoods</b> Also free a whole subtree at a time (the optional decomposition). <span class="ref">§6</span></span>
+          </label>
+          <label class="toggle">
+            <input id="optTight" type="checkbox" checked>
+            <span><b>4a. Most tight pairs</b> At the final scale, move leaves by one step to make the most pairs tight, boundary first. <span class="ref">§7</span></span>
+          </label>
+          <div class="toggle">
+            <input id="optClose" type="checkbox" checked aria-labelledby="optCloseLabel">
+            <span><b id="optCloseLabel">4b. Close with moving leaves</b> Change edge lengths to close the polygons while leaves may still move one step. <span class="ref">§8</span>
+              <label class="inline-field">σ from <input id="optStrainMin" type="number" min="-0.9" max="0" step="0.05" value="-0.3"></label>
+              <label class="inline-field">to <input id="optStrainMax" type="number" min="0" max="2" step="0.05" value="0.3"></label>
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section class="block" data-nodes="pure sym hull optimized scalable">
+        <details class="solver">
+          <summary>Solver settings <span id="solverSummary" class="muted">1% gap, 60 s limit</span></summary>
+          <div class="fields three">
+            <label class="field">Time limit (s)
+              <input id="timeLimit" type="number" min="0" step="1" value="60" placeholder="None">
+            </label>
+            <label class="field" id="gapField">Relative gap
+              <input id="relativeGap" type="number" min="0" step="any" value="0.01">
+            </label>
+            <label class="field">Threads
+              <input id="threads" type="number" min="1" step="1" placeholder="Auto">
+            </label>
+          </div>
+        </details>
+      </section>
+
+      <section class="block" data-nodes="tree pure sym hull optimized scalable">
+        <h2>Leaf conditions</h2>
+        <p class="hint">Pin leaves to an edge, a corner, the symmetry axis or a grid point.</p>
+        <table class="conditions">
+          <thead><tr><th>Leaf</th><th>Condition</th><th>x</th><th>y</th></tr></thead>
+          <tbody id="conditionRows"></tbody>
+        </table>
+        <h3>Mirror pairs</h3>
+        <p class="hint">Book symmetry: x_a + x_b = N and y_a = y_b.</p>
+        <div id="mirrorRows" class="mirror-list"></div>
+        <div class="row gap-s">
+          <select id="mirrorA" aria-label="First leaf"></select>
+          <span class="muted" aria-hidden="true">mirrors</span>
+          <select id="mirrorB" aria-label="Second leaf"></select>
+          <button id="addMirror" class="quiet" type="button">Add pair</button>
+        </div>
+      </section>
+    </aside>
+
+    <!-- ───────────── Mat: the solve and its results ───────────── -->
+    <main class="mat">
+      <div class="toolbar">
+        <div id="analysis" class="analysis" aria-live="polite"></div>
+        <div class="run">
+          <span id="status" class="status" role="status">Ready</span>
+          <button id="cancel" class="on-mat" type="button" disabled>Cancel</button>
+          <button id="solve" class="solve" type="button">Solve <kbd>Ctrl ↵</kbd></button>
+        </div>
+      </div>
+      <div id="analysisError" class="mat-error" hidden></div>
+
+      <!-- Tree node: which solver to send the tree to. -->
+      <section id="pickCard" class="slip wide pick" hidden>
+        <h2>Send this tree to a layout solver</h2>
+        <p class="hint">Each solver is one spec. The faster ones handle bigger trees; the exact ones prove the best scale.</p>
+        <div id="pickList" class="pick-list"></div>
+      </section>
+
+      <!-- Steps: nothing to start from yet. -->
+      <section id="needCard" class="slip wide need" hidden>
+        <h2 id="needTitle"></h2>
+        <p id="needText"></p>
+        <div id="needActions" class="row gap-s wrap"></div>
+      </section>
+
+      <div class="stage-area" id="stageArea">
+        <figure id="resultCard" class="sheet-wrap">
+          <div class="sheet">
+            <svg id="layoutView" class="layout-view" role="img" aria-label="Leaf layout on the grid"></svg>
+            <div id="emptySheet" class="empty">
+              <p>The leaves land here.</p>
+              <p class="muted">Press Solve to place them on the grid.</p>
+            </div>
+          </div>
+          <figcaption class="sheet-controls">
+            <label class="check"><input id="showAllPairs" type="checkbox"> Show every pair</label>
+            <label class="check"><input id="showCircles" type="checkbox" checked> Show leaf circles</label>
+            <button id="saveLayout" type="button" class="on-mat small" disabled title="Save this layout, its scale and edge lengths as a .json layout file">Save layout</button>
+            <label id="startRow" class="check" hidden><input id="useStart" type="checkbox" checked> Start the next solve from the workbench layout<span id="startNote" class="muted"></span></label>
+            <span class="key"><i class="k-tight"></i>At minimum spacing</span>
+            <span class="key"><i class="k-loose"></i>Has slack</span>
+          </figcaption>
+        </figure>
+
+        <section id="metricsCard" class="slip readout" hidden>
+          <div id="metrics" class="metrics"></div>
+          <div id="messages"></div>
+        </section>
+      </div>
+
+      <nav id="nextBar" class="next-bar" hidden aria-label="Next step"></nav>
+
+      <div class="tables">
+        <section id="creaseCard" class="slip wide crease" hidden>
+          <div class="crease-head">
+            <h2>Toward a crease pattern</h2>
+            <span id="creaseStatus" class="crease-status"></span>
+          </div>
+          <p class="crease-lede">A crease pattern needs the tight paths to divide the leaves' outline into convex polygons with no leaf inside. Check that, close the polygons by adjusting edge lengths, then build the crease pattern.</p>
+          <p id="creaseSummary" class="crease-summary"></p>
+          <ul id="creaseIssues" class="crease-issues"></ul>
+          <div class="crease-controls">
+            <label class="check"><input id="showPolygons" type="checkbox" checked> Show polygons on the sheet</label>
+            <div id="creaseViews" class="crease-views" hidden role="group" aria-label="Which polygons to show">
+              <button type="button" class="quiet small" data-view="before" aria-pressed="true">As solved</button>
+              <button type="button" class="quiet small" data-view="after" aria-pressed="false">After closing</button>
+            </div>
+          </div>
+          <div class="crease-complete">
+            <h3>Close the polygons</h3>
+            <p class="hint">Keeps every leaf where it is and the scale fixed, and changes edge lengths so the pairs of a triangulation become tight, boundary pairs first. It then uses the least total strain that keeps that many tight.</p>
+            <div class="row gap-s wrap">
+              <label class="field">Lowest strain σ_min <input id="strainMinC" type="number" min="-0.99" max="0" step="0.05" value="-0.3"></label>
+              <label class="field">Highest strain σ_max <input id="strainMaxC" type="number" min="0" step="0.05" value="0.3"></label>
+              <button id="completeButton" type="button" class="primary small-primary">Close the polygons</button>
+              <button id="findStrain" type="button" class="quiet small" title="Finds the smallest strain bound that closes every polygon">Find the strain needed</button>
+            </div>
+            <div id="completionOut"></div>
+          </div>
+          <div class="crease-build">
+            <h3>Build the crease pattern</h3>
+            <p class="hint">Fills every polygon with Lang's universal molecule: ridges where the polygon shrinks, hinges at the tree's internal nodes, and gussets where it splits. Then it folds the result and checks every facet. <span id="creaseLengths"></span></p>
+            <div class="pleat-row">
+              <label class="check"><input id="pleatOn" type="checkbox"> Pleat the flaps to reduce the base's height</label>
+              <label class="inline-field">to height (grid units) <input id="pleatHeight" type="number" min="0.05" step="0.25" value="1" disabled></label>
+              <span class="hint">Alternating valley and mountain folds along elevation contours; 1 grid unit gives box-pleating-style pleats.</span>
+            </div>
+            <div class="row gap-s wrap">
+              <button id="buildCreases" type="button" class="primary small-primary" disabled>Build the crease pattern</button>
+              <label class="check"><input id="showCreases" type="checkbox" checked> Show creases on the sheet</label>
+              <button id="downloadFold" type="button" class="quiet small" disabled>Download .fold</button>
+              <button id="downloadSvg" type="button" class="quiet small" disabled>Download .svg</button>
+            </div>
+            <div id="creaseOut"></div>
+          </div>
+        </section>
+        <section id="foldCard" class="slip wide fold" hidden>
+          <div class="crease-head">
+            <h2>Folded base</h2>
+            <span class="muted">Every facet stands over its tree edge, at its height above the axis</span>
+          </div>
+          <div class="fold-tools">
+            <button id="foldThree" type="button" class="quiet small">Three-quarter</button>
+            <button id="foldTop" type="button" class="quiet small">From above</button>
+            <button id="foldSide" type="button" class="quiet small">From the side</button>
+            <label class="check"><input id="foldXray" type="checkbox" checked> X-ray</label>
+            <span class="hint">Drag to turn.</span>
+          </div>
+          <canvas id="foldCanvas" class="fold-canvas" aria-label="The folded base in 3D"></canvas>
+          <p id="foldNote" class="hint"></p>
+        </section>
+        <section id="traceCard" class="slip wide" hidden>
+          <h2><span id="traceTitle"></span> <span id="traceSub" class="muted"></span></h2>
+          <svg id="ladder" class="ladder" role="img" aria-label="Trial scales"></svg>
+          <div id="ladderKey" class="ladder-key"></div>
+          <div class="table-wrap"><table id="traceTable" class="data"></table></div>
+          <details class="rounds" id="roundsBox">
+            <summary>Every solve <span id="roundCount" class="muted"></span></summary>
+            <div class="table-wrap"><table id="roundTable" class="data"></table></div>
+          </details>
+        </section>
+        <section id="pairsCard" class="slip" hidden>
+          <h2>Leaf pairs <span id="pairsNote" class="muted">tightest first</span></h2>
+          <div class="table-wrap"><table id="pairsTable" class="data"></table></div>
+        </section>
+        <section id="hullCard" class="slip" hidden>
+          <h2 id="hullTitle"></h2>
+          <label class="field hull-pick" id="hullPick">Leaf pair <select id="hullPair"></select></label>
+          <svg id="hullView" class="hull-view" role="img" aria-label="Hull or continuous layout view"></svg>
+          <div id="hullKey" class="hull-key"></div>
+          <p id="hullNote" class="hull-note"></p>
+        </section>
+        <section id="edgesCard" class="slip" hidden>
+          <h2>Edge lengths</h2>
+          <div class="table-wrap"><table id="edgesTable" class="data"></table></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- ───────────── The specs, packaged with the app (specs.js) ───────────── -->
+  <aside id="reader" class="reader" hidden aria-label="Specification reader">
+    <div class="reader-bar">
+      <button id="readerList" type="button" class="reader-btn" title="All the specs">☰ Specs</button>
+      <div class="reader-heads">
+        <div id="readerTitle" class="reader-title"></div>
+        <div id="readerMeta" class="reader-meta"></div>
+      </div>
+      <button id="readerClose" type="button" class="reader-btn close" title="Close (Esc)">✕</button>
+    </div>
+    <details id="readerToc" class="reader-toc" hidden><summary>Contents</summary></details>
+    <div id="readerBody" class="reader-body"></div>
+  </aside>
+
+  <input id="fileInput" type="file" accept=".json,application/json" hidden>
+
+  <script src="nodes.js?v=20261101b"></script>
+  <script src="workbench.js?v=20261101b"></script>
+  <script src="tree-editor.js?v=20261101b"></script>
+  <script src="polygons.js?v=20261101b"></script>
+  <script src="folded.js?v=20261101b"></script>
+  <script src="files.js?v=20261101b"></script>
+  <script src="solvers.js?v=20261101b"></script>
+  <script src="map.js?v=20261101b"></script>
+  <script src="specs.js?v=20261101b"></script>
+  <script src="app.js?v=20261101b"></script>
+</body>
+</html>

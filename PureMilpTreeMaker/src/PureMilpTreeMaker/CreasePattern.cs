@@ -93,6 +93,7 @@ public sealed record CreasePatternResult
 }
 
 /// <summary>
+/// The Crease Pattern TreeMaker spec: A:1 (Molecule), A:2 (the fold check, in Build) and A:3 (Pleat).
 /// Step 3: Lang's universal molecule, built in every polygon of a valid tight-path network, and the folded base.
 /// <para>
 /// Each polygon shrinks: every side moves inward by the same distance h, so corner i slides along its bisector at speed
@@ -113,6 +114,10 @@ public static class CreasePatternBuilder
 {
     private const double Tol = 1e-7;
 
+    /// <param name="spec">The problem: the tree and the grid size.</param>
+    /// <param name="layout">The leaf positions.</param>
+    /// <param name="scale">The scale of the layout.</param>
+    /// <param name="edgeLengths">The edge lengths the layout was solved or closed with, by edge index; the tree's when null.</param>
     /// <param name="pleatHeight">
     /// When set, the flaps are pleated down to this height: every facet is cut along the elevation contours z = kH, and
     /// contour k is a valley or a mountain by (−1)ᵏ times the facet's orientation, so its folded height becomes the

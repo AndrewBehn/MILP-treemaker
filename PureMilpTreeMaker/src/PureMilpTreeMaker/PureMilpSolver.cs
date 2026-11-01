@@ -67,12 +67,27 @@ public static class PureMilpSolver
 
         var solver = model.Solver;
         var messages = new List<string>();
+        if (model.Symmetry is { } symmetry)
+        {
+            messages.Add(DescribeSymmetry(spec.Tree, symmetry));
+            if (hint is not null)
+            {
+                // The hint must satisfy C:5 and C:6, so map it to its equivalent layout first.
+                bool imported = ReferenceEquals(hint, spec.StartLayout);
+                var canonical = symmetry.Canonicalize(hint.ToDictionary(p => p.Vertex, p => (p.X, p.Y)));
+                hint = hint.Select(p => p with { X = canonical[p.Vertex].X, Y = canonical[p.Vertex].Y }).ToArray();
+                if (imported)
+                {
+                    messages.Add("The starting layout (the workbench layout or a layout file) was turned and reflected into the fundamental domain and passed to SCIP as a solution hint.");
+                }
+            }
+        }
         if (hint is not null)
         {
             model.SetHint(hint);
             if (ReferenceEquals(hint, spec.StartLayout))
             {
-                messages.Add("Started from the imported layout (passed to SCIP as a solution hint).");
+                messages.Add("The starting layout (the workbench layout or a layout file) was passed to SCIP as a solution hint.");
             }
         }
         if (spec.Solver.TimeLimit is TimeSpan limit)
@@ -225,4 +240,22 @@ public static class PureMilpSolver
     }
 
     private static double CleanZero(double v) => Math.Abs(v) < 1e-9 ? 0 : v;
+
+    /// <summary>One line on the symmetry breaking in the model (Symmetry-Breaking MILP doc, C:5 and C:6).</summary>
+    private static string DescribeSymmetry(Tree tree, SymmetryBreaking symmetry)
+    {
+        var parts = new List<string>
+        {
+            symmetry.Anchor is int a
+                ? $"Symmetry breaking: anchor leaf {tree.Name(a)} in the fundamental domain 0 ≤ y ≤ x ≤ N/2 (C:5)."
+                : "Symmetry breaking: no anchor leaf.",
+        };
+        if (symmetry.SiblingGroups.Count > 0)
+        {
+            parts.Add("Interchangeable siblings in order (C:6): " +
+                string.Join("; ", symmetry.SiblingGroups.Select(g => string.Join(" ≤ ", g.Select(tree.Name)))) + ".");
+        }
+        if (symmetry.Note is { } note) parts.Add(note);
+        return string.Join(" ", parts);
+    }
 }
