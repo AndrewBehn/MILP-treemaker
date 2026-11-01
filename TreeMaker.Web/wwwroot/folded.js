@@ -11,7 +11,7 @@ const foldedView = (() => {
   // Greys and one accent, so the view also reads in black and white; facets are told apart by their outlines.
   const FILLS = ["#5b6b73", "#8d6e63", "#3f6e5a", "#7a5c86", "#9a7b2f", "#4b5d8a", "#7d4e57", "#5e7f2f"];
 
-  /** Lays the tree flat with its true (paper) edge lengths: a radial layout from the centre of the tree. */
+  /** Lays the tree flat with its true (paper) edge lengths: a radial layout from the centre of the tree (trees without mirror pairs). */
   function layoutTree(edges, lengths) {
     const adj = new Map();
     edges.forEach((e, k) => {
@@ -55,7 +55,13 @@ const foldedView = (() => {
     const card = q("foldCard");
     if (!result?.built || !result.facets?.length) { card.hidden = true; return; }
     card.hidden = false;
-    const pos = layoutTree(edges, lengthsPaper);
+    // With mirror pairs (the centipedes), the stick figure is bilateral: the body straight, each flap on its own
+    // side opposite its partner. A uniaxial base can swing its flaps about the axis, so both layouts are the same base.
+    const mirrors = typeof state !== "undefined" ? state.mirrors ?? [] : [];
+    const bilateral = mirrors.length
+      ? bilateralLayout(treeInfo(edges), mirrors, { edges, lengths: lengthsPaper, toScale: true })
+      : null;
+    const pos = bilateral ?? layoutTree(edges, lengthsPaper);
     view.labels = [...pos.entries()];
     // Every facet vertex in 3D: along its edge in the flat stick figure, lifted by its elevation.
     view.polys = result.facets.map((f, idx) => {
