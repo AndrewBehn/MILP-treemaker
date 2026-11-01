@@ -195,10 +195,25 @@ const creaseReadiness = (() => {
 
     const build = q("buildCreases");
     build.disabled = !report.valid;
-    build.title = report.valid ? "" : "Close the polygons first: every polygon must be valid.";
+    build.title = report.valid ? "" : "Close the polygons first (step 2): every polygon must be valid.";
     q("creaseLengths").textContent = report.valid
-      ? (ui.view === "after" && ui.completion?.after ? "Uses the lengths found by closing the polygons." : "Uses the lengths the layout was solved with.")
-      : "Available once every polygon is valid: close the polygons above first (Find the strain needed tries wider and wider bounds).";
+      ? (ui.view === "after" && ui.completion?.after ? "Ready. It will use the edge lengths found by closing the polygons." : "Ready. It will use the edge lengths the layout was solved with.")
+      : "Waits for step 2: every polygon must be valid first.";
+    renderSteps(report);
+  }
+
+  /** The state chip on each step's heading, and the note that says when there is nothing to close. */
+  function renderSteps(report) {
+    const chip = (id, text, kind) => { const c = q(id); c.textContent = text; c.className = "step-state" + (kind ? " " + kind : ""); };
+    const solvedValid = !!ui.before?.valid;
+    chip("stepCheckState", solvedValid ? "ready as solved" : "needs closing", solvedValid ? "ok" : "no");
+    if (solvedValid) chip("stepCloseState", "not needed", "ok");
+    else if (ui.completion?.after?.valid) chip("stepCloseState", "closed", "ok");
+    else if (ui.completion) chip("stepCloseState", "still open", "no");
+    else chip("stepCloseState", "to do", "");
+    const built = !!ui.creases?.result?.built;
+    chip("stepBuildState", built ? "built" : report.valid ? "ready" : "waiting for step 2", built || report.valid ? "ok" : "");
+    q("closeSkip").hidden = !solvedValid;
   }
 
   function renderCompletion() {
@@ -282,6 +297,8 @@ const creaseReadiness = (() => {
     const report = current();
     const showPolygons = q("showPolygons").checked;
     const showCreases = !!ui.creases?.result?.built && q("showCreases").checked;
+    q("polyKeys").hidden = true;
+    q("polyTodo").hidden = true;
     if (!report || !ui.context || (!showPolygons && !showCreases)) return;
     const n = ui.context.gridSize;
     const unit = (SIZE - 2 * PAD) / n;
@@ -295,9 +312,22 @@ const creaseReadiness = (() => {
     defs.append(pattern);
     layer.append(defs);
 
+    // What still needs closing: the part of the hull no polygon covers (hull and polygons drawn even-odd, so
+    // only the gaps fill), and every polygon that is not valid, labelled with why.
+    const ring = (leaves) => leaves.map((l) => pos.get(l)).filter(Boolean);
+    const pathOf = (pts) => pts.length ? "M" + pts.map(([x, y]) => `${x},${y}`).join("L") + "Z" : "";
+    const hull = ring(report.hullLeaves ?? []);
+    const uncovered = showPolygons && !report.valid && hull.length >= 3 && report.hullArea > 0 && report.coveredArea < report.hullArea * (1 - 1e-6);
+    if (uncovered) {
+      const d = pathOf(hull) + report.polygons.map((p) => pathOf(ring(p.leaves))).join("");
+      layer.append(svgEl("path", { d, "fill-rule": "evenodd", class: "uncovered" }));
+    }
+    const open = [];
     for (const polygon of showPolygons ? report.polygons : []) {
-      const points = polygon.leaves.map((l) => pos.get(l)).filter(Boolean).map(([x, y]) => `${x},${y}`).join(" ");
+      const pts = ring(polygon.leaves);
+      const points = pts.map(([x, y]) => `${x},${y}`).join(" ");
       layer.append(svgEl("polygon", { points, class: "face " + (polygon.valid ? "valid" : "invalid") }));
+      if (!polygon.valid && pts.length) open.push({ polygon, pts });
     }
     for (const s of showPolygons && !showCreases ? report.segments : []) {
       const a = pos.get(s.a), b = pos.get(s.b);
@@ -306,6 +336,25 @@ const creaseReadiness = (() => {
     for (const m of showPolygons ? report.missingBoundary : []) {
       const a = pos.get(m.a), b = pos.get(m.b);
       if (a && b) layer.append(svgEl("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], class: "missing-path" }));
+    }
+    // Labels on the open polygons, and a ring round every leaf that sits inside one.
+    if (showPolygons && !showCreases) {
+      for (const { polygon, pts } of open) {
+        for (const leaf of polygon.leavesInside ?? []) {
+          const p = pos.get(leaf);
+          if (p) layer.append(svgEl("circle", { cx: p[0], cy: p[1], r: 11, class: "inside-leaf" }));
+        }
+        const inside = polygon.leavesInside?.length ?? 0;
+        const why = inside ? `${inside} lea${inside === 1 ? "f" : "ves"} inside` : polygon.convex === false ? "not convex" : "not closed";
+        const cx = pts.reduce((t, p) => t + p[0], 0) / pts.length, cy = pts.reduce((t, p) => t + p[1], 0) / pts.length;
+        const tag = svgEl("g", { class: "open-tag" });
+        const w = 7 * why.length + 14;
+        tag.append(svgEl("rect", { x: cx - w / 2, y: cy - 10, width: w, height: 20, rx: 10 }));
+        const text = svgEl("text", { x: cx, y: cy + 4, "text-anchor": "middle" });
+        text.textContent = why;
+        tag.append(text);
+        layer.append(tag);
+      }
     }
     if (showCreases) {
       const scaleXY = ([x, y]) => [PAD + x * unit, SIZE - PAD - y * unit];
@@ -319,6 +368,22 @@ const creaseReadiness = (() => {
     // Under the leaves and labels, above the grid and circles.
     const firstLeaf = svg.querySelector(".leaf");
     if (firstLeaf) svg.insertBefore(layer, firstLeaf); else svg.append(layer);
+
+    // Under the sheet: the key, and in words what is left to close.
+    if (showPolygons && !showCreases) {
+      q("polyKeys").hidden = false;
+      const todo = q("polyTodo");
+      const parts = [];
+      const sides = report.missingBoundary.length;
+      if (sides) parts.push(`${sides} hull side${sides === 1 ? "" : "s"} to make tight (dashed)`);
+      if (open.length) parts.push(`${open.length} polygon${open.length === 1 ? "" : "s"} not valid (hatched)`);
+      if (uncovered) parts.push(`${Math.round((1 - report.coveredArea / report.hullArea) * 100)}% of the outline not covered (hatched)`);
+      todo.hidden = false;
+      todo.className = "poly-todo " + (report.valid ? "ok" : "no");
+      todo.textContent = report.valid
+        ? "Every polygon is valid: ready for the crease pattern."
+        : `To close before a crease pattern: ${parts.join(", ") || "see the list under the sheet"}.`;
+    }
   }
 
   /**
@@ -426,6 +491,7 @@ const creaseReadiness = (() => {
       if (seq !== ui.seq) return;
       ui.creases = { result, lengths };
       renderCreaseOut();
+      renderSteps(current());
       draw();
       call("onCreases", { result, lengths, pleatHeight });
       if (result.built) {

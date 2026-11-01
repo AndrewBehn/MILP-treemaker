@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=20261101j">
+  <link rel="stylesheet" href="styles.css?v=20261101k">
 </head>
 <body data-view="map">
   <!-- ───────────── Top bar: the way back to the map, where you are, and the workbench ───────────── -->
@@ -362,6 +362,13 @@
             <label id="startRow" class="check" hidden><input id="useStart" type="checkbox" checked> Start the next solve from the workbench layout<span id="startNote" class="muted"></span></label>
             <span class="key"><i class="k-tight"></i>At minimum spacing</span>
             <span class="key"><i class="k-loose"></i>Has slack</span>
+            <span id="polyKeys" class="poly-keys" hidden>
+              <span class="key"><i class="k-path"></i>Tight path</span>
+              <span class="key"><i class="k-face"></i>Valid polygon</span>
+              <span class="key"><i class="k-missing"></i>Side to make tight</span>
+              <span class="key"><i class="k-open"></i>Needs closing</span>
+            </span>
+            <p id="polyTodo" class="poly-todo" hidden></p>
           </figcaption>
         </figure>
 
@@ -379,30 +386,46 @@
             <h2>Toward a crease pattern</h2>
             <span id="creaseStatus" class="crease-status"></span>
           </div>
-          <p class="crease-lede">A crease pattern needs the tight paths to divide the leaves' outline into convex polygons with no leaf inside. Check that, close the polygons by adjusting edge lengths, then build the crease pattern.</p>
-          <p id="creaseSummary" class="crease-summary"></p>
-          <ul id="creaseIssues" class="crease-issues"></ul>
-          <div class="crease-controls">
-            <label class="check"><input id="showPolygons" type="checkbox" checked> Show polygons on the sheet</label>
-            <div id="creaseViews" class="crease-views" hidden role="group" aria-label="Which polygons to show">
-              <button type="button" class="quiet small" data-view="before" aria-pressed="true">As solved</button>
-              <button type="button" class="quiet small" data-view="after" aria-pressed="false">After closing</button>
+          <p class="crease-lede">A crease pattern needs the tight paths to divide the leaves' outline into convex polygons with no leaf inside. Three steps, in order:</p>
+          <div class="crease-check crease-step" data-step="1">
+            <h3><span class="step-no">1</span> Check the layout <span id="stepCheckState" class="step-state"></span></h3>
+            <p class="hint">Runs by itself after every solve. The sheet above marks what still needs closing: dashed red for hull sides that aren't tight paths yet, hatching for polygons that aren't valid and for outline not yet covered.</p>
+            <p id="creaseSummary" class="crease-summary"></p>
+            <ul id="creaseIssues" class="crease-issues"></ul>
+            <div class="crease-controls">
+              <label class="check"><input id="showPolygons" type="checkbox" checked> Show polygons on the sheet</label>
+              <div id="creaseViews" class="crease-views" hidden role="group" aria-label="Which polygons to show">
+                <button type="button" class="quiet small" data-view="before" aria-pressed="true">As solved</button>
+                <button type="button" class="quiet small" data-view="after" aria-pressed="false">After closing</button>
+              </div>
             </div>
           </div>
-          <div class="crease-complete">
-            <h3>Close the polygons</h3>
-            <p class="hint">Keeps every leaf where it is and the scale fixed, and changes edge lengths so the pairs of a triangulation become tight, boundary pairs first. It then uses the least total strain that keeps that many tight.</p>
-            <div class="row gap-s wrap">
-              <label class="field">Lowest strain σ_min <input id="strainMinC" type="number" min="-0.99" max="0" step="0.05" value="-0.3"></label>
-              <label class="field">Highest strain σ_max <input id="strainMaxC" type="number" min="0" step="0.05" value="0.3"></label>
-              <button id="completeButton" type="button" class="primary small-primary">Close the polygons</button>
-              <button id="findStrain" type="button" class="quiet small" title="Finds the smallest strain bound that closes every polygon">Find the strain needed</button>
+          <div class="crease-complete crease-step" data-step="2">
+            <h3><span class="step-no">2</span> Close the polygons <span id="stepCloseState" class="step-state"></span></h3>
+            <p class="hint">Keeps every leaf where it is and the scale fixed, and stretches or shrinks edges (strain σ) until the open pairs become tight paths. Choose one way:</p>
+            <p id="closeSkip" class="crease-note good" hidden>Nothing to close: every polygon is already valid. Go on to step 3.</p>
+            <div class="close-ways">
+              <div class="close-way">
+                <h4>Automatic <span class="muted">(recommended)</span></h4>
+                <button id="findStrain" type="button" class="primary small-primary">Find the strain needed and close</button>
+                <p class="btn-note">Searches for the smallest strain bound ±s that closes every polygon, closes them with it, and fills in the bounds on the right.</p>
+              </div>
+              <div class="close-or" aria-hidden="true">or</div>
+              <div class="close-way">
+                <h4>Within bounds you choose</h4>
+                <div class="row gap-s">
+                  <label class="field">Lowest σ_min <input id="strainMinC" type="number" min="-0.99" max="0" step="0.05" value="-0.3"></label>
+                  <label class="field">Highest σ_max <input id="strainMaxC" type="number" min="0" step="0.05" value="0.3"></label>
+                </div>
+                <button id="completeButton" type="button" class="quiet small">Close within these bounds</button>
+                <p class="btn-note">Makes as many pairs tight as these bounds allow, hull sides first, then the least total strain. Some polygons may stay open if the bounds are too tight.</p>
+              </div>
             </div>
             <div id="completionOut"></div>
           </div>
-          <div class="crease-build">
-            <h3>Build the crease pattern</h3>
-            <p class="hint">Fills every polygon with Lang's universal molecule: ridges where the polygon shrinks, hinges at the tree's internal nodes, and gussets where it splits. Then it folds the result and checks every facet. <span id="creaseLengths"></span></p>
+          <div class="crease-build crease-step" data-step="3">
+            <h3><span class="step-no">3</span> Build the crease pattern <span id="stepBuildState" class="step-state"></span></h3>
+            <p class="hint"><span id="creaseLengths"></span></p>
             <div class="pleat-row">
               <label class="check"><input id="pleatOn" type="checkbox"> Pleat the flaps to reduce the base's height</label>
               <label class="inline-field">to height (grid units) <input id="pleatHeight" type="number" min="0.05" step="0.25" value="1" disabled></label>
@@ -414,6 +437,7 @@
               <button id="downloadFold" type="button" class="quiet small" disabled>Download .fold</button>
               <button id="downloadSvg" type="button" class="quiet small" disabled>Download .svg</button>
             </div>
+            <p class="btn-note">Fills every polygon with Lang's universal molecule (ridges where the polygon shrinks, hinges at the tree's internal nodes, gussets where it splits), then folds the result and checks every facet.</p>
             <div id="creaseOut"></div>
           </div>
         </section>
@@ -463,15 +487,15 @@
 
   <input id="fileInput" type="file" accept=".json,application/json" hidden>
 
-  <script src="nodes.js?v=20261101j"></script>
-  <script src="workbench.js?v=20261101j"></script>
-  <script src="tree-editor.js?v=20261101j"></script>
-  <script src="polygons.js?v=20261101j"></script>
-  <script src="folded.js?v=20261101j"></script>
-  <script src="files.js?v=20261101j"></script>
-  <script src="solvers.js?v=20261101j"></script>
-  <script src="map.js?v=20261101j"></script>
-  <script src="specs.js?v=20261101j"></script>
-  <script src="app.js?v=20261101j"></script>
+  <script src="nodes.js?v=20261101k"></script>
+  <script src="workbench.js?v=20261101k"></script>
+  <script src="tree-editor.js?v=20261101k"></script>
+  <script src="polygons.js?v=20261101k"></script>
+  <script src="folded.js?v=20261101k"></script>
+  <script src="files.js?v=20261101k"></script>
+  <script src="solvers.js?v=20261101k"></script>
+  <script src="map.js?v=20261101k"></script>
+  <script src="specs.js?v=20261101k"></script>
+  <script src="app.js?v=20261101k"></script>
 </body>
 </html>

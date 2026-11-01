@@ -726,7 +726,7 @@ body.dragging-chip, body.dragging-chip * { cursor: grabbing !important; user-sel
 .crease-controls { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; margin-bottom: 14px; }
 .crease-views { display: inline-flex; gap: 4px; }
 .crease-views button[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--paper); }
-.crease-complete { border-top: 1px solid var(--rule); padding-top: 12px; }
+.crease-complete { }
 .crease-complete h3 { margin: 0 0 4px; font-size: 14px; }
 .crease-complete .field { width: 150px; }
 /* Inputs, Close and Find the strain needed share one bottom edge and one height. */
@@ -758,7 +758,7 @@ table.data tr.missed td { color: var(--ink-soft); }
 #polygonLayer .missing-path { stroke: var(--beni); stroke-width: 2; stroke-dasharray: 2 5; stroke-linecap: round; pointer-events: none; }
 
 /* ───────────── Step 3: creases and the folded base (shared) ───────────── */
-.crease-build { border-top: 1px solid var(--rule); padding-top: 12px; margin-top: 14px; }
+.crease-build { }
 .crease-build h3 { margin: 0 0 4px; font-size: 14px; }
 .crease-build .row { align-items: center; }
 #creaseLengths { color: var(--ink); }
@@ -1051,3 +1051,40 @@ pre.code { background: var(--panel); padding: 8px 10px; border-radius: 4px; over
 .small { font-size: 12px; }
 .node-spec a.xref { color: inherit; text-decoration: none; border-bottom: 1px dotted currentColor; }
 .ref { cursor: pointer; } .ref:hover { color: var(--beni-deep); text-decoration: underline dotted; }
+
+/* Toward a crease pattern: three numbered steps, the two ways to close, and a note under each button. */
+.crease-step { border-top: 1px solid var(--rule); padding-top: 12px; margin-top: 14px; }
+.crease-step h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; font-size: 14px; }
+.step-no {
+  display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--ink); color: #fff; font-size: 11.5px; font-weight: 700;
+}
+.step-state { font-size: 11.5px; font-weight: 600; padding: 1px 8px; border-radius: 10px; background: #eceee9; color: var(--ink-soft); }
+.step-state:empty { display: none; }
+.step-state.ok { background: rgba(35, 112, 74, .12); color: #1d6a45; }
+.step-state.no { background: rgba(194, 48, 74, .1); color: var(--beni); }
+.close-ways { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: stretch; margin: 8px 0 10px; }
+.close-way { border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.close-way h4 { margin: 0; font-size: 13px; }
+.close-way .field { width: 120px; }
+.close-way button.small { height: 34px; }
+.close-or { align-self: center; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--ink-soft); }
+.btn-note { margin: 0; font-size: 12px; line-height: 1.45; color: var(--ink-soft); max-width: 60ch; }
+.crease-build .btn-note { margin-top: 6px; }
+@media (max-width: 900px) { .close-ways { grid-template-columns: 1fr; } .close-or { justify-self: center; } }
+
+/* On the sheet: what still needs closing. */
+#polygonLayer .uncovered { fill: url(#badHatch); stroke: none; }
+#polygonLayer .inside-leaf { fill: rgba(194, 48, 74, .12); stroke: var(--beni); stroke-width: 2; stroke-dasharray: 3 3; }
+#polygonLayer .open-tag rect { fill: #fff; stroke: var(--beni); stroke-width: 1.2; }
+#polygonLayer .open-tag text { font-size: 11.5px; font-weight: 650; fill: var(--beni); }
+#polygonLayer .missing-path { stroke-width: 3.4; stroke-dasharray: 7 5; stroke-linecap: butt; }
+.close-way > button { align-self: flex-start; margin: 0; }
+.poly-keys { display: contents; }
+.k-path { border-top: 2.4px solid var(--mat-ink); }
+.k-face { height: 10px !important; width: 18px !important; background: rgba(140, 220, 170, .45); }
+.k-missing { border-top: 2.6px dashed #ff8095; }
+.k-open { height: 10px !important; width: 18px !important; background: repeating-linear-gradient(45deg, rgba(255, 128, 149, .7) 0 2px, transparent 2px 6px); }
+.poly-todo { flex-basis: 100%; margin: 2px 0 0; font-size: 13px; font-weight: 600; }
+.poly-todo.no { color: #ffb3c0; }
+.poly-todo.ok { color: #a8e6c1; }
