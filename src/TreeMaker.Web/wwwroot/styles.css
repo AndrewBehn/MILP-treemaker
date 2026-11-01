@@ -1217,3 +1217,7 @@ body[data-kind="step"] .duo-tree .block-head .row, body[data-kind="step"] .tree-
 #treeView .vertex-group.lit .vertex { fill: var(--beni); stroke: var(--beni); }
 #treeView .vertex-group.lit .vertex-label { fill: var(--beni); }
 @media (max-width: 1250px) { .duo { grid-template-columns: minmax(0, 1fr); } }
+.tree-view.gridded { background-image: none; }
+.tree-view .unit-grid line { stroke: #e3e6df; stroke-width: 1; pointer-events: none; }
+.tree-view .unit-grid line.major { stroke: #d2d6ce; }
+.tree-view .unit-note { font-size: 11px; fill: var(--ink-soft); pointer-events: none; }

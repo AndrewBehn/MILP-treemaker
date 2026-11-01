@@ -529,22 +529,33 @@ function renderTreePreview() {
   const hover = treeUi.hover;
   const dragging = treeUi.drag;
 
-  // Leaf circles (on by default): radius = the leaf edge's length ℓ × one scale for the whole drawing, chosen so
-  // the longest leaf edge reaches a quarter of the drawing. Dragging moves a circle but never resizes it, and the
-  // circles keep the proportions of the sheet's leaf circles (m × ℓ).
-  if ($("treeCircles")?.checked !== false) {
-    const leafLength = new Map();
-    state.edges.forEach((e) => {
-      const from = e.from.trim(), to = e.to.trim();
-      for (const v of [from, to]) if (info.leaves.includes(v)) leafLength.set(v, Number(e.length));
-    });
-    const longest = Math.max(0, ...[...leafLength.values()].filter((l) => l > 0));
-    const k = longest > 0 ? (0.25 * Math.min(width, height)) / longest : 0;
-    for (const [v, l] of leafLength) {
-      const a = px.get(v);
-      if (a && l > 0) svg.append(el("circle", { cx: a[0], cy: a[1], r: l * k, class: "leaf-reach" }));
-    }
+  // Grid units, as on the sheet: the background is the N × N grid at the sheet's size (one cell = one grid unit), and
+  // each leaf circle has the sheet's radius m·ℓ grid units. m is the workbench layout's scale when the layout is of
+  // this tree; before a solve it is m̄ = √2·N / (longest leaf-to-leaf path), the largest any layout can reach, so the
+  // circles show the most each flap could take. The edges stay a sketch: their drawn lengths are not to scale.
+  const sheet = sheetScale(info);
+  const unit = Math.min(width, height) / sheet.N;
+  const grid = el("g", { class: "unit-grid" });
+  const [ox, oy] = [(width - unit * sheet.N) / 2, (height - unit * sheet.N) / 2];
+  for (let k = 0; k <= sheet.N; k++) {
+    grid.append(el("line", { x1: ox + k * unit, y1: oy, x2: ox + k * unit, y2: oy + sheet.N * unit, class: k % 5 ? "" : "major" }));
+    grid.append(el("line", { x1: ox, y1: oy + k * unit, x2: ox + sheet.N * unit, y2: oy + k * unit, class: k % 5 ? "" : "major" }));
   }
+  svg.append(grid);
+  svg.classList.add("gridded");
+  if ($("treeCircles")?.checked !== false && sheet.m > 0) {
+    state.edges.forEach((e, k) => {
+      const l = sheet.lengths?.[k] ?? Number(e.length);
+      for (const v of [e.from.trim(), e.to.trim()]) {
+        const a = px.get(v);
+        if (a && l > 0 && info.leaves.includes(v)) svg.append(el("circle", { cx: a[0], cy: a[1], r: sheet.m * l * unit, class: "leaf-reach" }));
+      }
+    });
+  }
+  const scaleNote = el("text", { x: 10, y: height - 10, class: "unit-note" });
+  scaleNote.textContent = `1 cell = 1 grid unit (N = ${sheet.N}) · circles m·ℓ with ` +
+    (sheet.from === "layout" ? `m = ${fmt(sheet.m, 3)} (workbench layout)` : `m̄ = ${fmt(sheet.m, 3)}, the most possible`);
+  svg.append(scaleNote);
 
   // Edges: a wide invisible stroke for clicking, then the drawn edge.
   state.edges.forEach((e, index) => {
@@ -681,6 +692,32 @@ function renderTreePreview() {
   msg.textContent = treeUi.message;
   msg.hidden = !treeUi.message;
   linked.apply();
+}
+
+/**
+ * The sheet's scale for drawing the tree in grid units: the workbench layout's scale and edge lengths when that layout
+ * is of this tree, otherwise m̄ = √2·N / (longest leaf-to-leaf path), the bound every solver starts from.
+ */
+function sheetScale(info) {
+  const N = Math.max(1, Math.round(Number($("gridSize")?.value) || 9));
+  const held = typeof workbench !== "undefined" ? workbench.layout : null;
+  if (held && held.scale > 0 && held.gridSize === N && sameTreeShape(held.problem, buildProblem())) {
+    return { N, m: held.scale, lengths: held.edgeLengths ?? null, from: "layout" };
+  }
+  // The longest leaf-to-leaf path: the farthest vertex from any vertex, then the farthest from that one.
+  const far = (from) => {
+    const d = new Map([[from, 0]]);
+    const queue = [from];
+    for (let k = 0; k < queue.length; k++) {
+      for (const { to, edge } of info.adjacency.get(queue[k]) ?? []) {
+        if (!d.has(to)) { d.set(to, d.get(queue[k]) + (Number(state.edges[edge].length) || 0)); queue.push(to); }
+      }
+    }
+    return [...d].reduce((best, cur) => (cur[1] > best[1] ? cur : best), [from, 0]);
+  };
+  const start = info.leaves[0];
+  const diameter = start ? far(far(start)[0])[1] : 0;
+  return { N, m: diameter > 0 ? (Math.SQRT2 * N) / diameter : 0, lengths: null, from: "bound" };
 }
 
 function binRect() {
