@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=20261101b">
+  <link rel="stylesheet" href="styles.css?v=20261101c">
 </head>
 <body data-view="map">
   <!-- ───────────── Top bar: the way back to the map, where you are, and the workbench ───────────── -->
@@ -26,10 +26,10 @@
     <nav class="crumbs" aria-label="Where you are">
       <a id="backToMap" class="back" href="#/">← Map</a>
       <span id="crumbNode" class="crumb-node"></span>
-      <a id="crumbSpec" class="spec-link" hidden>Spec</a>
+      <a id="crumbSpec" class="spec-link" target="treemaker-specs" hidden>Spec ↗</a>
     </nav>
     <div id="shelf" class="shelf" role="group" aria-label="Workbench: what carries over between steps"></div>
-    <button id="specsButton" type="button" class="specs-button" title="The specification documents, packaged with the app">Specs</button>
+    <a id="specsButton" class="specs-button" href="docs.html#/" target="treemaker-specs" title="The specification documents, in their own tab">Specs ↗</a>
   </header>
 
   <!-- ───────────── The map: every spec and step; pick one ───────────── -->
@@ -37,11 +37,11 @@
     <div class="map-head">
       <div>
         <h1>Pick a spec to run, or a step to continue</h1>
-        <p>Each box is one specification document and the part of the app that implements it. A tree goes into one of the layout solvers; the layout it finds goes on the workbench and carries over to the steps after it. Click a box to open it; <b>← Map</b> brings you back here. A box's <b>Spec</b> tag opens its document beside the app: the models, the algorithms and why they are exact.</p>
+        <p>Each box is one specification document and the part of the app that implements it. A tree goes into one of the layout solvers; the layout it finds goes on the workbench and carries over to the steps after it. Click a box to open it; <b>← Map</b> brings you back here. A box's <b>Spec ↗</b> tag opens its document in a separate tab: the models, the algorithms and why they are exact.</p>
       </div>
       <div class="map-tools">
         <button id="mapOpen" type="button" class="on-mat">Open a file…</button>
-        <a id="mapSpecs" class="on-mat button-like" href="#/?read=">Read the specs</a>
+        <a id="mapSpecs" class="on-mat button-like" href="docs.html#/" target="treemaker-specs">Read the specs ↗</a>
         <label class="check on-mat-check"><input id="showRefs" type="checkbox" checked> Spec references</label>
       </div>
     </div>
@@ -461,31 +461,17 @@
     </main>
   </div>
 
-  <!-- ───────────── The specs, packaged with the app (specs.js) ───────────── -->
-  <aside id="reader" class="reader" hidden aria-label="Specification reader">
-    <div class="reader-bar">
-      <button id="readerList" type="button" class="reader-btn" title="All the specs">☰ Specs</button>
-      <div class="reader-heads">
-        <div id="readerTitle" class="reader-title"></div>
-        <div id="readerMeta" class="reader-meta"></div>
-      </div>
-      <button id="readerClose" type="button" class="reader-btn close" title="Close (Esc)">✕</button>
-    </div>
-    <details id="readerToc" class="reader-toc" hidden><summary>Contents</summary></details>
-    <div id="readerBody" class="reader-body"></div>
-  </aside>
-
   <input id="fileInput" type="file" accept=".json,application/json" hidden>
 
-  <script src="nodes.js?v=20261101b"></script>
-  <script src="workbench.js?v=20261101b"></script>
-  <script src="tree-editor.js?v=20261101b"></script>
-  <script src="polygons.js?v=20261101b"></script>
-  <script src="folded.js?v=20261101b"></script>
-  <script src="files.js?v=20261101b"></script>
-  <script src="solvers.js?v=20261101b"></script>
-  <script src="map.js?v=20261101b"></script>
-  <script src="specs.js?v=20261101b"></script>
-  <script src="app.js?v=20261101b"></script>
+  <script src="nodes.js?v=20261101c"></script>
+  <script src="workbench.js?v=20261101c"></script>
+  <script src="tree-editor.js?v=20261101c"></script>
+  <script src="polygons.js?v=20261101c"></script>
+  <script src="folded.js?v=20261101c"></script>
+  <script src="files.js?v=20261101c"></script>
+  <script src="solvers.js?v=20261101c"></script>
+  <script src="map.js?v=20261101c"></script>
+  <script src="specs.js?v=20261101c"></script>
+  <script src="app.js?v=20261101c"></script>
 </body>
 </html>

@@ -9,10 +9,10 @@ It reuses the base library in `../PureMilpTreeMaker/src/PureMilpTreeMaker`: the 
 This folder is a library and its tests. It runs inside the TreeMaker app, where the map's Scalable MILP node uses it. From the repository root:
 
 ```sh
-dotnet run --project TreeMaker.Web
+dotnet run
 ```
 
-Then open <http://localhost:5080>. Run this library's tests with `dotnet test` in this folder.
+Then open <http://localhost:5080>. `dotnet test` at the root runs every test project; for this library's alone, `dotnet test ScalableMilpTreeMaker/tests/ScalableMilpTreeMaker.Tests`.
 
 ## The four stages
 

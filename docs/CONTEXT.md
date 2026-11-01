@@ -30,7 +30,7 @@ The owner's next aim was to scale to about 100 leaves and to get foldable soluti
 
 To edit a doc, use the Claude Docs tools with container `{"kind":"project","id":"<slug>"}` and ref `{"object":"node","id":"<tab node>"}`. Its source must be read before it is republished.
 
-**Packaged copies.** Since 1 November 2026 the app carries a copy of every doc (`TreeMaker.Web/wwwroot/specs/`) and shows it in a reader beside the app (README.md, "The specs, in the app"). The copies at that date: Pure rev 40, Symmetry-Breaking rev 16, Lattice-Hull rev 27, Optimized rev 44, Scalable rev 48, Polygon Closing rev 14, Crease Pattern rev 12 (`manifest.json`). The figures (45: 20, 6, 10, 8, 1, 0, 0) are compiled from each figure node's JSX source to static SVG; the docs' Markdown export drops them. CLAUDE.md has the refresh steps.
+**Packaged copies.** Since 1 November 2026 the app carries a copy of every doc (`TreeMaker.Web/wwwroot/specs/`) and shows it on its own docs page, opened in a separate tab (README.md, "The specs, in the app"). The copies at that date: Pure rev 40, Symmetry-Breaking rev 16, Lattice-Hull rev 27, Optimized rev 44, Scalable rev 48, Polygon Closing rev 14, Crease Pattern rev 12 (`manifest.json`). The figures (45: 20, 6, 10, 8, 1, 0, 0) are compiled from each figure node's JSX source to static SVG; the docs' Markdown export drops them. CLAUDE.md has the refresh steps.
 
 ## The app
 
@@ -91,4 +91,4 @@ Shared library code in `PureMilpTreeMaker/src/PureMilpTreeMaker` (every solver u
 
 ## Testing the front end without .NET
 
-`tools/mock_api.py` serves `TreeMaker.Web/wwwroot` and answers every API route with real geometry (exact distances, the hull, tight pairs) and fake solves. `tools/ui_flow.js` drives Chrome through the map, a solve, the three steps, a second solver starting from the workbench layout, and a reload. `tools/ui_reader.js` checks the spec reader: opening it from the map, the list, every doc with its figures and typeset maths, links within and between docs, keeping a solve's results while reading, Escape and Back. On 1 November both passed with no page errors; the C# behind the same routes has not been compiled yet.
+`tools/mock_api.py` serves `TreeMaker.Web/wwwroot` and answers every API route with real geometry (exact distances, the hull, tight pairs) and fake solves. `tools/ui_flow.js` drives Chrome through the map, a solve, the three steps, a second solver starting from the workbench layout, and a reload. `tools/ui_reader.js` checks the docs tab: opening it from the map and from a part of the app, reusing one tab, every doc with its figures and typeset maths, links within and between docs and back to the app's tab, and the app keeping a solve's results. On 1 November both passed with no page errors; the C# behind the same routes has not been compiled yet.

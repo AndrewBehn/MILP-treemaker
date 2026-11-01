@@ -1,14 +1,14 @@
-// The specs, packaged with the app: a reader that slides over the page.
+// The specs, packaged with the app, and the page that shows them.
 //
 // The seven specification documents are copied into wwwroot/specs/*.md by tools/extract_spec_exports.py (see
-// CLAUDE.md, "Specification documents"). This file renders them, gives every section and label an anchor, and links
-// the app and the docs both ways:
-//   - from the app: the map's Spec pills, the Spec link in the top bar, each node's header and every `.ref` label in
-//     the sidebar open the reader at the section or label they name;
-//   - from the docs: labels and sections in the text link to their definitions, in the same doc or another one
-//     ("base C:1", "closing D:4"), and every part of a doc that a node implements carries a link to that node.
-// The reader is driven by the hash: `#/<node>?read=<doc>:<anchor>` (an empty `read=` shows the list of specs), so
-// Back works and a link to a passage can be shared. It needs no network: KaTeX is vendored in wwwroot/vendor/katex.
+// CLAUDE.md, "Specification documents"). Reading them is kept apart from the working app: the docs open in their
+// own browser tab (docs.html), and the app's tab stays on the map and the workbench.
+//   - specLinks, used by the app: the map's Spec tags, the Spec link in the top bar, each node's header and every
+//     `.ref` label in the sidebar open docs.html at the section or label they name, in the one docs tab.
+//   - specReader, used by docs.html: renders a doc, gives every section and label an anchor, links labels within
+//     and between docs, and links each part of a doc that the app implements back to that part, in the app's tab.
+// The docs page is driven by its hash, `docs.html#/<doc>:<anchor>` (`#/` alone lists the specs), so Back works and
+// a link to a passage can be shared. It needs no network: KaTeX is vendored in wwwroot/vendor/katex.
 "use strict";
 
 // ───────────────────────── Markdown to HTML (no DOM; also used by tools/check_spec_links.js) ─────────────────────────
@@ -231,9 +231,77 @@ const SpecText = (() => {
 
 if (typeof module !== "undefined") module.exports = SpecText;
 
-// ───────────────────────── The reader ─────────────────────────
+// ───────────────────────── Links from the app to the docs tab ─────────────────────────
 
-const specReader = typeof document === "undefined" ? null : (() => {
+/** The browser tabs the app and the docs open in, so each link reuses the one tab instead of opening more. */
+const SPEC_TAB = "treemaker-specs";
+const APP_TAB = "treemaker-app";
+
+const specLinks = typeof document === "undefined" ? null : (() => {
+  /** The docs page at a doc and anchor; with no doc, the list of specs. */
+  function href(doc, at) {
+    return `docs.html#/${doc ?? ""}${at ? ":" + at : ""}`;
+  }
+
+  /** Opens a doc in the docs tab (and brings that tab forward). */
+  function open(doc, at) {
+    const w = window.open(href(doc, at), SPEC_TAB);
+    w?.focus();
+  }
+
+  function link(text, doc, at, cls) {
+    const a = document.createElement("a");
+    a.href = href(doc, at);
+    a.target = SPEC_TAB;
+    if (cls) a.className = cls;
+    a.textContent = text;
+    return a;
+  }
+
+  /** Text with every reference turned into a link to the docs tab (for a node's header line). */
+  function linkify(text, doc) {
+    const frag = document.createDocumentFragment();
+    let last = 0;
+    for (const r of SpecText.refsIn(text, doc)) {
+      if (!DOCS[r.doc]) continue;
+      frag.append(text.slice(last, r.index), link(text.slice(r.index, r.end), r.doc, r.at, "xref"));
+      last = r.end;
+    }
+    frag.append(text.slice(last));
+    return frag;
+  }
+
+  /** The first place a piece of text points to in a doc: its first label or section, or the top. */
+  function firstTarget(text, doc) {
+    const r = SpecText.refsIn(text ?? "", doc)[0];
+    return r ? { doc: r.doc, at: r.at } : { doc, at: null };
+  }
+
+  /** Where a `.ref` in the sidebar points: its own data-doc, a doc it names, or the open node's doc. */
+  function refTarget(span) {
+    const node = typeof state !== "undefined" ? state.node : null;
+    const text = span.textContent;
+    const doc = (node?.id === "hull" && span.dataset.hull ? "hull" : span.dataset.doc)
+      ?? SpecText.docNamedIn(text) ?? node?.doc;
+    return doc ? firstTarget(text, doc) : null;
+  }
+
+  // In the app, a click on a section or label in the sidebar opens it in the docs tab.
+  if (document.body.dataset.page !== "docs") {
+    document.addEventListener("click", (e) => {
+      const ref = e.target.closest(".ref");
+      if (!ref) return;
+      const t = refTarget(ref);
+      if (t) { e.preventDefault(); open(t.doc, t.at); }
+    });
+  }
+
+  return { href, open, link, linkify, firstTarget, refTarget };
+})();
+
+// ───────────────────────── The docs page (docs.html) ─────────────────────────
+
+const specReader = typeof document === "undefined" || document.body.dataset.page !== "docs" ? null : (() => {
   const docs = {};           // key → { ...parse(), md }
   let manifest = null;
   let loading = null;
@@ -293,42 +361,11 @@ const specReader = typeof document === "undefined" ? null : (() => {
     }
   }
 
-  // ───── Links into the reader ─────
+  // ───── Links ─────
 
-  /** The hash that opens the reader at a doc and anchor, keeping the part of the app that is open. */
-  function href(doc, at, node) {
-    const path = node ?? location.hash.replace(/^#\/?/, "").split("?")[0];
-    return `#/${path}?read=${doc ?? ""}${at ? ":" + at : ""}`;
-  }
-
-  /** Text with every reference turned into a reader link (for a node's header line). */
-  function linkify(text, doc, node) {
-    const frag = document.createDocumentFragment();
-    let last = 0;
-    for (const r of SpecText.refsIn(text, doc)) {
-      if (!DOCS[r.doc]) continue;
-      frag.append(text.slice(last, r.index));
-      frag.append(el("a", { class: "xref", href: href(r.doc, r.at, node), text: text.slice(r.index, r.end) }));
-      last = r.end;
-    }
-    frag.append(text.slice(last));
-    return frag;
-  }
-
-  /** The first place a piece of text points to in a doc: its first label or section, or the top. */
-  function firstTarget(text, doc) {
-    const r = SpecText.refsIn(text ?? "", doc)[0];
-    return r ? { doc: r.doc, at: r.at } : { doc, at: null };
-  }
-
-  /** Where a `.ref` in the sidebar points: its own data-doc, a doc it names, or the open node's doc. */
-  function refTarget(span) {
-    const node = typeof state !== "undefined" ? state.node : null;
-    const text = span.textContent;
-    const doc = (node?.id === "hull" && span.dataset.hull ? "hull" : span.dataset.doc)
-      ?? SpecText.docNamedIn(text) ?? node?.doc;
-    return doc ? firstTarget(text, doc) : null;
-  }
+  const href = (doc, at) => `#/${doc ?? ""}${at ? ":" + at : ""}`;
+  /** A part of the app, opened in the app's tab. */
+  const appHref = (node) => `./#/${node}`;
 
   // ───── Rendering ─────
 
@@ -358,7 +395,7 @@ const specReader = typeof document === "undefined" ? null : (() => {
         );
         const row = el("div", { class: "spec-card-row" });
         row.append(el("span", { class: "muted", text: meta ? `Revision ${meta.rev ?? "?"}` : "Not packaged" }));
-        for (const n of implementers(key)) row.append(el("a", { class: "app-chip", href: `#/${n.id}`, text: `${n.title} →` }));
+        for (const n of implementers(key)) row.append(el("a", { class: "app-chip", href: appHref(n.id), target: APP_TAB, text: `Run it: ${n.title} →` }));
         card.append(row);
         list.append(card);
       }
@@ -370,6 +407,7 @@ const specReader = typeof document === "undefined" ? null : (() => {
     $("readerMeta").textContent = `${Object.keys(docs).length} documents, packaged with the app`;
     $("readerToc").hidden = true;
     $("readerList").hidden = true;
+    renderNav(null);
     body.scrollTop = 0;
   }
 
@@ -397,8 +435,8 @@ const specReader = typeof document === "undefined" ? null : (() => {
     const nodes = implementers(key);
     if (nodes.length) {
       const bar = el("div", { class: "spec-impl" }, el("span", { text: "In the app:" }));
-      // Going to the app keeps the doc open beside it.
-      for (const n of nodes) bar.append(el("a", { class: "app-chip", href: href(key, null, n.id), title: n.section, text: `${n.title} →` }));
+      // A part of the app opens in the app's tab; this tab stays on the doc.
+      for (const n of nodes) bar.append(el("a", { class: "app-chip", href: appHref(n.id), target: APP_TAB, title: n.section, text: `${n.title} →` }));
       article.querySelector("h1")?.after(bar);
       for (const n of nodes) {
         for (const r of SpecText.refsIn(n.section ?? "", key)) {
@@ -406,7 +444,7 @@ const specReader = typeof document === "undefined" ? null : (() => {
           const target = article.querySelector(`#spec-${CSS.escape(r.at)}`);
           if (!target || target.dataset.chipped?.split(" ").includes(n.id)) continue;
           target.dataset.chipped = `${target.dataset.chipped ?? ""} ${n.id}`.trim();
-          const chip = el("a", { class: "app-chip inline", href: href(key, r.at, n.id), title: `Implemented in ${n.title}`, text: `▸ ${n.title}` });
+          const chip = el("a", { class: "app-chip inline", href: appHref(n.id), target: APP_TAB, title: `Implemented in ${n.title}`, text: `▸ ${n.title}` });
           (target.matches("strong, span.anchor") ? target.parentElement : target).append(" ", chip);
         }
       }
@@ -418,6 +456,7 @@ const specReader = typeof document === "undefined" ? null : (() => {
       ? `Packaged copy · revision ${meta.rev ?? "?"} · exported ${fmtDate(meta.exportedAt)}`
       : "Packaged copy";
     $("readerList").hidden = false;
+    renderNav(key);
     renderToc(d.toc, key);
     typeset(body);
   }
@@ -446,6 +485,20 @@ const specReader = typeof document === "undefined" ? null : (() => {
     }
   }
 
+  /** The list of specs in the side bar, with the one shown marked. */
+  function renderNav(current) {
+    const nav = $("specNav");
+    const list = el("ol");
+    for (const key of Object.keys(DOCS)) {
+      if (!docs[key]) continue;
+      const a = el("a", { href: href(key), text: DOCS[key].title.replace(/ TreeMaker$/, "") });
+      if (key === current) a.setAttribute("aria-current", "page");
+      list.append(el("li", {}, a));
+    }
+    nav.querySelector("ol")?.remove();
+    nav.append(list);
+  }
+
   function renderToc(toc, key) {
     const nav = $("readerToc");
     const list = el("ol");
@@ -455,7 +508,6 @@ const specReader = typeof document === "undefined" ? null : (() => {
     nav.querySelector("ol")?.remove();
     nav.append(list);
     nav.hidden = false;
-    nav.open = false;
   }
 
   function goTo(at) {
@@ -470,16 +522,10 @@ const specReader = typeof document === "undefined" ? null : (() => {
     block.classList.add("hit");
   }
 
-  // ───── Opening and closing (driven by the hash) ─────
+  // ───── Showing a doc (driven by the hash) ─────
 
-  /** Called by the router with the hash's query. */
-  async function sync(params) {
-    const read = params.get("read");
-    if (read == null) { close(false); return; }
-    const [doc, at] = read.split(":");
-    const pane = $("reader");
-    pane.hidden = false;
-    document.body.dataset.reading = "on";
+  async function sync() {
+    const [doc, at] = location.hash.replace(/^#\/?/, "").split(":");
     loadKatex();
     try {
       await loadAll();
@@ -490,21 +536,14 @@ const specReader = typeof document === "undefined" ? null : (() => {
     if (!doc || !docs[doc]) {
       if (shown?.doc !== "") renderList();
       shown = { doc: "" };
+      document.title = "Specs · TreeMaker";
       return;
     }
     if (shown?.doc !== doc) { renderDoc(doc); shown = { doc }; }
-    goTo(at);
+    document.title = `${DOCS[doc].title} · TreeMaker specs`;
+    goTo(at ? decodeURIComponent(at) : null);
     shown.scrolled = true;
   }
-
-  /** Closes the pane; with `navigate`, also drops `?read=` from the hash so Back reopens it. */
-  function close(navigate = true) {
-    $("reader").hidden = true;
-    document.body.dataset.reading = "off";
-    if (navigate && location.hash.includes("?")) location.hash = location.hash.split("?")[0] || "#/";
-  }
-
-  function open(doc, at) { location.hash = href(doc, at); }
 
   // ───── Small helpers ─────
 
@@ -516,25 +555,15 @@ const specReader = typeof document === "undefined" ? null : (() => {
 
   // ───── Wiring ─────
 
-  document.addEventListener("click", (e) => {
-    const ref = e.target.closest(".ref");
-    if (ref && !ref.closest("#reader")) {
-      const t = refTarget(ref);
-      if (t) { e.preventDefault(); open(t.doc, t.at); }
-    }
-  });
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !$("reader").hidden && !e.target.closest("input, select, textarea")) close();
-  });
-  $("readerClose").addEventListener("click", () => close());
-  $("readerList").addEventListener("click", () => open(""));
-  $("specsButton").addEventListener("click", () => ($("reader").hidden ? open(shown?.doc || "") : close()));
-  $("readerToc").addEventListener("click", (e) => { if (e.target.closest("a")) $("readerToc").open = false; });
+  window.name = SPEC_TAB;      // links from the app come back to this tab
+  window.addEventListener("hashchange", sync);
+  $("readerList").addEventListener("click", () => { location.hash = "#/"; });
   // A click on a link to the passage already shown: the hash does not change, so scroll to it again.
-  $("readerBody").addEventListener("click", (e) => {
+  document.addEventListener("click", (e) => {
     const a = e.target.closest("a[href^='#']");
     if (a && a.getAttribute("href") === location.hash) { e.preventDefault(); goTo(a.getAttribute("href").split(":")[1]); }
   });
+  sync();
 
-  return { sync, open, close, href, linkify, firstTarget, refTarget };
+  return { sync };
 })();

@@ -902,30 +902,21 @@ a.quiet-link:hover { border-color: var(--ink); }
 .toggle.locked input { cursor: default; }
 #preset { max-width: 210px; }
 
-/* ───────────── The specs, packaged: a reader beside the app (specs.js) ───────────── */
-:root { --reader-w: clamp(440px, 44vw, 780px); }
+/* ───────────── The specs, in their own tab (docs.html, specs.js) ───────────── */
 .specs-button {
+  display: inline-flex; align-items: center;
   height: 32px; padding: 0 12px; border-radius: 4px; border: 1px solid #cfd3cc; background: var(--field);
-  color: var(--beni-deep); font-weight: 650; font-size: 13px; white-space: nowrap;
+  color: var(--beni-deep); font-weight: 650; font-size: 13px; white-space: nowrap; text-decoration: none;
 }
 .specs-button:hover { border-color: var(--beni); }
-body[data-reading="on"] .specs-button { background: var(--beni-wash); border-color: var(--beni); }
 a.button-like {
   display: inline-flex; align-items: center; height: 38px; padding: 0 14px; border-radius: 4px;
   border: 1px solid var(--mat-line-strong); color: var(--mat-ink); font-weight: 600; text-decoration: none; font-size: 14px;
 }
 a.button-like:hover { border-color: var(--mat-ink); }
 
-/* The app moves over so the doc and the part of the app that implements it sit side by side. */
-body[data-reading="on"] #mapView,
-body[data-reading="on"] #workView { margin-right: var(--reader-w); }
-
-.reader {
-  position: fixed; top: var(--topbar); right: 0; bottom: 0; z-index: 15;
-  width: var(--reader-w);
-  display: flex; flex-direction: column;
-  background: var(--paper); color: var(--ink);
-  border-left: 1px solid #c9cdc6; box-shadow: -8px 0 24px rgba(10, 30, 22, .12);
+body[data-page="docs"] {
+  background: var(--paper);
   /* Colours the figures use (named as in the docs they were drawn for). */
   --cds-text-primary: var(--ink);
   --cds-text-secondary: var(--ink-soft);
@@ -940,10 +931,20 @@ body[data-reading="on"] #workView { margin-right: var(--reader-w); }
   --cds-chart-status-warning: #b7791f;
   --cds-chart-status-critical: var(--bad);
 }
-.reader[hidden] { display: none; }
-.reader-bar {
-  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
-  border-bottom: 1px solid var(--rule); background: var(--panel);
+body[data-page="docs"] .topbar { gap: 22px; }
+.docs-page { display: grid; grid-template-columns: 280px minmax(0, 1fr); height: calc(100vh - var(--topbar)); }
+.docs-side { border-right: 1px solid var(--rule); background: var(--panel); overflow-y: auto; padding: 14px 16px 40px; font-size: 13px; }
+.docs-side h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-soft); margin: 14px 0 6px; }
+.docs-side .reader-btn { margin-bottom: 4px; }
+.spec-nav ol { list-style: none; margin: 0; padding: 0; }
+.spec-nav li { margin: 1px 0; }
+.spec-nav a { display: block; padding: 4px 8px; border-radius: 4px; color: var(--ink); text-decoration: none; font-weight: 600; }
+.spec-nav a:hover { background: var(--field); }
+.spec-nav a[aria-current="page"] { background: var(--field); color: var(--beni-deep); box-shadow: inset 3px 0 0 var(--beni); }
+@media (max-width: 860px) {
+  .docs-page { grid-template-columns: 1fr; height: auto; }
+  .docs-side { border-right: 0; border-bottom: 1px solid var(--rule); }
+  body[data-page="docs"] .reader-body { height: auto; overflow: visible; }
 }
 .reader-heads { flex: 1; min-width: 0; }
 .reader-title { font-weight: 720; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -955,18 +956,16 @@ body[data-reading="on"] #workView { margin-right: var(--reader-w); }
 }
 .reader-btn:hover { border-color: var(--ink); }
 .reader-btn[hidden] { display: none; }
-.reader-btn.close { width: 30px; justify-content: center; padding: 0; }
-.reader-toc { border-bottom: 1px solid var(--rule); padding: 6px 18px; font-size: 13px; background: var(--paper); }
-.reader-toc summary { cursor: pointer; font-weight: 650; color: var(--ink-soft); }
-.reader-toc ol { list-style: none; margin: 6px 0 4px; padding: 0; max-height: 40vh; overflow: auto; columns: 2; column-gap: 20px; }
-.reader-toc li { break-inside: avoid; padding: 1px 0; }
-.reader-toc li.toc-3 { padding-left: 14px; font-size: 12.5px; }
+.reader-toc[hidden] { display: none; }
+.reader-toc ol { list-style: none; margin: 0; padding: 0; }
+.reader-toc li { padding: 2px 0 2px 8px; line-height: 1.35; }
+.reader-toc li.toc-3 { padding-left: 22px; font-size: 12.5px; }
 .reader-toc a { color: var(--ink); text-decoration: none; }
 .reader-toc a:hover { color: var(--beni-deep); text-decoration: underline; }
-.reader-body { flex: 1; overflow-y: auto; padding: 20px 28px 80px; font-size: 15px; line-height: 1.6; }
+.reader-body { height: 100%; overflow-y: auto; padding: 24px 40px 100px; font-size: 15.5px; line-height: 1.62; }
 .reader-error { color: var(--bad); }
 
-.spec-doc { max-width: 720px; margin: 0 auto; }
+.spec-doc { max-width: 760px; margin: 0 auto; }
 .spec-doc h1, .spec-list h1 { font-size: 24px; line-height: 1.25; margin: 4px 0 6px; font-weight: 760; font-stretch: 112%; }
 .spec-doc h2 { font-size: 19px; margin: 30px 0 8px; padding-top: 10px; border-top: 1px solid var(--rule); }
 .spec-doc h3 { font-size: 16px; margin: 22px 0 6px; }
@@ -1020,9 +1019,3 @@ pre.code { background: var(--panel); padding: 8px 10px; border-radius: 4px; over
 .small { font-size: 12px; }
 .node-spec a.xref { color: inherit; text-decoration: none; border-bottom: 1px dotted currentColor; }
 .ref { cursor: pointer; } .ref:hover { color: var(--beni-deep); text-decoration: underline dotted; }
-/* Beside a part of the app, the reader takes less room and the app's columns tighten to fit. */
-body[data-reading="on"][data-view="work"] { --reader-w: clamp(400px, 34vw, 620px); }
-body[data-reading="on"] .app { grid-template-columns: minmax(360px, 30vw) minmax(0, 1fr); }
-body[data-reading="on"] .stage-area { grid-template-columns: 1fr; }
-body[data-reading="on"] .readout { position: static; }
-body[data-reading="on"] .tables { grid-template-columns: 1fr; }

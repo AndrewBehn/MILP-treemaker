@@ -4,25 +4,26 @@ One app for TreeMaker's circle-packing problem on an N × N grid, with every spe
 
 ## Run
 
-You need the .NET 10 SDK. From this folder:
+You need the .NET 10 SDK. From this folder (the repository root):
 
 ```sh
-dotnet run --project TreeMaker.Web
+dotnet run
 ```
 
-It opens <http://localhost:5080> in your browser. To use another port, add `--urls http://localhost:6000`.
+It builds everything and opens <http://localhost:5080> in your browser: the map, the solvers, the workbench and the specs, all in one app. To use another port, add `--urls http://localhost:6000` after `--`, as in `dotnet run -- --urls http://localhost:6000`.
 
-To run every test:
+To build or run every test, also from the root:
 
 ```sh
-dotnet test TreeMaker.sln
+dotnet build
+dotnet test
 ```
 
-`TreeMaker.sln` holds the web app, the three solver libraries and their three test projects. Each library also has its own solution in its folder.
+The root project, `TreeMaker.csproj`, is only the entry point: it compiles nothing itself, builds the app (`TreeMaker.Web`), the three solver libraries and their three test projects, runs the app, and hands `dotnet test` to the test projects. Open it in an IDE to get all of them.
 
 ## The map
 
-The first screen is a map of the specs and the steps after them, drawn like the document graph. Click a box to open that part of the app; **← Map** in the top bar brings you back, and the browser's back button works too. Each box's **Spec** tag opens its document in the reader beside the map (see *The specs, in the app* below).
+The first screen is a map of the specs and the steps after them, drawn like the document graph. Click a box to open that part of the app; **← Map** in the top bar brings you back, and the browser's back button works too. Each box's **Spec ↗** tag opens its document in the docs tab (see *The specs, in the app* below).
 
 | Map node | Route | Spec, and where in it | What runs | API |
 |---|---|---|---|---|
@@ -42,16 +43,16 @@ The node definitions are in `TreeMaker.Web/wwwroot/nodes.js`. What a solver fami
 
 ## The specs, in the app
 
-All seven specification documents are packaged with the app, so the mathematics and the running solvers can be shared and read together, offline.
+All seven specification documents are packaged with the app and served by it, so the mathematics and the running solvers can be shared together, and read offline.
 
-- **Opening them.** **Specs** in the top bar opens the list; a map box's **Spec** tag, the **Spec** link next to the part of the app you are in, the spec line under its title, and any section or label in the sidebar (such as `§6` or `C:4`) open the right document at the right place.
-- **Beside the app.** The reader is a pane on the right. The part of the app stays open and keeps its results, so a solve can run while you read the model it solves. **Esc** or **✕** closes it, and the browser's back button reopens it.
-- **Inside a doc.** Section numbers and labels (P:, D:, C:, M:, A:, lemmas) are links, also between docs ("base C:1" opens the Pure MILP spec at C:1). Each doc lists the parts of the app that implement it, and a tag at each section a part cites goes to that part, with the doc still open beside it. **Contents** lists the sections.
-- **Figures and maths.** The figures are drawn from the docs' own figure code, and the maths is typeset with KaTeX, which is bundled (`wwwroot/vendor/katex`). The figures are static pictures.
-- **Links.** The address holds what is open, such as `#/scalable?read=scalable:A-4`, so a link to a passage beside a part of the app can be shared. The app serves the docs itself: reading them needs no network and no claude.ai account. The live docs on claude.ai are only where they are written; the packaged copies are refreshed from them.
-- **Keeping them current.** The packaged copies are `wwwroot/specs/*.md` (text) and `*.figures.json` (figures), with `manifest.json` recording each doc's revision. They are refreshed from the live docs with `tools/extract_spec_exports.py` (CLAUDE.md, "Specification documents", has the steps). The reader shows the revision and export date of the copy it shows.
+- **A tab of their own.** The docs open in a separate browser tab (`docs.html`), so reading stays apart from the working app and its workbench. Every link from the app goes to that one tab, and every link from a doc back to the app goes to the app's tab, so the two tabs don't multiply.
+- **Opening them.** On the map, a box opens its part of the app and its **Spec ↗** tag opens its document; **Read the specs ↗** lists them all. In a part of the app, the **Spec ↗** link in the top bar, the spec line under its title, and any section or label in the sidebar (such as `§6` or `C:4`) open the right document at the right place. **Specs ↗** in the top bar lists them.
+- **In the docs tab.** The side bar lists the specs and the sections of the one shown. Section numbers and labels (P:, D:, C:, M:, A:, lemmas) are links, also between docs ("base C:1" opens the Pure MILP spec at C:1). Each doc names the parts of the app that implement it, and a tag at each section a part cites opens that part in the app's tab. **Open the app ↗** goes back to the map.
+- **Figures and maths.** The figures are drawn from the docs' own figure code (static pictures), and the maths is typeset with KaTeX, which is bundled (`wwwroot/vendor/katex`).
+- **Links.** The docs tab's address holds the passage, such as `docs.html#/scalable:A-4`, so a link to it can be shared. The live docs on claude.ai are only where the specs are written; reading them here needs no network and no claude.ai account.
+- **Keeping them current.** The packaged copies are `wwwroot/specs/*.md` (text) and `*.figures.json` (figures), with `manifest.json` recording each doc's revision. They are refreshed from the live docs with `tools/extract_spec_exports.py` (CLAUDE.md, "Specification documents", has the steps). The docs tab shows the revision and export date of the copy it shows.
 
-The reader is `TreeMaker.Web/wwwroot/specs.js`.
+The docs page is `TreeMaker.Web/wwwroot/docs.html`, driven by `specs.js`.
 
 ## The workbench
 
@@ -93,6 +94,7 @@ Every solver and the Tree node use the same editor, `tree-editor.js`.
 - **Rename a vertex.** Double-click it.
 - **Pure MILP and Symmetry-Breaking MILP only:** click an edge to add it to, or remove it from, the stretch set S, which edge optimization uses.
 - **Layout.** **Tidy** lays the tree out again. **Enlarge** opens the editor nearly full screen.
+- **Mirrored trees.** A tree with mirror pairs, such as the centipede presets, is drawn bilaterally: the body is a straight vertical line and each leg sits on its own side, opposite its partner. The longest flaps at the head and tail (antennae, cerci) point forward and back. The drawing is a sketch, not to scale: short body segments are spaced out so the legs don't overlap. The mirror pairs themselves make every solver place each pair symmetrically about the sheet's vertical axis, x_a + x_b = N.
 
 The server tells the browser not to cache the page, and the scripts are versioned, so an updated app always loads its new scripts.
 
