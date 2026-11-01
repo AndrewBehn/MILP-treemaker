@@ -93,6 +93,7 @@ public sealed record CreasePatternResult
 }
 
 /// <summary>
+/// The Crease Pattern TreeMaker spec: A:1 (Molecule), A:2 (the fold check, in Build) and A:3 (Pleat).
 /// Step 3: Lang's universal molecule, built in every polygon of a valid tight-path network, and the folded base.
 /// <para>
 /// Each polygon shrinks: every side moves inward by the same distance h, so corner i slides along its bisector at speed

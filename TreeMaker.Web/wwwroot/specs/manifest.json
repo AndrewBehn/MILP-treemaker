@@ -1,0 +1,59 @@
+{
+  "specs": {
+    "optimized": {
+      "title": "Optimized MILP TreeMaker",
+      "url": "https://claude.ai/artifact/LxhWqnKYWWuTrdmJ3hrKdq",
+      "rev": 44,
+      "exportedAt": "2026-10-31T17:28:49.378Z",
+      "file": "optimized.md",
+      "figures": "optimized.figures.json"
+    },
+    "pure": {
+      "title": "Pure MILP TreeMaker",
+      "url": "https://claude.ai/artifact/1L1y2Ey5CzUT8AzfJ2sev4",
+      "rev": 40,
+      "exportedAt": "2026-11-01T15:57:31.651Z",
+      "file": "pure.md",
+      "figures": "pure.figures.json"
+    },
+    "scalable": {
+      "title": "Scalable MILP TreeMaker",
+      "url": "https://claude.ai/artifact/Qz1WL7RZDpnMwKYdVT2G29",
+      "rev": 48,
+      "exportedAt": "2026-11-01T15:57:32.633Z",
+      "file": "scalable.md",
+      "figures": "scalable.figures.json"
+    },
+    "closing": {
+      "title": "Polygon Closing TreeMaker",
+      "url": "https://claude.ai/artifact/FtbYLxEKTVszvyrLtcniK4",
+      "rev": 14,
+      "exportedAt": "2026-10-31T17:31:02.547Z",
+      "file": "closing.md"
+    },
+    "crease": {
+      "title": "Crease Pattern TreeMaker",
+      "url": "https://claude.ai/artifact/1B22HTcwzUwAjaMqyfdTXp",
+      "rev": 12,
+      "exportedAt": "2026-10-31T17:31:03.536Z",
+      "file": "crease.md"
+    },
+    "hull": {
+      "title": "Lattice-Hull MILP TreeMaker",
+      "url": "https://claude.ai/artifact/NwmqiYzpRCSneZiobahka6",
+      "rev": 27,
+      "exportedAt": "2026-10-31T17:31:05.277Z",
+      "file": "hull.md",
+      "figures": "hull.figures.json"
+    },
+    "sym": {
+      "title": "Symmetry-Breaking MILP TreeMaker",
+      "url": "https://claude.ai/artifact/4bhD37EK1NQy66fV4zhTaN",
+      "rev": 16,
+      "exportedAt": "2026-10-31T17:31:04.389Z",
+      "file": "sym.md",
+      "figures": "sym.figures.json"
+    }
+  },
+  "packagedAt": "2026-11-01T16:01:30Z"
+}

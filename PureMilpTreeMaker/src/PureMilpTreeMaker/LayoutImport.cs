@@ -65,11 +65,11 @@ public static class LayoutImport
             }
             else
             {
-                messages.Add($"The file's scale {s:0.######} is larger than this layout allows; using its exact scale {exact:0.######}.");
+                messages.Add($"The given scale {s:0.######} is larger than this layout allows; using its exact scale {exact:0.######}.");
             }
         }
-        messages.Add($"Imported layout: {layout.Count} leaves on a {spec.GridSize} × {spec.GridSize} grid at scale m = {use:0.######}" +
-            (strained ? ", with the edge lengths saved in the file." : "."));
+        messages.Add($"Layout read back from the workbench or a file: {layout.Count} leaves on a {spec.GridSize} × {spec.GridSize} grid at scale m = {use:0.######}" +
+            (strained ? ", with the edge lengths saved with it." : "."));
 
         var pairs = LayoutAnalysis.Pairs(definitions, layout, use, lengths);
         var violations = LayoutAnalysis.Violations(spec with { Stage = Stage.Scale }, layout, use, lengths);

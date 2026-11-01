@@ -116,6 +116,12 @@ public sealed record ProblemSpec
     /// </summary>
     public IReadOnlyList<LeafPlacement>? StartLayout { get; init; }
 
+    /// <summary>
+    /// Adds the symmetry breaking of the Symmetry-Breaking MILP doc to the base model: the anchor leaf in the
+    /// fundamental domain (C:5) and interchangeable siblings in order (C:6). The optimum m* does not change.
+    /// </summary>
+    public bool SymmetryBreaking { get; init; }
+
     /// <summary>Checks the parameters that do not depend on solving; throws <see cref="ArgumentException"/> on error.</summary>
     public void Validate()
     {

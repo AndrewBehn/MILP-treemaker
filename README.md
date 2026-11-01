@@ -1,26 +1,16 @@
-# TreeMaker MILP apps
+# TreeMaker
 
-Three apps for TreeMaker's circle-packing problem on an N × N grid. Each is a C# / .NET 10 library with a browser UI that runs in the same process as the SCIP solver (through Google OR-Tools).
-
-| Folder | App | Port |
-|---|---|---|
-| `PureMilpTreeMaker/` | **Pure MILP TreeMaker**: the base model as one MILP. It covers the scale, edge and strain stages. | http://localhost:5080 |
-| `OptimizedMilpTreeMaker/` | **Optimized MILP TreeMaker**: the same scale optimum, found with lattice hulls, symmetry breaking, bisection, and incremental solving. | http://localhost:5081 |
-| `ScalableMilpTreeMaker/` | **Scalable MILP TreeMaker**: good layouts, without a proof of optimality, for 25 to 100 leaves. It runs a continuous layout (LP), then rounding and repair, neighbourhood search (CP-SAT), and a foldability finish. | http://localhost:5082 |
-
-The optimized and scalable apps reuse the base library in `PureMilpTreeMaker/src/PureMilpTreeMaker`, so keep the folders side by side.
+One app for TreeMaker's circle-packing problem on an N × N grid, with every specification and the steps after it in one place. It is a C# / .NET 10 ASP.NET Core app with a browser UI that runs in the same process as the solvers (SCIP, GLOP and CP-SAT through Google OR-Tools).
 
 ## Run
 
-You need the .NET 10 SDK. Run these from this folder:
+You need the .NET 10 SDK. From this folder:
 
 ```sh
-dotnet run --project PureMilpTreeMaker/src/PureMilpTreeMaker.Web
-dotnet run --project OptimizedMilpTreeMaker/src/OptimizedMilpTreeMaker.Web
-dotnet run --project ScalableMilpTreeMaker/src/ScalableMilpTreeMaker.Web
+dotnet run --project TreeMaker.Web
 ```
 
-To use another port, add `--urls http://localhost:6000`. Each app opens its page in your browser when it starts.
+It opens <http://localhost:5080> in your browser. To use another port, add `--urls http://localhost:6000`.
 
 To run every test:
 
@@ -28,11 +18,72 @@ To run every test:
 dotnet test TreeMaker.sln
 ```
 
-`TreeMaker.sln` holds all nine projects. Each app also has its own solution in its folder.
+`TreeMaker.sln` holds the web app, the three solver libraries and their three test projects. Each library also has its own solution in its folder.
 
-## The tree editor (all three apps)
+## The map
 
-All three apps use the same editor file, `tree-editor.js`.
+The first screen is a map of the specs and the steps after them, drawn like the document graph. Click a box to open that part of the app; **← Map** in the top bar brings you back, and the browser's back button works too. Each box's **Spec** tag opens its document in the reader beside the map (see *The specs, in the app* below).
+
+| Map node | Route | Spec, and where in it | What runs | API |
+|---|---|---|---|---|
+| Tree | `#/tree` | Pure MILP, parameters P:1–P:3 | The tree editor, grid size, leaf conditions and mirror pairs | none |
+| Pure MILP | `#/pure` | Pure MILP, Sections 3–8 and 11 | The base model as one MILP (SCIP); scale, edge and strain stages | `/api/pure/*` |
+| Symmetry-Breaking MILP | `#/sym` | Symmetry-Breaking MILP, C:5 and C:6 | The base model with the anchor leaf in the fundamental domain and siblings in order | `/api/pure/*` with `symmetryBreaking: true` |
+| Lattice-Hull MILP | `#/hull` | Lattice-Hull MILP, Sections 8 and 10 | Lattice-hull feasibility tests and bisection over candidate scales, without symmetry breaking | `/api/optimized/*` with `options.symmetryBreaking: false` |
+| Optimized MILP | `#/optimized` | Optimized MILP, Section 7 | Lattice hulls, symmetry breaking, pair and facet generation, leaf windows, border seed | `/api/optimized/*` |
+| Scalable MILP | `#/scalable` | Scalable MILP, Section 9 | Continuous LP, CP-SAT repair, neighbourhood search, foldability finish | `/api/scalable/*` |
+| Close the polygons | `#/close` | Polygon Closing, A:1 to A:4 (Sections 4–7) | Check the polygons; close them by strain; find the strain needed | `/api/polygons`, `/api/complete`, `/api/strain-needed` |
+| Crease pattern | `#/creases` | Crease Pattern, A:1 and A:3 (Sections 4, 5, 7 and 8) | Universal molecules, pleats, .fold and .svg | `/api/creases` |
+| Folded base | `#/fold` | Crease Pattern, A:2 (Section 6) | The base in 3D | (from the crease pattern) |
+
+Every box links its spec. The step specs are Polygon Closing TreeMaker (which builds on Pure MILP, cites Scalable MILP and hands off to Crease Pattern) and Crease Pattern TreeMaker (which builds on Polygon Closing and Pure MILP); their references follow the pipeline arrows. The solver boxes sit in one frame with the references between their specs drawn as in the document graph: the four derived specs build on Pure MILP, Pure MILP hands off to Optimized MILP, Lattice-Hull MILP cites Symmetry-Breaking MILP, and Scalable MILP cites Optimized MILP. Each solver box also says whether it suits the tree in the editor, from the timings below.
+
+The node definitions are in `TreeMaker.Web/wwwroot/nodes.js`. What a solver family sends and shows is in `solvers.js`; the map is `map.js`.
+
+## The specs, in the app
+
+All seven specification documents are packaged with the app, so the mathematics and the running solvers can be shared and read together, offline.
+
+- **Opening them.** **Specs** in the top bar opens the list; a map box's **Spec** tag, the **Spec** link next to the part of the app you are in, the spec line under its title, and any section or label in the sidebar (such as `§6` or `C:4`) open the right document at the right place.
+- **Beside the app.** The reader is a pane on the right. The part of the app stays open and keeps its results, so a solve can run while you read the model it solves. **Esc** or **✕** closes it, and the browser's back button reopens it.
+- **Inside a doc.** Section numbers and labels (P:, D:, C:, M:, A:, lemmas) are links, also between docs ("base C:1" opens the Pure MILP spec at C:1). Each doc lists the parts of the app that implement it, and a tag at each section a part cites goes to that part, with the doc still open beside it. **Contents** lists the sections.
+- **Figures and maths.** The figures are drawn from the docs' own figure code, and the maths is typeset with KaTeX, which is bundled (`wwwroot/vendor/katex`). The figures are static pictures.
+- **Links.** The address holds what is open, such as `#/scalable?read=scalable:A-4`, so a link to a passage beside a part of the app can be shared. The app serves the docs itself: reading them needs no network and no claude.ai account. The live docs on claude.ai are only where they are written; the packaged copies are refreshed from them.
+- **Keeping them current.** The packaged copies are `wwwroot/specs/*.md` (text) and `*.figures.json` (figures), with `manifest.json` recording each doc's revision. They are refreshed from the live docs with `tools/extract_spec_exports.py` (CLAUDE.md, "Specification documents", has the steps). The reader shows the revision and export date of the copy it shows.
+
+The reader is `TreeMaker.Web/wwwroot/specs.js`.
+
+## The workbench
+
+The workbench holds what carries over from one part of the app to the next. The top bar shows it as four chips, and the map shows it as cards with **Continue**, **Save** and **Clear** buttons.
+
+| Slot | Set by | Used as the starting point of |
+|---|---|---|
+| Tree | Every edit in the tree editor, a preset, or a tree file | Every solver |
+| Layout | Every solve that finds a layout, and opening a layout file | The next solve in any solver whose tree and grid it fits (the **Start the next solve from the workbench layout** box under the sheet); Close the polygons |
+| Closed polygons | **Close the polygons** and **Find the strain needed** | Crease pattern, which uses the closed edge lengths |
+| Crease pattern | **Build the crease pattern** | Folded base |
+
+- **Replacing.** A new result replaces its slot and clears the slots after it, since they were made from the old one. A new layout clears the closed polygons and the crease pattern.
+- **Every solver.** Opening a solver with a layout on the workbench shows that layout as if the solver had just found it, together with its closed polygons and crease pattern, as long as it fits the editor's tree and grid.
+- **Leaving during a solve.** A solve keeps running if you go back to the map. Its layout goes on the workbench when it finishes. One solve runs at a time, in any solver.
+- **Kept between visits.** The workbench is stored in the browser (`localStorage`). It survives a reload, and **Clear** on a card empties that slot.
+
+The workbench is `TreeMaker.Web/wwwroot/workbench.js`.
+
+## Where the code is
+
+| Folder | Contents |
+|---|---|
+| `TreeMaker.Web/` | The app: `Program.cs` maps the API groups; `Pure/`, `Optimized/` and `Scalable/` hold each solver family's request shapes and endpoints; `Shared/` holds the steps after a solve and the one-solve-at-a-time coordinator; `wwwroot/` is the page, with the packaged specs in `wwwroot/specs/`. |
+| `PureMilpTreeMaker/` | The base library: the tree, definitions, base model (with optional symmetry breaking), layout checks, polygons, closing, strain LPs, crease pattern. Its tests. |
+| `OptimizedMilpTreeMaker/` | Lattice hulls, candidate scales, bisection and incremental generation. Its tests. |
+| `ScalableMilpTreeMaker/` | The four-stage pipeline. Its tests. |
+| `tools/` | Packaging the specs (`extract_spec_exports.py`, `render_spec_figures.js`) and front-end checks without .NET (`mock_api.py`, `ui_flow.js`, `ui_reader.js`). |
+
+## The tree editor
+
+Every solver and the Tree node use the same editor, `tree-editor.js`.
 
 - **Add a leaf.** Drag the **Leaf** chip onto a vertex, or onto an edge to branch from its midpoint.
 - **Split an edge.** Drag the **Joint** chip onto the edge.
@@ -40,14 +91,14 @@ All three apps use the same editor file, `tree-editor.js`.
 - **Delete.** Drag a vertex to **Drop to delete**.
 - **Change a length.** Click the length tag on an edge, or Tab to it and press Enter. Type the new length, then press Enter to save or Esc to cancel.
 - **Rename a vertex.** Double-click it.
-- **Base app only:** click an edge to add it to, or remove it from, the stretch set S.
+- **Pure MILP and Symmetry-Breaking MILP only:** click an edge to add it to, or remove it from, the stretch set S, which edge optimization uses.
 - **Layout.** **Tidy** lays the tree out again. **Enlarge** opens the editor nearly full screen.
 
-The servers tell the browser not to cache the pages, and the scripts are versioned, so an updated app always loads its new scripts.
+The server tells the browser not to cache the page, and the scripts are versioned, so an updated app always loads its new scripts.
 
-## Toward a crease pattern (steps 1 to 3, and the folded base)
+## Toward a crease pattern (the steps after a solve)
 
-After a solve, the **Toward a crease pattern** panel checks whether the layout can carry a crease pattern. All three apps share this panel (`polygons.js`) and the library code in `PureMilpTreeMaker/src/PureMilpTreeMaker`.
+After a solve, the **Toward a crease pattern** panel under the sheet checks whether the layout can carry a crease pattern. The same panel (`polygons.js`) is the Close the polygons and Crease pattern nodes of the map, each showing its own part of it, and it runs the library code in `PureMilpTreeMaker/src/PureMilpTreeMaker`.
 
 1. **Check the polygons** (`ActivePaths`, `POST /api/polygons`). TreeMaker's universal-molecule construction needs the tight pairs (active paths) to divide the leaves' convex hull into polygons. Each polygon must be convex, bounded by tight paths, and empty of leaves. The panel lists what's missing: open boundary pieces, crossing paths, non-convex polygons, leaves inside a polygon, and uncovered area. The polygons are drawn on the sheet: valid ones are shaded, invalid ones hatched, and the missing boundary is dotted.
 2. **Close the polygons** (`PolygonCompletion`, `POST /api/complete`). The leaves and the scale stay fixed. The edge lengths change (strain σₑ within your bounds) so the pairs of a triangulation that keeps the existing tight pairs become exactly tight, and every other pair still fits. Boundary pairs come first, since the polygons cannot cover the hull without them. A second solve then uses the least total strain. **Use these lengths in the tree** copies the new lengths into the editor.
@@ -63,17 +114,17 @@ Not yet built: the mountain and valley assignment (which way each crease folds) 
 
 Whether a layout can be closed with small strains depends on which optimal layout the solver returns. Two layouts of the running example with the same m* need up to ±0.3 and ±0.5. Letting the leaves move while closing the polygons, which is a strain MILP with equality rows, would be the next improvement.
 
-## Presets (all three apps)
+## Presets
 
-**Load a preset** lists the same trees in every app.
+**Load a preset** lists the same trees in every solver.
 
-- **Grid size.** Each preset sets its own grid size N: the largest tested N at which every app that offers the preset solves it within the 60 s limit.
+- **Grid size.** Each preset sets its own grid size N: the largest tested N at which every solver that offers the preset solves it within the 60 s limit.
 - **Mirror pairs.** The centipede presets also load left–right mirror pairs: legs Lk ↔ Rk, and for the full centipede the antennae and the tail flaps.
-- **Greyed out.** A preset an app cannot solve in reasonable time at any useful grid size is greyed out there, marked *scalable app only*.
+- **Greyed out.** A preset a solver cannot solve in reasonable time at any useful grid size is greyed out there, marked *too slow here; use the Scalable MILP*. The Tree node offers every preset.
 
-Times are to the 1% gap, at the preset's N. "off" means greyed out in that app.
+Times are to the 1% gap, at the preset's N. "off" means greyed out in that solver. The base model column covers Pure MILP and Symmetry-Breaking MILP; the optimized column covers Optimized MILP and Lattice-Hull MILP, which offer the same presets.
 
-| Preset | Leaves | Grid N | Base app | Optimized app | Scalable app |
+| Preset | Leaves | Grid N | Base model | Optimized | Scalable |
 |---|---|---|---|---|---|
 | Running example | 4 | 8 | 28 s | 0.1 s | under 1 s |
 | Star, 4 legs | 4 | 6 | 6 s | 0.1 s | under 1 s |
@@ -92,24 +143,25 @@ Times are to the 1% gap, at the preset's N. "off" means greyed out in that app.
 | Centipede with antennae and tail (mirrored) | 18 | 16 | off | off | about 1 s |
 | Random, 25 / 50 / 100 leaves | 25 to 100 | about 3.2·√leaves | not listed | not listed | 1 to 3 s |
 
-The base and optimized times come from Python prototypes of their algorithms, with HiGHS standing in for SCIP. The prototypes swept N = 4, 6, 8, … for the optimized search, and N = 4, 5, 6, … for the base model. They are not timings of the C# apps.
+The base and optimized times come from Python prototypes of their algorithms, with HiGHS standing in for SCIP. The prototypes swept N = 4, 6, 8, … for the optimized search, and N = 4, 5, 6, … for the base model. They are not timings of the C# solvers.
 
-- **Base app.** The model proves an optimum within 60 s only for 4-leaf trees. Every tree with 5 or more leaves ran out of time even at N = 4.
-- **Mirror pairs.** They roughly halve the free leaves. That is what lets the optimized app solve the 4-, 5- and 6-pair centipedes.
-- **Too coarse to be useful.** The optimized app solves the 8-pair centipede, the beetle and the deer only at N = 4, so they are off there.
-- **Scalable app.** The scalable times are from the scalable prototype, which ignores mirror pairs. The C# scalable app applies them.
+- **Base model.** The model proves an optimum within 60 s only for 4-leaf trees. Every tree with 5 or more leaves ran out of time even at N = 4.
+- **Mirror pairs.** They roughly halve the free leaves. That is what lets the optimized search solve the 4-, 5- and 6-pair centipedes.
+- **Too coarse to be useful.** The optimized search solves the 8-pair centipede, the beetle and the deer only at N = 4, so they are off there.
+- **Not yet timed.** Symmetry breaking in the base model and the Lattice-Hull node (the optimized search without symmetry breaking) have no separate timings; they use the presets of their families.
+- **Scalable MILP.** The scalable times are from the scalable prototype, which ignores mirror pairs. The C# pipeline applies them.
 
-## Tree and layout files (all three apps)
+## Tree and layout files
 
-- **Open…** and **Save tree** are in the Tree panel. **Save layout** is under the sheet.
+- **Open…** and **Save tree** are in the Tree panel. **Save layout** is under the sheet, and on the map's Layout card. **Open a file…** is also on the map and in the steps' sidebar.
 - A tree file holds the tree, grid size, leaf conditions and mirror pairs.
-- A layout file holds a solved layout with its tree, scale and edge lengths. Opening it shows the layout as if just solved, so the crease-pattern steps are available at once. The next solve then starts from it.
+- A layout file holds a solved layout with its tree, scale and edge lengths. Opening it puts it on the workbench as the layout, so the steps after a solve can start from it at once, and the next solve in any solver whose tree it fits starts from it.
 - The formats are in `docs/FILE-FORMATS.md`, and their JSON Schemas are in `schemas/`.
 
 ## Starting a new solve
 
-**Solve** clears everything left from the previous solve as soon as you press it: the sheet, the polygons and creases, the folded base, the tables and the traces. Any answer still arriving for the old layout is dropped.
+**Solve** clears everything left on the page from the previous solve as soon as you press it: the sheet, the polygons and creases, the folded base, the tables and the traces. Any answer still arriving for the old layout is dropped. Moving to another node of the map clears the page the same way; the workbench keeps the results.
 
 ## Defaults
 
-The base and optimized apps default to a **1% relative gap** and a **60 s time limit**. The scalable app has no gap, because it proves no optimum; it has a 60 s limit for all four stages. See each app's README for what the gap means there, and how to get the exact optimum.
+The exact solvers default to a **1% relative gap** and a **60 s time limit**. Scalable MILP has no gap, because it proves no optimum; it has a 60 s limit for all four stages. See each library's README for what the gap means there, and how to get the exact optimum.

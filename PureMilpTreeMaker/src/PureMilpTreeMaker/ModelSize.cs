@@ -20,6 +20,14 @@ public static class ModelSize
         int continuous;
         int rows = 4 * pairs + 2 * spec.MirrorPairs.Count;
         long nonzeros = pairs * (selectors + 2 * (2 + nonzeroComponent) + selectors) + 4L * spec.MirrorPairs.Count;
+        if (spec.SymmetryBreaking)
+        {
+            // Symmetry-Breaking doc: one C:5 row (y ≤ x) for the anchor, one C:6 row per ordered sibling pair.
+            var symmetry = SymmetryBreaking.Create(spec);
+            if (symmetry.Anchor is not null) { rows += 1; nonzeros += 2; }
+            rows += symmetry.SiblingOrder.Count;
+            nonzeros += 4L * symmetry.SiblingOrder.Count;
+        }
 
         switch (spec.Stage)
         {

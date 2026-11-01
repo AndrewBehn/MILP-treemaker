@@ -133,11 +133,11 @@ public static class OptimizedSolver
                 {
                     seedScale = startScale;
                     lo = CandidateScales.IndexAtOrBelow(candidates, startScale);
-                    _messages.Add($"Started from the imported layout, at its scale {startScale:0.######}.");
+                    _messages.Add($"Began from the starting layout (the workbench layout or a layout file), at its scale {startScale:0.######}.");
                 }
                 else
                 {
-                    _messages.Add("Started the first window around the imported layout; it breaks a condition, so its scale is not used as a lower bound.");
+                    _messages.Add("Started the first window around the starting layout; it breaks a condition, so its scale is not used as a lower bound.");
                 }
             }
             else if (_options.UseSeed)

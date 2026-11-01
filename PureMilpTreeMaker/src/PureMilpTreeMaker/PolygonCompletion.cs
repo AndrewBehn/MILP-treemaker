@@ -52,6 +52,7 @@ public sealed record CompletionResult
 }
 
 /// <summary>
+/// A:2 of the Polygon Closing TreeMaker spec (model CL(T, w), rows M:1–M:4, boundary-first weights D:6).
 /// Step 2 toward a crease pattern: with the leaves held where they are and the scale fixed at m₀, change edge lengths
 /// (strain σₑ, as in Section 11.3) so that chosen pairs become exactly tight, which closes the network of tight paths into
 /// polygons. Every other pair must still fit. Two solves: first make as many targets tight as possible, counting each
