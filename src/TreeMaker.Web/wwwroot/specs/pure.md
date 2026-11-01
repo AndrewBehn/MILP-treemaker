@@ -218,10 +218,50 @@ At the optimum every pair's grid distance reaches its required minimum, and pair
 \text{C:1–C:4} \iff u_i \in G_N \ \ \forall\, i \in L \quad \text{and} \quad \|u_i - u_j\|_2 \geq m\, \ell_{ij} \ \ \forall\, \{i, j\} \in \mathcal{P}
 ```
 
-**Optional TreeMaker conditions.** TreeMaker's position and symmetry constraints stay linear on the grid and can be added as needed. For example, a leaf on the sheet's left edge or in a corner, a mirrored pair under book symmetry, and a leaf on the symmetry axis (N even):
+**Optional TreeMaker conditions.** TreeMaker lets a design pin flaps to chosen places on the sheet, or tie two flaps together. On the grid each such condition is a linear equation in the leaf coordinates, so it joins C:1–C:4 without changing the kind of model. Sections 7.1 to 7.5 give one kind each. Every condition only removes layouts, so it can lower m\* but never raise it. All but the mirror pair fix the bounds of a leaf's coordinates and add no rows; a mirror pair adds two rows. They apply to every stage, including the follow-on stages of Section 11.
+
+### 7.1 Leaf on an edge
+
+The flap's tip lies on one side of the sheet. The model only asks that the leaves lie on the sheet, so a leaf's circle of radius m·ℓ may already reach past the border, and the paper it would cover there is simply not needed. A leaf on an edge has half its circle off the sheet, which makes edge flaps cheap in paper. The condition forces this for a chosen flap, for example to keep a long flap on the border or to match where a known base puts it. For the left, right, bottom, and top edges:
 
 ```math
-x_i = 0, \qquad x_i = y_i = 0, \qquad x_a + x_b = N,\ y_a = y_b, \qquad 2 x_i = N
+x_i = 0, \qquad x_i = N, \qquad y_i = 0, \qquad y_i = N
+```
+
+### 7.2 Leaf in a corner
+
+The flap's tip lies at one of the four corners, which fixes both coordinates. Three quarters of a corner leaf's circle lies off the sheet, so corner flaps are the most economical, and the classic bases put their longest flaps there. For the corners (0, 0), (N, 0), (0, N), and (N, N):
+
+```math
+(x_i, y_i) = (0, 0), \qquad (N, 0), \qquad (0, N), \qquad (N, N)
+```
+
+### 7.3 Mirrored pair (book symmetry)
+
+Symmetric subjects, with left and right legs, wings, or antennae, are usually folded with book symmetry: the crease pattern is the mirror image of itself across the vertical line x = N/2, so each left flap folds like its right partner. A mirror pair (a, b) puts leaf b at the mirror image of leaf a:
+
+```math
+x_a + x_b = N, \qquad y_a = y_b
+```
+
+These are the only conditions that add rows, two per pair. The line x = N/2 is a grid line only for even N; for odd N the pair still mirrors, about a line between two grid columns. The condition ties positions only. For a truly symmetric design the two flaps also need equal edge lengths, as interchangeable siblings have. With every flap paired, about half the leaves are free, which also makes the model smaller to search.
+
+### 7.4 Leaf on the symmetry axis
+
+An unpaired flap of a symmetric subject, such as a head or a tail, lies on the mirror line itself:
+
+```math
+2 x_i = N
+```
+
+This needs an even N, so that the line x = N/2 is a grid line. For odd N no grid point lies on it, and the condition is refused.
+
+### 7.5 Leaf at a fixed point
+
+The flap's tip is pinned to a chosen grid point (p, q), for example to reproduce a known design or to try one placement:
+
+```math
+x_i = p, \qquad y_i = q, \qquad p,\ q \in \{0, 1, \dots, N\}
 ```
 
 ## 8. Objective

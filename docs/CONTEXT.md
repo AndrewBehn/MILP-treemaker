@@ -30,7 +30,7 @@ The owner's next aim was to scale to about 100 leaves and to get foldable soluti
 
 To edit a doc, use the Claude Docs tools with container `{"kind":"project","id":"<slug>"}` and ref `{"object":"node","id":"<tab node>"}`. Its source must be read before it is republished.
 
-**Packaged copies.** Since 1 November 2026 the app carries a copy of every doc (`src/TreeMaker.Web/wwwroot/specs/`) and shows it on its own docs page, opened in a separate tab (README.md, "The specs, in the app"). The copies at that date: Pure rev 40, Symmetry-Breaking rev 16, Lattice-Hull rev 27, Optimized rev 44, Scalable rev 48, Polygon Closing rev 14, Crease Pattern rev 12 (`manifest.json`). The figures (45: 20, 6, 10, 8, 1, 0, 0) are compiled from each figure node's JSX source to static SVG; the docs' Markdown export drops them. CLAUDE.md has the refresh steps.
+**Packaged copies.** Since 1 November 2026 the app carries a copy of every doc (`src/TreeMaker.Web/wwwroot/specs/`) and shows it on its own docs page, opened in a separate tab (README.md, "The specs, in the app"). The copies at that date: Pure rev 40 (rev 41 since: optional conditions split into Sections 7.1–7.5), Symmetry-Breaking rev 16, Lattice-Hull rev 27, Optimized rev 44, Scalable rev 48, Polygon Closing rev 14, Crease Pattern rev 12 (`manifest.json`). The figures (45: 20, 6, 10, 8, 1, 0, 0) are compiled from each figure node's JSX source to static SVG; the docs' Markdown export drops them. CLAUDE.md has the refresh steps.
 
 ## The app
 
