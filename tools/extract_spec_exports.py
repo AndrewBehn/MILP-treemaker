@@ -68,8 +68,17 @@ def walk(value):
 
 
 def exports_in_transcript(path):
+    """Every Markdown export in a transcript and the transcripts of its subagents, in order (later = newer)."""
+    order = 0
+    for name in transcript_files(path):
+        for found in _exports_in_file(name, order):
+            order = found["order"] + 1
+            yield found
+
+
+def _exports_in_file(path, start):
     with open(path, encoding="utf-8") as f:
-        for order, line in enumerate(f):
+        for order, line in enumerate(f, start):
             if "bytes_b64" not in line:
                 continue
             try:

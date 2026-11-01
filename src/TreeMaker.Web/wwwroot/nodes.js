@@ -22,7 +22,7 @@ const NODES = {
     id: "tree", kind: "tree", title: "Tree", kicker: "Input", mapKicker: "Input",
     lede: "The tree to fold, the grid it is placed on, and any leaf conditions. Every solver reads it from here.",
     blurb: "Edit the tree, grid and leaf conditions",
-    doc: "pure", section: "Parameters P:1–P:3 (Section 4)",
+    doc: "pure", section: "Parameters P:1–P:3 (Section 4); leaf conditions and mirror pairs (Sections 7.1–7.5)",
   },
   pure: {
     id: "pure", kind: "solver", api: "pure", settings: "pure", title: "Pure MILP", kicker: "Layout solver · exact", mapKicker: "Base spec · exact",
