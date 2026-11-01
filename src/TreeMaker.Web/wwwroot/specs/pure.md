@@ -119,8 +119,9 @@ d(u, v) = \sum_{e \in \mathrm{path}(u, v)} \ell_e, \qquad \ell_{ij} = d(i, j) \ 
 
 Used in: the scale bound (D:3) and constraint C:4.
 
-&#91;embedded content: example tree · path lengths between leaves\]
+![example tree · path lengths between leaves](figures/pure/01.svg)
 
+*example tree · path lengths between leaves*
 In the running example, leaves 1 and 4 are farthest apart along the tree, so ℓmax = 10.
 
 ### D:2 Offset distance lookup table
@@ -133,8 +134,9 @@ D : \Delta_N \to \mathbb{R}_{> 0}, \qquad D(\delta) = \|\delta\|_2 = \sqrt{\delt
 
 Used in: constraints C:4 to C:6 and the optimum's closed form (Section 8).
 
-&#91;embedded content: offset distance lookup table · quadrant for N = 5\]
+![offset distance lookup table · quadrant for N = 5](figures/pure/02.svg)
 
+*offset distance lookup table · quadrant for N = 5*
 The table replaces the nonconvex function ‖uᵢ − uⱼ‖₂ by a finite list of values, one per possible offset. Selecting an offset (Section 6) then reads its length as a linear expression.
 
 ### D:3 Scale upper bound
@@ -147,8 +149,9 @@ No two grid points are farther apart than the sheet's diagonal, √2·N, and the
 
 Used in: the bounds on the variable m (Section 6), and Section 10.
 
-&#91;embedded content: running example on a 9 × 9 grid · binding pair and diagonal bound\]
+![running example on a 9 × 9 grid · binding pair and diagonal bound](figures/pure/03.svg)
 
+*running example on a 9 × 9 grid · binding pair and diagonal bound*
 The bound is usually loose because other pairs also need room. In the running example it is reached by the diagonal pair 1–4, but pair 2–4 binds first (becomes tight, exactly at its minimum distance, at a smaller scale).
 
 ## 6. Variables
@@ -193,8 +196,9 @@ u_i \in G_N \iff x_i,\ y_i \in \{0, 1, \dots, N\} \qquad \forall\, i \in L
 \delta_{ij} = u_i - u_j = \sum_{\delta \in \Delta_N} \delta\, w_{ij\delta} \qquad \forall\, \{i, j\} \in \mathcal{P}
 ```
 
-&#91;embedded content: C:2–C:4 · offset selection, linking, and spacing for pair 2–4\]
+![C:2–C:4 · offset selection, linking, and spacing for pair 2–4](figures/pure/04.svg)
 
+*C:2–C:4 · offset selection, linking, and spacing for pair 2–4*
 For pair 2–4 of the running example, C:2 sets one selector to 1, C:3 makes that offset the leaves' actual difference, and C:4 reads its length from the lookup table.
 
 **C:4 Spacing through the lookup table.** TreeMaker's pair constraint, with the Euclidean distance read from the table entry of the selected candidate.
@@ -203,8 +207,9 @@ For pair 2–4 of the running example, C:2 sets one selector to 1, C:3 makes tha
 m\, \ell_{ij} \leq \sum_{\delta \in \Delta_N} D(\delta)\, w_{ij\delta} \qquad \forall\, \{i, j\} \in \mathcal{P}
 ```
 
-&#91;embedded content: C:4 · every pair's distance against its minimum at m\* = 1.054\]
+![C:4 · every pair's distance against its minimum at m\* = 1.054](figures/pure/05.svg)
 
+*C:4 · every pair's distance against its minimum at m\* = 1.054*
 At the optimum every pair's grid distance reaches its required minimum, and pair 2–4 reaches it exactly: it is the tight pair that stops m from growing.
 
 **Exactness.** The candidates in Δ\_N are distinct and exactly one is selected, so C:2 and C:3 force w to pick the candidate equal to the pair offset δᵢⱼ. C:4 then reads its exact length, so the four constraints together are TreeMaker's model restricted to grid points, with no approximation and no big-M constants. Excluding the zero offset also keeps two leaves off the same grid point.
@@ -245,16 +250,18 @@ The grid is the only approximation in this model: the lookup table gives exact E
 \|u_i - u_j\|_2 \geq m\, \ell_{ij},\ \ u_i \in [0, N]^2 \quad \Longrightarrow \quad \Big\| \frac{u_i}{N} - \frac{u_j}{N} \Big\|_2 \geq \frac{m}{N}\, \ell_{ij},\ \ \frac{u_i}{N} \in [0, 1]^2 \qquad \text{so} \qquad \frac{m^{*}_N}{N} \leq m_{\mathrm{TM}}
 ```
 
-&#91;embedded content: upper bound · the 9 × 9 optimum shrunk into the unit square\]
+![upper bound · the 9 × 9 optimum shrunk into the unit square](figures/pure/06.svg)
 
+*upper bound · the 9 × 9 optimum shrunk into the unit square*
 **Lower bound: rounding TreeMaker's layout loses little.** Take TreeMaker's optimal layout v, scale it to the N × N sheet, and move each leaf to its nearest grid point uᵢ. Each leaf moves at most half a grid diagonal, so by the triangle inequality each pair distance shrinks by at most √2.
 
 ```math
 \|u_i - N v_i\|_2 \leq \tfrac{\sqrt{2}}{2} \quad \Longrightarrow \quad \|u_i - u_j\|_2 \geq N \|v_i - v_j\|_2 - \sqrt{2} \geq N\, m_{\mathrm{TM}}\, \ell_{ij} - \sqrt{2}
 ```
 
-&#91;embedded content: lower bound · TreeMaker's layout rounded onto the 9 × 9 grid\]
+![lower bound · TreeMaker's layout rounded onto the 9 × 9 grid](figures/pure/07.svg)
 
+*lower bound · TreeMaker's layout rounded onto the 9 × 9 grid*
 The rounded layout is therefore feasible at scale N·m\_TM − √2/ℓᵢⱼ for every pair, and the shortest leaf path ℓ\_min is the worst case. Once that scale is positive, no two rounded leaves coincide.
 
 ```math
@@ -269,24 +276,28 @@ m_{\mathrm{TM}} - \frac{\sqrt{2}}{N\, \ell_{\min}} \ \leq\ \frac{m^{*}_N}{N} \ \
 
 The gap closes like 1/N, and the relative loss is at most √2 / (N·m\_TM·ℓ\_min), which says how fine a grid is fine enough for a given tree.
 
-&#91;embedded content: the squeeze · m\*\_N / N for N = 2 to 16 between the two bounds\]
+![the squeeze · m\*\_N / N for N = 2 to 16 between the two bounds](figures/pure/08.svg)
 
+*the squeeze · m\*\_N / N for N = 2 to 16 between the two bounds*
 **The layouts converge too.** The shrunken optimal layouts u/N all lie in the bounded, closed set \[0, 1\]²ⁿ, so they have convergent subsequences. The pair constraints are closed conditions, so every limit satisfies TreeMaker's constraints at scale m\_TM: it is a TreeMaker optimum. In that sense the model reduces to TreeMaker as N → ∞.
 
-&#91;embedded content: the layouts converge · shrunken optima for N = 4, 8, and 16 against TreeMaker's layout\]
+![the layouts converge · shrunken optima for N = 4, 8, and 16 against TreeMaker's layout](figures/pure/09.svg)
 
+*the layouts converge · shrunken optima for N = 4, 8, and 16 against TreeMaker's layout*
 **Refining the grid never hurts.** Doubling N puts every old grid point onto the new grid, with all distances doubled, so the scaled optimum cannot drop. Unrelated grid sizes need not improve in order: for the running example m\*\_N / N is 0.119 at N = 8, 0.117 at N = 9, and 0.120 at N = 10.
 
 ```math
 m^{*}_{2N} \geq 2\, m^{*}_N
 ```
 
-&#91;embedded content: refining never hurts · the N = 4 optimum embedded in the N = 8 grid\]
+![refining never hurts · the N = 4 optimum embedded in the N = 8 grid](figures/pure/10.svg)
 
+*refining never hurts · the N = 4 optimum embedded in the N = 8 grid*
 **The cost of a finer grid.** Each pair has (2N + 1)² − 1 offset selectors, so the model grows quadratically in N. In practice N is chosen as a trade-off between the bound above and the model size.
 
-&#91;embedded content: the cost of a finer grid · selectors per pair against the loss bound\]
+![the cost of a finer grid · selectors per pair against the loss bound](figures/pure/11.svg)
 
+*the cost of a finer grid · selectors per pair against the loss bound*
 ## 10. Cost trade-offs
 
 The formulation buys linearity and exactness with size. Every nonlinear distance becomes a choice among precomputed offsets, so the number of integer variables, and with it the solve time, grows quickly with both the tree and the grid.
@@ -326,8 +337,9 @@ These help by constant factors. The structural fixes, which change the formulati
 
 The model above keeps the tree's proportions and finds only its largest scale. TreeMaker refines a scale-optimized design in two further stages that let edges change length. Both carry over to the fixed grid unchanged in spirit: they keep C:1–C:3 and the lookup table, replace C:4, and hold the scale fixed so every constraint stays linear.
 
-&#91;embedded content: the two follow-on stages · inputs and running-example results\]
+![the two follow-on stages · inputs and running-example results](figures/pure/12.svg)
 
+*the two follow-on stages · inputs and running-example results*
 ### 11.1 Additional parameters
 
 **P:4 Fixed scale.** For edge optimization, the optimum m\* of Section 8. For strain optimization, a target scale, typically larger than m\*, at which the tree does not fit unstrained.
@@ -336,8 +348,9 @@ The model above keeps the tree's proportions and finds only its largest scale. T
 m_0 > 0
 ```
 
-&#91;embedded content: P:4 · where each stage fixes the scale\]
+![P:4 · where each stage fixes the scale](figures/pure/13.svg)
 
+*P:4 · where each stage fixes the scale*
 **P:5 Stretch set.** The edges allowed to lengthen in edge optimization, for example the legs of an insect.
 
 ```math
@@ -350,8 +363,9 @@ S \subseteq E
 -1 < \sigma_{\min} \leq 0 \leq \sigma_{\max}
 ```
 
-&#91;embedded content: P:5 and P:6 · stretch set and allowed edge-length ranges\]
+![P:5 and P:6 · stretch set and allowed edge-length ranges](figures/pure/14.svg)
 
+*P:5 and P:6 · stretch set and allowed edge-length ranges*
 ### 11.2 Edge optimization
 
 **Variables.** The per-edge strains σₑ of strain optimization (11.3), tied to one common stretch σ: every edge in S lengthens by the same fraction, to ℓₑ(1 + σ), and every other edge keeps its length. The leaf coordinates and offset selectors of Section 6 stay as they are.
@@ -368,24 +382,27 @@ s_{ij} = \sum_{e \in \mathrm{path}(i, j) \cap S} \ell_e \qquad \forall\, \{i, j\
 
 Used in: constraint C:5.
 
-&#91;embedded content: stretch set S = {v–3} · stretchable path lengths and result\]
+![stretch set S = {v–3} · stretchable path lengths and result](figures/pure/15.svg)
 
+*stretch set S = {v–3} · stretchable path lengths and result*
 **C:5 Stretched spacing.** Replaces C:4. It is the strained spacing C:6 of 11.3 with the strains above: a pair's strained path length ℓᵢⱼ + Σ ℓₑσₑ reduces to ℓᵢⱼ + σ·sᵢⱼ, so each pair's path grows by σ times its stretchable part (D:4), at the fixed scale.
 
 ```math
 m_0 \Big( \ell_{ij} + \sum_{e \in \mathrm{path}(i, j)} \ell_e\, \sigma_e \Big) = m_0 \left( \ell_{ij} + \sigma\, s_{ij} \right) \leq \sum_{\delta \in \Delta_N} D(\delta)\, w_{ij\delta} \qquad \forall\, \{i, j\} \in \mathcal{P}
 ```
 
-&#91;embedded content: C:5 · layout before and after edge optimization\]
+![C:5 · layout before and after edge optimization](figures/pure/16.svg)
 
+*C:5 · layout before and after edge optimization*
 **Objective.** Make the chosen edges as long as the leftover paper allows.
 
 ```math
 \max \quad \sigma \qquad \text{subject to C:1–C:3 and C:5}
 ```
 
-&#91;embedded content: C:5 · every pair against its stretched minimum at σ\* = 0.320\]
+![C:5 · every pair against its stretched minimum at σ\* = 0.320](figures/pure/17.svg)
 
+*C:5 · every pair against its stretched minimum at σ\* = 0.320*
 The stage-one layout with σ = 0 is feasible, so it is a ready starting solution. Pairs with sᵢⱼ = 0 keep C:4 at scale m₀. If an edge of S lies on a pair that was binding (exactly at its minimum distance) in stage one, it may not be able to grow at all.
 
 Edge optimization is therefore strain optimization restricted to one common, nonnegative strain on S, and that strain is maximized rather than kept small.
@@ -404,24 +421,27 @@ Edge optimization is therefore strain optimization restricted to one common, non
 m_0 \left( \ell_{ij} + \sum_{e \in \mathrm{path}(i, j)} \ell_e\, \sigma_e \right) \leq \sum_{\delta \in \Delta_N} D(\delta)\, w_{ij\delta} \qquad \forall\, \{i, j\} \in \mathcal{P}
 ```
 
-&#91;embedded content: C:6 · optimal strained layout and strain per edge at m₀ = 1.2\]
+![C:6 · optimal strained layout and strain per edge at m₀ = 1.2](figures/pure/18.svg)
 
+*C:6 · optimal strained layout and strain per edge at m₀ = 1.2*
 **C:7 Strain magnitude.** Each aₑ is at least the absolute value of its strain.
 
 ```math
 a_e \geq \sigma_e, \qquad a_e \geq -\sigma_e \qquad \forall\, e \in E
 ```
 
-&#91;embedded content: C:7 · two rows that linearize |σₑ|\]
+![C:7 · two rows that linearize |σₑ|](figures/pure/19.svg)
 
+*C:7 · two rows that linearize |σₑ|*
 **Objective.** Make the tree fit at the target scale with as little total strain as possible.
 
 ```math
 \min \quad \sum_{e \in E} a_e \qquad \text{subject to C:1–C:3, C:6, and C:7}
 ```
 
-&#91;embedded content: strain objective · every pair against its minimum with and without strain at m₀ = 1.2\]
+![strain objective · every pair against its minimum with and without strain at m₀ = 1.2](figures/pure/20.svg)
 
+*strain objective · every pair against its minimum with and without strain at m₀ = 1.2*
 TreeMaker minimizes the sum of squared strains instead. SCIP can solve that convex quadratic objective too, but the absolute-value form keeps the model a MILP. Minimizing the largest strain (a\_max ≥ aₑ for every edge, then minimize a\_max) spreads the distortion evenly instead. With only spacing constraints, lengthening an edge never helps, so optimal strains are zero or negative unless position or symmetry conditions force otherwise. If m₀ ≤ m\*, the optimum is zero strain.
 
 ## 12. From this model to the optimized model

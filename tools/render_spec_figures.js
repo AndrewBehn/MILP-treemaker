@@ -1,16 +1,19 @@
 #!/usr/bin/env node
-// Renders the specs' figures to static SVG/HTML so the app can show them offline.
+// Renders the specs' figures to standalone SVG files, the one copy that both GitHub and the app's docs page show.
 //
 // The figures in the spec documents are small JSX components (`export default () => <svg …/>`), some wrapped in a
 // `claude.Visualize` data component. Markdown export drops them, so tools/extract_spec_exports.py collects their
 // source and calls this script with a JSON file:
 //     { "<docKey>": [ { "id": "…", "caption": "…", "code": "export default () => …" }, … ], … }
-// For each doc it writes <out>/<docKey>.figures.json:
-//     { "figures": [ { "id", "caption", "html", "interactive" } ] }
-// in document order, so the reader can put the n-th figure where the n-th "[embedded content: …]" placeholder is.
+// For each doc it writes <out>/figures/<docKey>/01.svg, 02.svg, … in document order (replacing what was there), so
+// the n-th "[embedded content: …]" placeholder of the doc becomes a link to the n-th file.
+//
+// The figures were drawn for the live docs' theme (`var(--cds-…)` colours). An SVG shown as an image can't see a
+// page's CSS, so each colour is written in from PALETTE below. Each file also gets its size (from its viewBox), a
+// font and a paper-coloured background, so it reads the same on GitHub (light or dark) as in the app.
 //
 // JSX is compiled with the TypeScript compiler (any copy: `npm i -g typescript`, or set TYPESCRIPT=/path/to/typescript).
-// Components run once with stub hooks, so a figure with controls is drawn in its initial state ("interactive": true).
+// Components run once with stub hooks, so a figure with controls is drawn in its initial state.
 "use strict";
 const fs = require("fs");
 const path = require("path");
@@ -118,6 +121,44 @@ function renderFigure(ts, code) {
   return { html, interactive: flags.interactive };
 }
 
+/** The theme colours the figures use, as the app draws them (see --ink, --beni and friends in styles.css). */
+const PALETTE = {
+  "--cds-text-primary": "#1f2328",
+  "--cds-text-secondary": "#5d636b",
+  "--cds-chart-axis": "#8a9097",
+  "--cds-chart-grid": "#e3e6e1",
+  "--cds-chart-muted": "#b5bab3",
+  "--cds-chart-reference": "#6b7178",
+  "--cds-chart-reference-tint": "rgba(107, 113, 120, 0.10)",
+  "--cds-chart-categorical-1": "#c2304a",
+  "--cds-chart-categorical-2": "#2f6fa8",
+  "--cds-chart-status-good": "#23704a",
+  "--cds-chart-status-warning": "#b7791f",
+  "--cds-chart-status-critical": "#b3261e",
+};
+const PAPER = "#fdfdfb";
+const FONT = "Archivo, -apple-system, system-ui, 'Segoe UI', Helvetica, Arial, sans-serif";
+
+/** A rendered figure as a standalone SVG file: colours written in, size, font, background. */
+function standalone(html) {
+  const unknown = new Set();
+  let svg = html.replace(/var\((--[\w-]+)(?:,\s*([^)]+))?\)/g, (_, name, fallback) => {
+    if (PALETTE[name]) return PALETTE[name];
+    unknown.add(name);
+    return fallback ?? "#1f2328";
+  });
+  if (unknown.size) throw new Error(`colours not in PALETTE: ${[...unknown].join(", ")}`);
+  const open = svg.match(/^<svg\b[^>]*>/);
+  if (!open) throw new Error("not an <svg> figure");
+  const vb = open[0].match(/viewBox="\s*([-\d.]+)[\s,]+([-\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)\s*"/);
+  let attrs = ' xmlns="http://www.w3.org/2000/svg"';
+  if (vb && !/\swidth=/.test(open[0])) attrs += ` width="${vb[3]}" height="${vb[4]}"`;
+  if (!/font-family=/.test(open[0])) attrs += ` font-family="${FONT}"`;
+  const background = vb ? `<rect x="${vb[1]}" y="${vb[2]}" width="${vb[3]}" height="${vb[4]}" fill="${PAPER}"/>` : "";
+  svg = open[0].replace(/^<svg/, "<svg" + attrs) + background + svg.slice(open[0].length);
+  return '<?xml version="1.0" encoding="UTF-8"?>\n' + svg + "\n";
+}
+
 function main() {
   const [src, out] = process.argv.slice(2);
   if (!src || !out) { console.error("usage: render_spec_figures.js figures-src.json OUTDIR"); process.exit(2); }
@@ -136,11 +177,24 @@ function main() {
         return { id: f.id, caption: f.caption, html: null, interactive: false };
       }
     });
-    fs.writeFileSync(path.join(out, `${doc}.figures.json`), JSON.stringify({ figures }) + "\n");
-    console.log(`${doc.padEnd(10)} ${figures.filter((f) => f.html).length}/${figures.length} figures`);
+    const dir = path.join(out, "figures", doc);
+    fs.rmSync(dir, { recursive: true, force: true });
+    fs.mkdirSync(dir, { recursive: true });
+    let written = 0;
+    figures.forEach((f, i) => {
+      if (!f.html) return;
+      try {
+        fs.writeFileSync(path.join(dir, `${String(i + 1).padStart(2, "0")}.svg`), standalone(f.html));
+        written++;
+      } catch (e) {
+        failed++;
+        console.error(`${doc} figure ${i + 1} (${f.id}): ${e.message}`);
+      }
+    });
+    console.log(`${doc.padEnd(10)} ${written}/${figures.length} figures`);
   }
   process.exit(failed ? 1 : 0);
 }
 
 if (require.main === module) main();
-module.exports = { renderFigure, loadTypeScript };
+module.exports = { renderFigure, standalone, loadTypeScript, PALETTE };

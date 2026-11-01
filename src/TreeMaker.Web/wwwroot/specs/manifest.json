@@ -6,7 +6,7 @@
       "rev": 44,
       "exportedAt": "2026-10-31T17:28:49.378Z",
       "file": "optimized.md",
-      "figures": "optimized.figures.json"
+      "figureCount": 8
     },
     "pure": {
       "title": "Pure MILP TreeMaker",
@@ -14,7 +14,7 @@
       "rev": 40,
       "exportedAt": "2026-11-01T15:57:31.651Z",
       "file": "pure.md",
-      "figures": "pure.figures.json"
+      "figureCount": 20
     },
     "scalable": {
       "title": "Scalable MILP TreeMaker",
@@ -22,7 +22,7 @@
       "rev": 48,
       "exportedAt": "2026-11-01T15:57:32.633Z",
       "file": "scalable.md",
-      "figures": "scalable.figures.json"
+      "figureCount": 1
     },
     "closing": {
       "title": "Polygon Closing TreeMaker",
@@ -44,7 +44,7 @@
       "rev": 27,
       "exportedAt": "2026-10-31T17:31:05.277Z",
       "file": "hull.md",
-      "figures": "hull.figures.json"
+      "figureCount": 10
     },
     "sym": {
       "title": "Symmetry-Breaking MILP TreeMaker",
@@ -52,8 +52,8 @@
       "rev": 16,
       "exportedAt": "2026-10-31T17:31:04.389Z",
       "file": "sym.md",
-      "figures": "sym.figures.json"
+      "figureCount": 6
     }
   },
-  "packagedAt": "2026-11-01T21:17:32Z"
+  "packagedAt": "2026-11-01T21:59:13Z"
 }
