@@ -62,7 +62,7 @@ Every optimization starts from the base model of Pure MILP TreeMaker (base Secti
 | Constraints | Leaves on grid points (base C:1); offset selection, offset linking, and spacing through the lookup table (base C:2–C:4) | Base C:1 kept until Section 6; base C:2–C:4 replaced by C:1 |
 | Objective | Maximize m | Kept, reached by the scale search of Section 5 |
 
-```latex
+```math
 L,\ \mathcal{P},\ G_N = \{0, 1, \dots, N\}^2,\ \delta_{ij} = u_i - u_j \in \Delta_N = \{-N, \dots, N\}^2 \setminus \{(0, 0)\}
 ```
 
@@ -74,7 +74,7 @@ Fix the scale for each solve, and replace each pair's offset selectors by a test
 
 **P:1 Trial scale.** The scale, fixed for one solve instead of being a variable. Section 5 chooses its values.
 
-```latex
+```math
 m > 0
 ```
 
@@ -82,7 +82,7 @@ m > 0
 
 **D:1 Forbidden offsets and their lattice hull.** For a radius r: the grid offsets shorter than r, their convex hull P(r), and its facets K(r), written with integer coefficients. Facets that no offset in {−N, …, N}² can cross are left out of K(r). A pair uses the radius r = m·ℓᵢⱼ.
 
-```latex
+```math
 F(r) = \{\, \delta \in \{-N, \dots, N\}^2 : \|\delta\|_2 < r \,\}, \qquad P(r) = \operatorname{conv} F(r) = \{\, \delta \in \mathbb{R}^2 : a_k^{\top} \delta \leq b_k \ \ \forall\, k \in K(r) \,\}, \qquad a_k \in \mathbb{Z}^2,\ \gcd(a_{k1}, a_{k2}) = 1,\ b_k \in \mathbb{Z}
 ```
 
@@ -92,7 +92,7 @@ Used in: D:2, the facet selectors z, and constraint C:1.
 
 **D:2 Facet big-M.** For each pair and facet, the constant that switches that facet's row of C:1 off when its selector is 0.
 
-```latex
+```math
 M_{ijk} = b_k + 1 + \|a_k\|_1\, N
 ```
 
@@ -104,13 +104,13 @@ Used in: constraint C:1.
 
 Kept: the leaf coordinates of base Section 6. Removed: the scale m, which is now the trial scale P:1, and the offset selectors w. Added: the facet selectors.
 
-```latex
+```math
 x_i,\ y_i \in \mathbb{Z} \cap [0, N], \qquad u_i = (x_i, y_i) \qquad \forall\, i \in L
 ```
 
 **Facet selectors.** For each leaf pair, one binary per facet of its hull at the trial scale; 1 means the pair lies beyond that facet.
 
-```latex
+```math
 z_{ijk} \in \{0, 1\} \qquad \forall\, \{i, j\} \in \mathcal{P},\ k \in K(m\, \ell_{ij})
 ```
 
@@ -120,7 +120,7 @@ Kept: base C:1, leaves on grid points. Replaced: base C:2–C:4 (offset selectio
 
 **C:1 Spacing through the hull.** Each pair's offset lies strictly outside its hull at the trial scale, beyond at least one facet.
 
-```latex
+```math
 \begin{aligned}
 &a_k^{\top} (u_i - u_j) \geq b_k + 1 - M_{ijk} (1 - z_{ijk}) && \forall\, k \in K(m\, \ell_{ij}) \\
 &\textstyle\sum_{k \in K(m\, \ell_{ij})} z_{ijk} \geq 1
@@ -136,7 +136,7 @@ A pair at radius 5 with offset (5, 1) lies beyond exactly one facet, so that fac
 
 The hull model H(m) is base C:1 and C:1 over the leaf coordinates and facet selectors, with no objective. It asks whether a layout exists at the trial scale m.
 
-```latex
+```math
 \mathrm{H}(m): \quad \text{find } u, z \ \text{ satisfying base C:1 and C:1}
 ```
 
@@ -147,13 +147,13 @@ The hull model H(m) is base C:1 and C:1 over the leaf coordinates and facet sele
 - **The big-M is large enough.** Both coordinates of an offset lie in \[−N, N\], so aₖᵀδ ≥ −‖aₖ‖₁N. A row whose selector is 0 then always holds.
 - **Leaving out uncrossable facets loses nothing,** because no offset on the sheet could use them.
 
-```latex
+```math
 \delta \in \{-N, \dots, N\}^2: \qquad \delta \notin P(r) \iff \|\delta\|_2 \geq r, \qquad a_k^{\top} \delta > b_k \iff a_k^{\top} \delta \geq b_k + 1, \qquad -\|a_k\|_1 N \leq a_k^{\top} \delta \leq \|a_k\|_1 N
 ```
 
 Together, C:1 is TreeMaker's pair condition at the trial scale, the same condition base C:2–C:4 enforce through the lookup table. So H(m) has a solution exactly when the base model has a layout at scale m or more.
 
-```latex
+```math
 \text{C:1} \iff \|u_i - u_j\|_2 \geq m\, \ell_{ij} \qquad \forall\, \{i, j\} \in \mathcal{P}
 ```
 
@@ -175,7 +175,7 @@ Rotating or reflecting the square sheet, or swapping two interchangeable leaves,
 
 **Interchangeable siblings.** Ordered pairs (a, b) of leaves with the same parent and equal edge length.
 
-```latex
+```math
 \mathcal{T} \subseteq L \times L
 ```
 
@@ -183,7 +183,7 @@ Rotating or reflecting the square sheet, or swapping two interchangeable leaves,
 
 **P:2 Anchor leaf.** A leaf that is in no pair of 𝒯.
 
-```latex
+```math
 r^{\ast} \in L
 ```
 
@@ -193,13 +193,13 @@ Kept: base C:1 and C:1. Added: C:2 and C:3.
 
 **C:2 Anchor in the fundamental domain.** The anchor leaf lies in the triangle 0 ≤ y ≤ x ≤ N/2.
 
-```latex
+```math
 2 x_{r^\ast} \leq N, \qquad 2 y_{r^\ast} \leq N, \qquad y_{r^\ast} \leq x_{r^\ast}
 ```
 
 **C:3 Sibling order.** Interchangeable siblings appear in lexicographic order of their coordinates.
 
-```latex
+```math
 (N + 1)\, x_a + y_a \leq (N + 1)\, x_b + y_b \qquad \forall\, (a, b) \in \mathcal{T}
 ```
 
@@ -211,7 +211,7 @@ On an 8 × 8 grid, an anchor leaf at (6, 1) has 8 images and only (2, 1) satisfi
 
 The feasibility model Feas(m) is H(m) with C:2 and C:3 added: base C:1 and C:1–C:3, with no objective.
 
-```latex
+```math
 \mathrm{Feas}(m): \quad \text{find } u, z \ \text{ satisfying base C:1 and C:1–C:3}
 ```
 
@@ -231,7 +231,7 @@ Feas(m) answers a yes-or-no question at one scale. This section recovers the bas
 
 **D:3 Candidate scales.** Every lookup-table distance divided by a pair's path length, up to the scale bound m̄ of base D:3.
 
-```latex
+```math
 \mathcal{C} = \left\{ \frac{D(\delta)}{\ell_{ij}} : \delta \in \Delta_N,\ \{i, j\} \in \mathcal{P} \right\} \cap [0, \bar{m}]
 ```
 
@@ -243,7 +243,7 @@ Used in: the objective and the bisection below.
 
 The base model's objective, maximize the scale, restated over the candidates:
 
-```latex
+```math
 m^{*} = \max \{\, m \in \mathcal{C} : \mathrm{Feas}(m) \text{ has a solution} \,\}
 ```
 
@@ -261,7 +261,7 @@ Each test decides whether Feas(m) has a solution, either by solving Feas(m) once
 - **m* is a candidate.*\* At an optimal layout some pair is tight (exactly at its minimum distance); otherwise every pair would have room to spare and the same layout would work at a slightly larger scale. That pair's distance is a lookup-table value D(δ) and equals m\*·ℓᵢⱼ, so m\* = D(δ)/ℓᵢⱼ, and m\* ≤ m̄ by base D:3.
 - **Feasibility is monotone in the scale.** A layout that works at scale m also works at every smaller scale, because each pair's required distance only shrinks. So the sorted candidates split into a feasible lower part and an infeasible upper part, and bisection finds the boundary, m\*.
 
-```latex
+```math
 m^{*} \in \mathcal{C}, \qquad \mathrm{Feas}(m) \text{ has a solution and } m' \leq m \ \Longrightarrow\ \mathrm{Feas}(m') \text{ has a solution}
 ```
 
@@ -292,19 +292,19 @@ R has three inputs, which the procedure sets and grows between solves.
 
 **P:3 Active pairs.** The pairs whose spacing rows are in the model. All other pairs are left out and checked after the solve.
 
-```latex
+```math
 A \subseteq \mathcal{P}
 ```
 
 **P:4 Inner polygon points.** For each active pair, a set of its forbidden offsets.
 
-```latex
+```math
 Q_{ij} \subseteq F(m\, \ell_{ij}) \qquad \forall\, \{i, j\} \in A
 ```
 
 **P:5 Leaf windows.** For each leaf, a box of the grid with integer bounds.
 
-```latex
+```math
 W_i = [\underline{x}_i, \overline{x}_i] \times [\underline{y}_i, \overline{y}_i] \subseteq [0, N]^2 \qquad \forall\, i \in L
 ```
 
@@ -312,7 +312,7 @@ W_i = [\underline{x}_i, \overline{x}_i] \times [\underline{y}_i, \overline{y}_i]
 
 **D:4 Inner polygon.** The lattice hull of an active pair's points Qᵢⱼ, with facets K(Qᵢⱼ) written with integer data as in D:1.
 
-```latex
+```math
 \operatorname{conv} Q_{ij} = \{\, \delta : a_k^{\top} \delta \leq b_k \ \ \forall\, k \in K(Q_{ij}) \,\} \subseteq P(m\, \ell_{ij})
 ```
 
@@ -326,7 +326,7 @@ The starting inner polygon misses the forbidden offset (4, 2). If R picks it, th
 
 Kept: the leaf coordinates. Changed: facet selectors exist only for active pairs, one per facet of the inner polygon.
 
-```latex
+```math
 z_{ijk} \in \{0, 1\} \qquad \forall\, \{i, j\} \in A,\ k \in K(Q_{ij})
 ```
 
@@ -336,13 +336,13 @@ Kept: C:2 and C:3. Replaced: base C:1 by C:4, and C:1 by C:5.
 
 **C:4 Leaves in their windows.** Each leaf lies on a grid point inside its window.
 
-```latex
+```math
 u_i \in W_i \cap G_N \qquad \forall\, i \in L
 ```
 
 **D:5 Window big-M.** The facet big-M of D:2, computed over the windows instead of the whole grid, coordinate by coordinate from the window bounds. A facet that cannot be crossed inside the windows is left out.
 
-```latex
+```math
 M_{ijk}(W) = b_k + 1 - \min_{u_i \in W_i,\ u_j \in W_j} a_k^{\top} (u_i - u_j)
 ```
 
@@ -354,7 +354,7 @@ With both leaves confined to 3 × 3 windows, the facet row's left side ranges ov
 
 **C:5 Spacing through the inner polygons.** Each active pair's offset lies strictly outside its inner polygon, beyond at least one facet.
 
-```latex
+```math
 \begin{aligned}
 &a_k^{\top} (u_i - u_j) \geq b_k + 1 - M_{ijk}(W)\, (1 - z_{ijk}) && \forall\, k \in K(Q_{ij}) \\
 &\textstyle\sum_{k \in K(Q_{ij})} z_{ijk} \geq 1
@@ -366,7 +366,7 @@ With both leaves confined to 3 × 3 windows, the facet row's left side ranges ov
 
 The restricted model R(m; A, Q, W) is C:2–C:5, with no objective. Each round of the procedure solves it once.
 
-```latex
+```math
 \mathrm{R}(m; A, Q, W): \quad \text{find } u, z \ \text{ satisfying C:2–C:5}
 ```
 
@@ -418,7 +418,7 @@ The bisection moves up after a "yes" and down after a "no". The loop's state car
 - **The carried state stays valid.** Any subset of the real pairs gives a relaxation at every scale, so A carries both ways. The forbidden sets are nested, so points carry upward; at a lower scale some points may be long enough, and keeping them would forbid valid offsets, so they are dropped.
 - **A badly placed window costs time, not exactness.** Windows around a layout that breaks C:2 or C:3 can make the windowed phase fail even though a mirror image would fit. The full-grid phase catches that, and mapping the center layout first avoids it.
 
-```latex
+```math
 m < m' \ \Longrightarrow\ F(m\, \ell_{ij}) \subseteq F(m'\, \ell_{ij})
 ```
 
@@ -426,7 +426,7 @@ m < m' \ \Longrightarrow\ F(m\, \ell_{ij}) \subseteq F(m'\, \ell_{ij})
 
 Each round has one binary per facet of each active pair's inner polygon, instead of one per crossable facet of every pair's full hull.
 
-```latex
+```math
 \underbrace{\textstyle\sum_{\{i, j\} \in A} |K(Q_{ij})|}_{\text{one round of R}} \quad \text{instead of} \quad \underbrace{\textstyle\sum_{\{i, j\} \in \mathcal{P}} |K(m\, \ell_{ij})|}_{\mathrm{Feas}(m)}
 ```
 
@@ -475,7 +475,7 @@ Even summed over all eight solves, the running example uses 564 binaries, a quar
 
 **How the sizes scale.**
 
-```latex
+```math
 \underbrace{O(n^2 N^2)}_{\text{base: one model}}
 \quad \longrightarrow \quad
 \underbrace{O\big(n^2 N^{2/3}\big)}_{\text{per feasibility model}} \ \times \ \underbrace{O\big(\log (N^2 n^2)\big)}_{\text{solves}}

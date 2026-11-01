@@ -10,7 +10,7 @@ Labels P:n, D:n, and C:n number the parameters, definitions, and constraints of 
 
 **TreeMaker's scale optimization.** Lang's TreeMaker places the leaves of a weighted tree in the unit square and maximizes the scale m, the paper length per unit of tree length. Folding never stretches paper, so two flap tips must start at least as far apart on the sheet as their tree path length, times the scale.
 
-```latex
+```math
 \max_{m,\ u} \ m \qquad \text{subject to} \qquad \|u_i - u_j\|_2 \geq m\, \ell_{ij} \ \ \forall\, \{i, j\} \in \mathcal{P}, \qquad u_i \in [0, 1]^2 \ \ \forall\, i \in L
 ```
 
@@ -22,7 +22,7 @@ Labels P:n, D:n, and C:n number the parameters, definitions, and constraints of 
 
 **Scale conversion.** TreeMaker's sheet has side 1 and this one has side N, so the two scales differ by a factor of N.
 
-```latex
+```math
 m_{\mathrm{TreeMaker}} = m / N
 ```
 
@@ -63,37 +63,37 @@ Every symbol and term not defined in Sections 3–6 is listed here.
 
 **Leaves.** The leaves of the input tree T = (V, E) (Section 4) are its vertices of degree 1, the flap tips; n is their number.
 
-```latex
+```math
 L = \{\, v \in V : \deg(v) = 1 \,\} \subseteq V, \qquad n = |L|
 ```
 
 **Leaf pairs.** The set of unordered pairs of distinct leaves.
 
-```latex
+```math
 \mathcal{P} = \{\, \{i, j\} : i, j \in L,\ i \neq j \,\}
 ```
 
 **Integer lattice and grid.** The integer lattice ℤ² is the set of points whose two coordinates are both integers. The sheet is the square \[0, N\]², and its grid points are the lattice points it contains.
 
-```latex
+```math
 \mathbb{Z}^2 = \{\, (p, q) : p, q \in \mathbb{Z} \,\}, \qquad G_N = \mathbb{Z}^2 \cap [0, N]^2 = \{0, 1, \dots, N\}^2, \qquad |G_N| = (N + 1)^2
 ```
 
 **Pair offsets.** The offset of a leaf pair is the difference of the two leaves' positions uᵢ (Section 6). Fix an order i < j for each pair so the offset has a sign.
 
-```latex
+```math
 \delta_{ij} = u_i - u_j \in \mathbb{Z}^2 \qquad \forall\, \{i, j\} \in \mathcal{P},\ i < j
 ```
 
 **Candidate offsets.** Every value a pair offset can take on the N × N grid. Both coordinates of two grid points lie in {0, …, N}, so their difference lies in {−N, …, N}². The zero offset is excluded because two leaves cannot share a grid point when the scale is positive.
 
-```latex
+```math
 \Delta_N = \{-N, \dots, N\}^2 \setminus \{(0, 0)\}, \qquad |\Delta_N| = (2N + 1)^2 - 1, \qquad \delta_{ij} \in \Delta_N \ \ \forall\, \{i, j\} \in \mathcal{P}
 ```
 
 **Interchangeable siblings.** Ordered pairs (a, b) of distinct leaves with the same parent and equal edge length. A group of g such leaves contributes one pair for each consecutive two in a fixed listing of the group, g − 1 pairs in all.
 
-```latex
+```math
 \mathcal{T} \subseteq L \times L
 ```
 
@@ -103,25 +103,25 @@ In the running example of Section 5, leaves 1 and 2 share the parent u but have 
 
 **P:1 Tree.** The input tree: a finite vertex set V and an edge set E saying which vertices are joined. A tree is connected and has no cycles, so it has exactly one fewer edge than vertices.
 
-```latex
+```math
 T = (V, E), \qquad E \subseteq \{\, \{u, v\} : u, v \in V,\ u \neq v \,\}, \qquad T \text{ connected}, \qquad |E| = |V| - 1
 ```
 
 **P:2 Edge lengths.** Positive edge lengths in tree units. They need not be integers: the scale m converts them to grid units.
 
-```latex
+```math
 \ell_e > 0 \qquad \forall\, e \in E
 ```
 
 **P:3 Grid size.** The number of grid squares along each side of the sheet, fixed in advance.
 
-```latex
+```math
 N \in \mathbb{Z}_{\geq 1}
 ```
 
 **P:4 Anchor leaf.** One leaf, chosen in advance, that is in no pair of 𝒯. C:5 places it in the fundamental domain. In the running example any leaf will do; take leaf 1.
 
-```latex
+```math
 r^{\ast} \in L, \qquad r^{\ast} \notin \{\, a, b : (a, b) \in \mathcal{T} \,\}
 ```
 
@@ -131,7 +131,7 @@ Every quantity below is computed once from the parameters before solving. The di
 
 **D:1 Tree metric and path lengths.** The tree metric d is the total edge length along the unique path between two vertices. Between two leaves it gives the path length ℓᵢⱼ, which the scale converts into that pair's minimum separation. The largest path length is ℓmax.
 
-```latex
+```math
 d(u, v) = \sum_{e \in \mathrm{path}(u, v)} \ell_e, \qquad \ell_{ij} = d(i, j) \ \ \forall\, \{i, j\} \in \mathcal{P}, \qquad \ell_{\max} = \max_{\{i, j\} \in \mathcal{P}} \ell_{ij}
 ```
 
@@ -143,7 +143,7 @@ In the running example, leaves 1 and 4 are farthest apart along the tree, so ℓ
 
 **D:2 Offset distance lookup table.** The Euclidean length of every candidate offset in Δ\_N. It depends only on N, not on the tree, so it is computed once per grid size and shared by every leaf pair.
 
-```latex
+```math
 D : \Delta_N \to \mathbb{R}_{> 0}, \qquad D(\delta) = \|\delta\|_2 = \sqrt{\delta_1^2 + \delta_2^2}, \qquad D(\pm\delta_1, \pm\delta_2) = D(\delta_1, \delta_2)
 ```
 
@@ -155,7 +155,7 @@ The table replaces the nonconvex function ‖uᵢ − uⱼ‖₂ by a finite lis
 
 **D:3 Scale upper bound.** No two grid points are farther apart than the sheet's diagonal, √2·N, and the pair with the longest path needs m·ℓmax of that.
 
-```latex
+```math
 \bar{m} = \frac{\sqrt{2}\, N}{\ell_{\max}}, \qquad \text{since} \quad m\, \ell_{\max} \leq \|u_i - u_j\|_2 \leq \sqrt{2}\, N
 ```
 
@@ -169,19 +169,19 @@ The bound is usually loose because other pairs also need room. In the running ex
 
 **Scale.** Grid units of paper per unit of tree length, as in TreeMaker but measured on the N × N sheet.
 
-```latex
+```math
 m \in [0, \bar{m}]
 ```
 
 **Leaf coordinates.** Integer coordinates, so each leaf sits on a grid point (C:1).
 
-```latex
+```math
 x_i,\ y_i \in \mathbb{Z} \cap [0, N], \qquad u_i = (x_i, y_i) \qquad \forall\, i \in L
 ```
 
 **Offset selectors.** For each leaf pair, one binary per candidate offset; C:2 and C:3 make the selected candidate equal the pair offset δᵢⱼ.
 
-```latex
+```math
 w_{ij\delta} \in \{0, 1\} \qquad \forall\, \{i, j\} \in \mathcal{P},\ \delta \in \Delta_N
 ```
 
@@ -193,25 +193,25 @@ C:1–C:4 are TreeMaker's model on the grid. C:5 and C:6 break its symmetry.
 
 **C:1 Leaves on grid points.** Every leaf lies on a grid point of the fixed N × N sheet. This replaces TreeMaker's continuous unit square.
 
-```latex
+```math
 u_i \in G_N \iff x_i,\ y_i \in \{0, 1, \dots, N\} \qquad \forall\, i \in L
 ```
 
 **C:2 Offset selection.** Each pair selects exactly one candidate offset.
 
-```latex
+```math
 \sum_{\delta \in \Delta_N} w_{ij\delta} = 1 \qquad \forall\, \{i, j\} \in \mathcal{P}
 ```
 
 **C:3 Offset linking.** The selected candidate equals the pair offset, one equation per coordinate.
 
-```latex
+```math
 \delta_{ij} = u_i - u_j = \sum_{\delta \in \Delta_N} \delta\, w_{ij\delta} \qquad \forall\, \{i, j\} \in \mathcal{P}
 ```
 
 **C:4 Spacing through the lookup table.** TreeMaker's pair constraint, with the distance read from the table entry of the selected candidate.
 
-```latex
+```math
 m\, \ell_{ij} \leq \sum_{\delta \in \Delta_N} D(\delta)\, w_{ij\delta} \qquad \forall\, \{i, j\} \in \mathcal{P}
 ```
 
@@ -225,13 +225,13 @@ At the optimum every pair's grid distance reaches its required minimum, and pair
 
 **C:5 Anchor in the fundamental domain.** The anchor leaf lies in the triangle 0 ≤ y ≤ x ≤ N/2.
 
-```latex
+```math
 2 x_{r^\ast} \leq N, \qquad 2 y_{r^\ast} \leq N, \qquad y_{r^\ast} \leq x_{r^\ast}
 ```
 
 **C:6 Sibling order.** Interchangeable siblings appear in lexicographic order of their coordinates.
 
-```latex
+```math
 (N + 1)\, x_a + y_a \leq (N + 1)\, x_b + y_b \qquad \forall\, (a, b) \in \mathcal{T}
 ```
 
@@ -245,13 +245,13 @@ On an 8 × 8 grid, an anchor leaf at (6, 1) has 8 images and only (2, 1) satisfi
 
 Maximize the scale, exactly as TreeMaker does. A larger m means longer flaps from the same sheet, so this maximizes paper usage. The model is C:1–C:6 with this objective, solved once.
 
-```latex
+```math
 \max_{m,\, x,\, y,\, w} \quad m \qquad \text{subject to C:1–C:6}
 ```
 
 At the optimum, m\* is set by the tight pairs (pairs exactly at their minimum distance).
 
-```latex
+```math
 m^{*} = \max_{u \in G_N^{\,L}} \ \min_{\{i, j\} \in \mathcal{P}} \frac{D(u_i - u_j)}{\ell_{ij}}
 ```
 
@@ -261,7 +261,7 @@ For the running example, m\* = 0.949 on an 8 × 8 grid, 1.054 on 9 × 9, and 1.1
 
 **C:1–C:4 are TreeMaker on the grid.** The candidates in Δ\_N are distinct and exactly one is selected, so C:2 and C:3 force w to pick the candidate equal to the pair offset δᵢⱼ. C:4 then reads its exact length, so the four constraints are TreeMaker's model restricted to grid points, with no approximation and no big-M constants. Excluding the zero offset also keeps two leaves off the same grid point.
 
-```latex
+```math
 \text{C:1–C:4} \iff u_i \in G_N \ \ \forall\, i \in L \quad \text{and} \quad \|u_i - u_j\|_2 \geq m\, \ell_{ij} \ \ \forall\, \{i, j\} \in \mathcal{P}
 ```
 
@@ -277,7 +277,7 @@ So every layout of C:1–C:4 has a copy with the same scale that also satisfies 
 
 **Fewer equivalent solutions.** Without C:5 and C:6, each layout can appear up to 8 times from the sheet's symmetries, and g! times more for each group of g interchangeable siblings. Branch-and-bound (the solver's search) can explore every copy, both while looking for good layouts and, more expensively, while proving that none is better. C:5 and C:6 keep one copy, so the search space shrinks by up to that factor.
 
-```latex
+```math
 \text{copies removed per layout} \ \leq \ 8 \prod_{\text{sibling groups}} g!
 ```
 

@@ -8,7 +8,7 @@ The goal of this document is a pure mixed-integer linear program (MILP) for Tree
 
 **TreeMaker's scale optimization.** Lang's TreeMaker places the leaves of a weighted tree in the unit square and maximizes the scale m, the paper length per unit of tree length. Folding never stretches paper, so two flap tips must start at least as far apart on the sheet as their tree path length, times the scale.
 
-```latex
+```math
 \max_{m,\ u} \ m \qquad \text{subject to} \qquad \|u_i - u_j\|_2 \geq m\, \ell_{ij} \ \ \forall\, \{i, j\} \in \mathcal{P}, \qquad u_i \in [0, 1]^2 \ \ \forall\, i \in L
 ```
 
@@ -18,7 +18,7 @@ The goal of this document is a pure mixed-integer linear program (MILP) for Tree
 
 **Scale conversion.** TreeMaker's sheet has side 1 and this one has side N, so the two scales differ by a factor of N. As N grows, the lattice optimum approaches TreeMaker's continuous optimum.
 
-```latex
+```math
 m_{\mathrm{TreeMaker}} = m / N
 ```
 
@@ -57,31 +57,31 @@ Every symbol and term not defined in Sections 3–6 is listed here.
 
 **Leaves.** The leaves of the input tree T = (V, E) (Section 4) are its vertices of degree 1, the flap tips; n is their number.
 
-```latex
+```math
 L = \{\, v \in V : \deg(v) = 1 \,\} \subseteq V, \qquad n = |L|
 ```
 
 **Leaf pairs.** The set of unordered pairs of distinct leaves.
 
-```latex
+```math
 \mathcal{P} = \{\, \{i, j\} : i, j \in L,\ i \neq j \,\}
 ```
 
 **Integer lattice and grid.** The integer lattice ℤ² is the set of points whose two coordinates are both integers. The sheet is the square \[0, N\]², and its grid points are the lattice points it contains.
 
-```latex
+```math
 \mathbb{Z}^2 = \{\, (p, q) : p, q \in \mathbb{Z} \,\}, \qquad G_N = \mathbb{Z}^2 \cap [0, N]^2 = \{0, 1, \dots, N\}^2, \qquad |G_N| = (N + 1)^2
 ```
 
 **Pair offsets.** The offset of a leaf pair is the difference of the two leaves' positions uᵢ (Section 6), so it depends on where the leaves are placed. Fix an order i < j for each pair so the offset has a sign.
 
-```latex
+```math
 \delta_{ij} = u_i - u_j \in \mathbb{Z}^2 \qquad \forall\, \{i, j\} \in \mathcal{P},\ i < j
 ```
 
 **Candidate offsets.** The set Δ\_N lists every value a pair offset can take on the N × N grid, fixed before anything is placed. Both coordinates of two grid points lie in {0, …, N}, so their difference lies in {−N, …, N}². The zero offset is excluded because two leaves cannot share a grid point when the scale is positive. Every pair offset is a candidate offset.
 
-```latex
+```math
 \Delta_N = \{-N, \dots, N\}^2 \setminus \{(0, 0)\}, \qquad |\Delta_N| = (2N + 1)^2 - 1, \qquad \delta_{ij} \in \Delta_N \ \ \forall\, \{i, j\} \in \mathcal{P}
 ```
 
@@ -89,19 +89,19 @@ L = \{\, v \in V : \deg(v) = 1 \,\} \subseteq V, \qquad n = |L|
 
 **P:1 Tree.** The input tree: a finite vertex set V and an edge set E saying which vertices are joined. E fixes the tree's connectivity, and the edge lengths below fix its proportions; together they are the weighted tree whose leaves are laid out. A tree is connected and has no cycles, so it has exactly one fewer edge than vertices.
 
-```latex
+```math
 T = (V, E), \qquad E \subseteq \{\, \{u, v\} : u, v \in V,\ u \neq v \,\}, \qquad T \text{ connected}, \qquad |E| = |V| - 1
 ```
 
 **P:2 Edge lengths.** Positive edge lengths in tree units. They need not be integers: the scale m converts them to grid units.
 
-```latex
+```math
 \ell_e > 0 \qquad \forall\, e \in E
 ```
 
 **P:3 Grid size.** The number of grid squares along each side of the sheet, fixed in advance.
 
-```latex
+```math
 N \in \mathbb{Z}_{\geq 1}
 ```
 
@@ -113,7 +113,7 @@ Every quantity below is computed once from the parameters before solving, and th
 
 The tree metric d is the total edge length along the unique path between two vertices. Between two leaves it gives the path length ℓᵢⱼ, which the scale converts into the minimum separation of that pair. The largest path length is ℓmax.
 
-```latex
+```math
 d(u, v) = \sum_{e \in \mathrm{path}(u, v)} \ell_e, \qquad \ell_{ij} = d(i, j) \ \ \forall\, \{i, j\} \in \mathcal{P}, \qquad \ell_{\max} = \max_{\{i, j\} \in \mathcal{P}} \ell_{ij}
 ```
 
@@ -127,7 +127,7 @@ In the running example, leaves 1 and 4 are farthest apart along the tree, so ℓ
 
 The lookup table D gives the Euclidean length of every candidate offset in Δ\_N. It depends only on N, not on the tree, so it is computed once per grid size and shared by every leaf pair.
 
-```latex
+```math
 D : \Delta_N \to \mathbb{R}_{> 0}, \qquad D(\delta) = \|\delta\|_2 = \sqrt{\delta_1^2 + \delta_2^2}, \qquad D(\pm\delta_1, \pm\delta_2) = D(\delta_1, \delta_2)
 ```
 
@@ -141,7 +141,7 @@ The table replaces the nonconvex function ‖uᵢ − uⱼ‖₂ by a finite lis
 
 No two grid points are farther apart than the sheet's diagonal, √2·N, and the pair with the longest path needs m·ℓmax of that. This gives a valid upper bound on the scale.
 
-```latex
+```math
 \bar{m} = \frac{\sqrt{2}\, N}{\ell_{\max}}, \qquad \text{since} \quad m\, \ell_{\max} \leq \|u_i - u_j\|_2 \leq \sqrt{2}\, N
 ```
 
@@ -155,19 +155,19 @@ The bound is usually loose because other pairs also need room. In the running ex
 
 **Scale.** Grid units of paper per unit of tree length, as in TreeMaker but measured on the N × N sheet.
 
-```latex
+```math
 m \in [0, \bar{m}]
 ```
 
 **Leaf coordinates.** Integer coordinates, so each leaf sits on a grid point (constraint C:1).
 
-```latex
+```math
 x_i,\ y_i \in \mathbb{Z} \cap [0, N], \qquad u_i = (x_i, y_i) \qquad \forall\, i \in L
 ```
 
 **Offset selectors.** For each leaf pair, one binary per candidate offset; C:2 and C:3 make the selected candidate equal the pair offset δᵢⱼ.
 
-```latex
+```math
 w_{ij\delta} \in \{0, 1\} \qquad \forall\, \{i, j\} \in \mathcal{P},\ \delta \in \Delta_N
 ```
 
@@ -177,19 +177,19 @@ Each pair uses |Δ\_N| = (2N + 1)² − 1 selectors: 360 for N = 9, so 2,160 for
 
 **C:1 Leaves on grid points.** The key constraint added to TreeMaker: every leaf lies on a grid point of the fixed N × N sheet. This replaces TreeMaker's continuous unit square.
 
-```latex
+```math
 u_i \in G_N \iff x_i,\ y_i \in \{0, 1, \dots, N\} \qquad \forall\, i \in L
 ```
 
 **C:2 Offset selection.** Each pair selects exactly one candidate offset.
 
-```latex
+```math
 \sum_{\delta \in \Delta_N} w_{ij\delta} = 1 \qquad \forall\, \{i, j\} \in \mathcal{P}
 ```
 
 **C:3 Offset linking.** The selected candidate equals the pair offset δᵢⱼ = uᵢ − uⱼ, one equation per coordinate.
 
-```latex
+```math
 \delta_{ij} = u_i - u_j = \sum_{\delta \in \Delta_N} \delta\, w_{ij\delta} \qquad \forall\, \{i, j\} \in \mathcal{P}
 ```
 
@@ -199,7 +199,7 @@ For pair 2–4 of the running example, C:2 sets one selector to 1, C:3 makes tha
 
 **C:4 Spacing through the lookup table.** TreeMaker's pair constraint, with the Euclidean distance read from the table entry of the selected candidate.
 
-```latex
+```math
 m\, \ell_{ij} \leq \sum_{\delta \in \Delta_N} D(\delta)\, w_{ij\delta} \qquad \forall\, \{i, j\} \in \mathcal{P}
 ```
 
@@ -209,13 +209,13 @@ At the optimum every pair's grid distance reaches its required minimum, and pair
 
 **Exactness.** The candidates in Δ\_N are distinct and exactly one is selected, so C:2 and C:3 force w to pick the candidate equal to the pair offset δᵢⱼ. C:4 then reads its exact length, so the four constraints together are TreeMaker's model restricted to grid points, with no approximation and no big-M constants. Excluding the zero offset also keeps two leaves off the same grid point.
 
-```latex
+```math
 \text{C:1–C:4} \iff u_i \in G_N \ \ \forall\, i \in L \quad \text{and} \quad \|u_i - u_j\|_2 \geq m\, \ell_{ij} \ \ \forall\, \{i, j\} \in \mathcal{P}
 ```
 
 **Optional TreeMaker conditions.** TreeMaker's position and symmetry constraints stay linear on the grid and can be added as needed. For example, a leaf on the sheet's left edge or in a corner, a mirrored pair under book symmetry, and a leaf on the symmetry axis (N even):
 
-```latex
+```math
 x_i = 0, \qquad x_i = y_i = 0, \qquad x_a + x_b = N,\ y_a = y_b, \qquad 2 x_i = N
 ```
 
@@ -223,13 +223,13 @@ x_i = 0, \qquad x_i = y_i = 0, \qquad x_a + x_b = N,\ y_a = y_b, \qquad 2 x_i = 
 
 Maximize the scale, exactly as TreeMaker does. A larger m means longer flaps from the same sheet, so this maximizes paper usage.
 
-```latex
+```math
 \max_{m,\, x,\, y,\, w} \quad m
 ```
 
 At the optimum, m\* is set by the tight pairs (pairs exactly at their minimum distance), and their paths are the active paths, as in TreeMaker.
 
-```latex
+```math
 m^{*} = \max_{u \in G_N^{\,L}} \ \min_{\{i, j\} \in \mathcal{P}} \frac{D(u_i - u_j)}{\ell_{ij}}
 ```
 
@@ -241,7 +241,7 @@ The grid is the only approximation in this model: the lookup table gives exact E
 
 **Upper bound: the grid cannot beat TreeMaker.** Shrinking any feasible grid layout by a factor of N gives a feasible TreeMaker layout, because the grid points land in the unit square and every distance and the scale shrink by the same factor.
 
-```latex
+```math
 \|u_i - u_j\|_2 \geq m\, \ell_{ij},\ \ u_i \in [0, N]^2 \quad \Longrightarrow \quad \Big\| \frac{u_i}{N} - \frac{u_j}{N} \Big\|_2 \geq \frac{m}{N}\, \ell_{ij},\ \ \frac{u_i}{N} \in [0, 1]^2 \qquad \text{so} \qquad \frac{m^{*}_N}{N} \leq m_{\mathrm{TM}}
 ```
 
@@ -249,7 +249,7 @@ The grid is the only approximation in this model: the lookup table gives exact E
 
 **Lower bound: rounding TreeMaker's layout loses little.** Take TreeMaker's optimal layout v, scale it to the N × N sheet, and move each leaf to its nearest grid point uᵢ. Each leaf moves at most half a grid diagonal, so by the triangle inequality each pair distance shrinks by at most √2.
 
-```latex
+```math
 \|u_i - N v_i\|_2 \leq \tfrac{\sqrt{2}}{2} \quad \Longrightarrow \quad \|u_i - u_j\|_2 \geq N \|v_i - v_j\|_2 - \sqrt{2} \geq N\, m_{\mathrm{TM}}\, \ell_{ij} - \sqrt{2}
 ```
 
@@ -257,13 +257,13 @@ The grid is the only approximation in this model: the lookup table gives exact E
 
 The rounded layout is therefore feasible at scale N·m\_TM − √2/ℓᵢⱼ for every pair, and the shortest leaf path ℓ\_min is the worst case. Once that scale is positive, no two rounded leaves coincide.
 
-```latex
+```math
 m^{*}_N \geq N\, m_{\mathrm{TM}} - \frac{\sqrt{2}}{\ell_{\min}}, \qquad \ell_{\min} = \min_{\{i, j\} \in \mathcal{P}} \ell_{ij}
 ```
 
 **The squeeze.** Dividing by N and combining the two bounds:
 
-```latex
+```math
 m_{\mathrm{TM}} - \frac{\sqrt{2}}{N\, \ell_{\min}} \ \leq\ \frac{m^{*}_N}{N} \ \leq\ m_{\mathrm{TM}} \qquad \Longrightarrow \qquad \lim_{N \to \infty} \frac{m^{*}_N}{N} = m_{\mathrm{TM}}
 ```
 
@@ -277,7 +277,7 @@ The gap closes like 1/N, and the relative loss is at most √2 / (N·m\_TM·ℓ\
 
 **Refining the grid never hurts.** Doubling N puts every old grid point onto the new grid, with all distances doubled, so the scaled optimum cannot drop. Unrelated grid sizes need not improve in order: for the running example m\*\_N / N is 0.119 at N = 8, 0.117 at N = 9, and 0.120 at N = 10.
 
-```latex
+```math
 m^{*}_{2N} \geq 2\, m^{*}_N
 ```
 
@@ -293,7 +293,7 @@ The formulation buys linearity and exactness with size. Every nonlinear distance
 
 **Variable counts.** The leaf coordinates are few; the offset selectors dominate, with one binary per leaf pair per candidate offset.
 
-```latex
+```math
 \underbrace{2n}_{\text{integer coordinates}} \;+\; \underbrace{\tfrac{n(n - 1)}{2} \big( (2N + 1)^2 - 1 \big)}_{\text{binary offset selectors}} \;+\; \underbrace{1}_{m} \;=\; O(n^2 N^2)
 ```
 
@@ -332,7 +332,7 @@ The model above keeps the tree's proportions and finds only its largest scale. T
 
 **P:4 Fixed scale.** For edge optimization, the optimum m\* of Section 8. For strain optimization, a target scale, typically larger than m\*, at which the tree does not fit unstrained.
 
-```latex
+```math
 m_0 > 0
 ```
 
@@ -340,13 +340,13 @@ m_0 > 0
 
 **P:5 Stretch set.** The edges allowed to lengthen in edge optimization, for example the legs of an insect.
 
-```latex
+```math
 S \subseteq E
 ```
 
 **P:6 Strain bounds.** Limits on each edge's relative change in strain optimization. The lower bound above −1 keeps every edge length positive.
 
-```latex
+```math
 -1 < \sigma_{\min} \leq 0 \leq \sigma_{\max}
 ```
 
@@ -356,13 +356,13 @@ S \subseteq E
 
 **Variables.** The per-edge strains σₑ of strain optimization (11.3), tied to one common stretch σ: every edge in S lengthens by the same fraction, to ℓₑ(1 + σ), and every other edge keeps its length. The leaf coordinates and offset selectors of Section 6 stay as they are.
 
-```latex
+```math
 \sigma_e = \sigma \ \ \forall\, e \in S, \qquad \sigma_e = 0 \ \ \forall\, e \in E \setminus S, \qquad \sigma \geq 0
 ```
 
 **D:4 Stretchable path length.** The part of a pair's path length that lies on edges in the stretch set. Only this part grows when the stretch set lengthens.
 
-```latex
+```math
 s_{ij} = \sum_{e \in \mathrm{path}(i, j) \cap S} \ell_e \qquad \forall\, \{i, j\} \in \mathcal{P}
 ```
 
@@ -372,7 +372,7 @@ Used in: constraint C:5.
 
 **C:5 Stretched spacing.** Replaces C:4. It is the strained spacing C:6 of 11.3 with the strains above: a pair's strained path length ℓᵢⱼ + Σ ℓₑσₑ reduces to ℓᵢⱼ + σ·sᵢⱼ, so each pair's path grows by σ times its stretchable part (D:4), at the fixed scale.
 
-```latex
+```math
 m_0 \Big( \ell_{ij} + \sum_{e \in \mathrm{path}(i, j)} \ell_e\, \sigma_e \Big) = m_0 \left( \ell_{ij} + \sigma\, s_{ij} \right) \leq \sum_{\delta \in \Delta_N} D(\delta)\, w_{ij\delta} \qquad \forall\, \{i, j\} \in \mathcal{P}
 ```
 
@@ -380,7 +380,7 @@ m_0 \Big( \ell_{ij} + \sum_{e \in \mathrm{path}(i, j)} \ell_e\, \sigma_e \Big) =
 
 **Objective.** Make the chosen edges as long as the leftover paper allows.
 
-```latex
+```math
 \max \quad \sigma \qquad \text{subject to C:1–C:3 and C:5}
 ```
 
@@ -394,13 +394,13 @@ Edge optimization is therefore strain optimization restricted to one common, non
 
 **Variables.** One strain per edge, now independent and signed, which changes edge e to ℓₑ(1 + σₑ), with its magnitude for the objective, plus the leaf coordinates and offset selectors of Section 6.
 
-```latex
+```math
 \sigma_e \in [\sigma_{\min}, \sigma_{\max}], \qquad a_e \geq 0 \qquad \forall\, e \in E
 ```
 
 **C:6 Strained spacing.** Replaces C:4. Each pair's path length becomes the sum of its strained edge lengths, which is linear in the strains.
 
-```latex
+```math
 m_0 \left( \ell_{ij} + \sum_{e \in \mathrm{path}(i, j)} \ell_e\, \sigma_e \right) \leq \sum_{\delta \in \Delta_N} D(\delta)\, w_{ij\delta} \qquad \forall\, \{i, j\} \in \mathcal{P}
 ```
 
@@ -408,7 +408,7 @@ m_0 \left( \ell_{ij} + \sum_{e \in \mathrm{path}(i, j)} \ell_e\, \sigma_e \right
 
 **C:7 Strain magnitude.** Each aₑ is at least the absolute value of its strain.
 
-```latex
+```math
 a_e \geq \sigma_e, \qquad a_e \geq -\sigma_e \qquad \forall\, e \in E
 ```
 
@@ -416,7 +416,7 @@ a_e \geq \sigma_e, \qquad a_e \geq -\sigma_e \qquad \forall\, e \in E
 
 **Objective.** Make the tree fit at the target scale with as little total strain as possible.
 
-```latex
+```math
 \min \quad \sum_{e \in E} a_e \qquad \text{subject to C:1–C:3, C:6, and C:7}
 ```
 

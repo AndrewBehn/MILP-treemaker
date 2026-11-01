@@ -38,7 +38,7 @@ What is fixed throughout: the leaf points, the scale m₀ and the tree's shape. 
 
 **P:2 Starting edge lengths.** The lengths the layout was solved with: the tree's lengths (base P:2), or lengths from an earlier strain.
 
-```latex
+```math
 \ell^0_e > 0 \quad (e \in E)
 ```
 
@@ -46,7 +46,7 @@ What is fixed throughout: the leaf points, the scale m₀ and the tree's shape. 
 
 **P:4 Layout.** One integer grid point per leaf; Dᵢⱼ is the Euclidean distance between two leaves.
 
-```latex
+```math
 u_i \in \{0, \dots, N\}^2 \ (i \in L), \qquad D_{ij} = \lVert u_i - u_j \rVert
 ```
 
@@ -54,7 +54,7 @@ u_i \in \{0, \dots, N\}^2 \ (i \in L), \qquad D_{ij} = \lVert u_i - u_j \rVert
 
 **P:6 Strain bounds.** The range each edge's strain may take.
 
-```latex
+```math
 -1 < \sigma_{\min} \le 0 \le \sigma_{\max}
 ```
 
@@ -76,7 +76,7 @@ u_i \in \{0, \dots, N\}^2 \ (i \in L), \qquad D_{ij} = \lVert u_i - u_j \rVert
 
 **D:1 Strained path length.** The length of a pair's tree path once every edge is stretched or shrunk by its strain. It is linear in σ, which keeps every model in this document linear.
 
-```latex
+```math
 \ell_{ij}(\sigma) = \sum_{e \in P(i,j)} \ell^0_e \, (1 + \sigma_e)
 ```
 
@@ -84,7 +84,7 @@ Used in: D:2, M:1, M:2, M:5 and M:6.
 
 **D:2 Tight pair.** A pair whose leaves are exactly at their minimum distance m₀ℓᵢⱼ(σ), up to the relative tolerance τ. Its straight segment is an *active path*.
 
-```latex
+```math
 \text{tight}_{ij}(\sigma) \iff \lvert D_{ij} - m_0\,\ell_{ij}(\sigma) \rvert \le \tau \max(1, D_{ij})
 ```
 
@@ -92,7 +92,7 @@ Used in: A:1, A:3 and Lemma 2.
 
 **D:3 Hull and boundary pieces.** H is the convex hull of the leaf points. Its *boundary pieces* B are the pairs of leaves that are consecutive along the hull's boundary, counting leaves that lie on a hull side between its corners.
 
-```latex
+```math
 B = \{ (i, j) : u_i, u_j \in \partial H,\ \text{no leaf strictly between } u_i \text{ and } u_j \text{ on } \partial H \}
 ```
 
@@ -100,7 +100,7 @@ Used in: D:4, A:2, A:3 and Lemma 4.
 
 **D:4 Valid subdivision.** The tight pairs give a valid subdivision when their segments, split at any leaf lying on them, cross nowhere, and their bounded faces are simple, convex, free of leaves in their interiors, and together cover H exactly. This is the condition the universal molecule needs.
 
-```latex
+```math
 \text{valid}(S) \iff \text{no crossings} \wedge \forall F: F \text{ simple, convex, empty} \wedge \textstyle\sum_F \operatorname{area}(F) = \operatorname{area}(H) > 0
 ```
 
@@ -108,7 +108,7 @@ Used in: A:1, A:2, A:3, A:4, Lemma 4 and Lemma 5.
 
 **D:5 Greedy triangulation.** Given a set K of segments to keep, Δ(K) adds pairs in order of increasing Dᵢⱼ (ties by leaf name), skipping any pair whose segment passes through a third leaf or properly crosses a segment already taken. The result is a maximal non-crossing set, so its bounded faces are triangles with no leaf inside, and it contains every boundary piece of D:3.
 
-```latex
+```math
 \Delta(K) \supseteq K \cup B, \qquad \Delta(K) \text{ maximal non-crossing}
 ```
 
@@ -116,7 +116,7 @@ Used in: A:2 and A:3.
 
 **D:6 Boundary-first weights.** In a closing solve (Section 5), each target on the hull's boundary is worth more than all interior targets together, so the first solve maximizes the boundary count before anything else.
 
-```latex
+```math
 w_k = \begin{cases} \#T + 1 & k \in B \\ 1 & \text{otherwise} \end{cases}
 ```
 
@@ -151,31 +151,31 @@ The closing MILP CL(T, w) changes edge lengths so that as many target pairs as p
 
 **Variables.** A strain per edge, its absolute value, and a switch per target pair.
 
-```latex
+```math
 \sigma_e \in [\sigma_{\min}, \sigma_{\max}], \quad a_e \ge 0 \ (e \in E), \qquad t_k \in \{0, 1\} \ (k \in T)
 ```
 
 **M:1 Every pair fits.** No pair may end up closer than its new minimum distance.
 
-```latex
+```math
 m_0\,\ell_{ij}(\sigma) \le D_{ij} \qquad \forall (i,j) \in \mathcal{P}
 ```
 
 **M:2 Switched tightness.** A target pair with tₖ = 1 reaches its distance from below; with M:1 it is then exactly tight.
 
-```latex
+```math
 m_0\,\ell_k(\sigma) \ge D_k\, t_k \qquad \forall k \in T
 ```
 
 **M:3 Absolute strain.** aₑ is at least |σₑ|.
 
-```latex
+```math
 a_e \ge \sigma_e, \quad a_e \ge -\sigma_e \qquad \forall e \in E
 ```
 
 **M:4 Keep the count.** In the second solve only: the weighted count of the first solve, W\*, is kept.
 
-```latex
+```math
 \textstyle\sum_{k \in T} w_k t_k \ge W^* - \tfrac12
 ```
 
@@ -208,37 +208,37 @@ With the leaves fixed, the smallest symmetric bound s that lets strains make a c
 
 **Variables.** The bound s, a strain per edge (kept above σ\_floor so every length stays positive) and its absolute value.
 
-```latex
+```math
 s \ge 0, \quad \sigma_e \ge \sigma_{\text{floor}}, \quad a_e \ge 0 \qquad (e \in E)
 ```
 
 **M:5 Chosen pairs tight.** Every pair of K is exactly at its minimum distance.
 
-```latex
+```math
 m_0\,\ell_k(\sigma) = D_k \qquad \forall k \in K
 ```
 
 **M:6 Every other pair fits.**
 
-```latex
+```math
 m_0\,\ell_{ij}(\sigma) \le D_{ij} \qquad \forall (i,j) \in \mathcal{P} \setminus K
 ```
 
 **M:7 Symmetric bound.** Every strain lies within ±s.
 
-```latex
+```math
 -s \le \sigma_e \le s \qquad \forall e \in E
 ```
 
 **M:8 Absolute strain.** As M:3, for the tie-break.
 
-```latex
+```math
 a_e \ge \sigma_e, \quad a_e \ge -\sigma_e \qquad \forall e \in E
 ```
 
 **Objective.** The largest strain first; among equal bounds, the least total strain. The weight λ is small enough that it never trades against s.
 
-```latex
+```math
 \min \; s + \lambda \textstyle\sum_{e} a_e
 ```
 

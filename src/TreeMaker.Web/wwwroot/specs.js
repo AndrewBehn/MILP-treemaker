@@ -120,14 +120,14 @@ const SpecText = (() => {
       if (!line.trim()) { i++; continue; }
       let m;
 
-      // Fenced blocks: LaTeX becomes display maths; anything else stays preformatted.
+      // Fenced blocks: ```math (and ```latex, as the docs export it) becomes display maths; anything else stays preformatted.
       if ((m = line.match(/^```(\w*)\s*$/))) {
         const body = [];
         i++;
         while (i < lines.length && !/^```\s*$/.test(lines[i])) body.push(lines[i++]);
         i++;
         const src = body.join("\n");
-        out.push(m[1] === "latex"
+        out.push(m[1] === "math" || m[1] === "latex"
           ? `<div class="math" data-tex="${html(src)}"><pre class="tex">${html(src)}</pre></div>`
           : `<pre class="code">${html(src)}</pre>`);
         continue;
