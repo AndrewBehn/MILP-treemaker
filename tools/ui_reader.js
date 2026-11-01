@@ -1,8 +1,8 @@
 // UI check of the docs tab against tools/mock_api.py on port 5099. The specs open in their own tab (docs.html),
 // apart from the working app: the map's Spec tags, a node's header links and the sidebar's section labels all open
 // the one docs tab; its "Run it" tags open the app's tab; the app keeps its results throughout. Also checks every
-// doc's figures and maths, links between docs, the list of specs, links from before the split (`#/x?read=…`), and
-// the bilateral drawing of the centipede presets.
+// doc's figures and maths, links between docs, the list of specs, links from before the split (`#/x?read=…`), the
+// bilateral drawing of the centipede presets, and that drawing facing the way the leaves sit on the sheet.
 // Usage: node tools/ui_reader.js [screenshot dir] (needs Playwright with Chromium).
 const { chromium } = require('playwright');
 const out = process.argv[2] ?? '.';
@@ -92,13 +92,34 @@ const base = 'http://127.0.0.1:5099/';
       const bodyX = new Set([...pos].filter(([v]) => /^[bg]\d+$/.test(v)).map(([, p]) => p[0].toFixed(4)));
       const pairs = state.mirrors.map(({ a, b }) => [pos.get(a), pos.get(b)]);
       const axis = Number([...bodyX][0]);
-      const mirrored = pairs.every(([p, q]) => Math.abs((p[0] + q[0]) / 2 - axis) < 1e-6 && Math.abs(p[1] - q[1]) < 1e-6 && p[0] < axis);
+      const mirrored = pairs.every(([p, q]) => Math.abs((p[0] + q[0]) / 2 - axis) < 1e-6 && Math.abs(p[1] - q[1]) < 1e-6 && p[0] !== q[0]);
       return { straightBody: bodyX.size === 1, mirrored, pairs: pairs.length };
     });
     log[preset] = sym;
     check(`${preset}Bilateral`, sym.straightBody && sym.mirrored && sym.pairs > 0);
     await app.screenshot({ path: `${out}/${preset}.png` });
   }
+
+  // After a solve, the sketch faces the way the leaves sit on the sheet: the head where L1 and R1 landed, L on
+  // the side L1 is on. Turning the layout on the workbench upside down and mirroring it turns the sketch too.
+  const facing = () => app.evaluate(() => {
+    const pt = (leaf) => workbench.layout.points.find((q) => q.leaf === leaf);
+    const N = workbench.layout.problem.gridSize;
+    const sheet = { headUp: pt('L1').y > pt('L6').y, lLeft: pt('L1').x < N / 2 };
+    const sketch = { headUp: treeUi.pos.get('L1')[1] < treeUi.pos.get('L6')[1], lLeft: treeUi.pos.get('L1')[0] < treeUi.pos.get('b1')[0] };
+    return sheet.headUp === sketch.headUp && sheet.lLeft === sketch.lLeft;
+  });
+  await app.selectOption('#preset', 'centipede6'); await app.waitForTimeout(500);
+  await app.click('#solve');
+  await app.waitForFunction(() => !document.getElementById('metricsCard').hidden && !document.getElementById('solve').disabled, null, { timeout: 20000 });
+  await app.waitForTimeout(500);
+  check('sketchFacesSheet', await facing());
+  await app.evaluate(() => {
+    const L = workbench.layout, N = L.problem.gridSize;
+    workbench.setLayout({ ...L, points: L.points.map((q) => ({ ...q, x: N - q.x, y: N - q.y })) });
+  });
+  await app.waitForTimeout(500);
+  check('sketchFollowsTurnedSheet', await facing());
 
   log.errs = errs;
   console.log(JSON.stringify(log, null, 1));

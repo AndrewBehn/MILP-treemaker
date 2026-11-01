@@ -61,7 +61,8 @@ const foldedView = (() => {
     const bilateral = mirrors.length
       ? bilateralLayout(treeInfo(edges), mirrors, { edges, lengths: lengthsPaper, toScale: true })
       : null;
-    const pos = bilateral ?? layoutTree(edges, lengthsPaper);
+    // Facing the same way as the sheet: the head where its legs landed, and left and right as on the sheet.
+    const pos = alignToSheet(bilateral ?? layoutTree(edges, lengthsPaper), sheetPoints(edges), { flipsOnly: !!bilateral });
     view.labels = [...pos.entries()];
     // Every facet vertex in 3D: along its edge in the flat stick figure, lifted by its elevation.
     view.polys = result.facets.map((f, idx) => {

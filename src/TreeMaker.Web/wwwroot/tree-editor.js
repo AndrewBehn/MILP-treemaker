@@ -16,6 +16,7 @@ const treeUi = {
   hover: null,          // { kind: "vertex", v } | { kind: "edge", index } | { kind: "bin" }
   geometry: null,       // last render: { width, height, pad, px: Map(name -> [x, y]) }
   message: "",
+  handPlaced: false,    // true once a vertex was dragged: a new layout then doesn't re-orient the drawing
 };
 
 const HIT_VERTEX = 18;
@@ -23,9 +24,55 @@ const HIT_EDGE = 10;
 
 function resetTreeLayout() {
   treeUi.pos.clear();
+  treeUi.handPlaced = false;
 }
 
 // ───────────────────────── Layout ─────────────────────────
+
+/**
+ * The leaves of the layout on the workbench, in drawing coordinates (x right, y down: the sheet's y is up), when that
+ * layout belongs to this tree (same edges in the same order). Null otherwise. The sketches use it to face the same
+ * way as the sheet, so the tree, the crease pattern and the folded base read alike.
+ */
+function sheetPoints(edges) {
+  const layout = typeof workbench !== "undefined" ? workbench.layout : null;
+  const theirs = layout?.problem?.edges;
+  if (!layout?.points?.length || !theirs || theirs.length !== edges.length) return null;
+  if (!theirs.every((e, k) => e.from === edges[k].from && e.to === edges[k].to)) return null;
+  return new Map(layout.points.map((p) => [p.leaf, [p.x, -p.y]]));
+}
+
+/**
+ * Turns a drawing (raw coordinates, y down) to face the way the leaves sit on the sheet: the rotation, with or
+ * without a mirror image, that best matches the leaves' directions from their centre (2D Procrustes). With
+ * `flipsOnly` (the bilateral drawing, whose body must stay vertical), only the four flips of the axes are tried.
+ * Rotations and mirror images keep every length, so the folded base stays to scale.
+ */
+function alignToSheet(raw, sheet, { flipsOnly = false } = {}) {
+  if (!sheet) return raw;
+  const common = [...sheet.keys()].filter((v) => raw.has(v));
+  if (common.length < 2) return raw;
+  const mean = (pts) => pts.reduce((m, p) => [m[0] + p[0] / pts.length, m[1] + p[1] / pts.length], [0, 0]);
+  const ca = mean(common.map((v) => raw.get(v))), cb = mean(common.map((v) => sheet.get(v)));
+  const A = common.map((v) => [raw.get(v)[0] - ca[0], raw.get(v)[1] - ca[1]]);
+  const B = common.map((v) => [sheet.get(v)[0] - cb[0], sheet.get(v)[1] - cb[1]]);
+  // Candidate transforms as 2×2 matrices [a, b, c, d]: (x, y) → (a·x + b·y, c·x + d·y).
+  const candidates = [];
+  if (flipsOnly) {
+    for (const sx of [1, -1]) for (const sy of [1, -1]) candidates.push([sx, 0, 0, sy]);
+  } else {
+    for (const m of [1, -1]) {          // m = -1: mirror x first
+      let sxx = 0, sxy = 0;
+      A.forEach(([x, y], k) => { const [u, v] = B[k]; sxx += m * x * u + y * v; sxy += m * x * v - y * u; });
+      const t = Math.atan2(sxy, sxx), c = Math.cos(t), s = Math.sin(t);
+      candidates.push([c * m, -s, s * m, c]);
+    }
+  }
+  const score = ([a, b, c, d]) => A.reduce((sum, [x, y], k) => sum + (a * x + b * y) * B[k][0] + (c * x + d * y) * B[k][1], 0);
+  const best = candidates.reduce((p, q) => (score(q) > score(p) ? q : p));
+  const [a, b, c, d] = best;
+  return new Map([...raw].map(([v, [x, y]]) => [v, [a * x + b * y, c * x + d * y]]));
+}
 
 /** Fits raw coordinates (any scale, y down) into the unit square of a width × height box, keeping the shape. */
 function fitLayout(raw, width, height) {
@@ -193,7 +240,7 @@ function autoLayout(info, width, height) {
   const out = new Map();
   if (!info.vertices.length) return out;
   const bilateral = bilateralLayout(info, state.mirrors ?? []);
-  if (bilateral) return fitLayout(bilateral, width, height);
+  if (bilateral) return fitLayout(alignToSheet(bilateral, sheetPoints(state.edges), { flipsOnly: true }), width, height);
   if (!isTree(info, state.edges)) {
     info.vertices.forEach((v, k) => {
       const a = (2 * Math.PI * k) / info.vertices.length - Math.PI / 2;
@@ -236,16 +283,7 @@ function autoLayout(info, width, height) {
   assign(root, -Math.PI / 2, 1.5 * Math.PI);
 
   const raw = new Map(order.map((v) => [v, [depth.get(v) * Math.cos(angle.get(v)), depth.get(v) * Math.sin(angle.get(v))]]));
-  const xs = [...raw.values()].map((p) => p[0]), ys = [...raw.values()].map((p) => p[1]);
-  const [minX, maxX, minY, maxY] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-  // Uniform scale so the drawing keeps its shape, centred in the unit square of a width × height box.
-  const fit = Math.min(width / Math.max(1e-9, maxX - minX), height / Math.max(1e-9, maxY - minY));
-  const offX = (width - fit * (maxX - minX)) / 2, offY = (height - fit * (maxY - minY)) / 2;
-  for (const v of order) {
-    const [x, y] = raw.get(v);
-    out.set(v, [(offX + (x - minX) * fit) / width, (offY + (y - minY) * fit) / height]);
-  }
-  return out;
+  return fitLayout(alignToSheet(raw, sheetPoints(state.edges)), width, height);
 }
 
 /** Keep hand-placed vertices where they are; place new ones relative to a placed neighbour. */
@@ -722,6 +760,7 @@ function initTreeEditor() {
       const [x, y] = svgPoint(move);
       if (!drag.moved && Math.hypot(x - start[0], y - start[1]) < 4) return;
       drag.moved = true;
+      treeUi.handPlaced = true;
       treeUi.pos.set(drag.v, toUnit(x, y));
       treeUi.hover = hitTest(x, y, drag.v);
       renderTreePreview();

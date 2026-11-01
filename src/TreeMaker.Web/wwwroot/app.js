@@ -1294,7 +1294,9 @@ async function init() {
   };
   creaseReadiness.hooks.onCompletion = (result, bounds) => workbench.setClosure({ ...bounds, completion: result });
   creaseReadiness.hooks.onCreases = (creases) => workbench.setCreases(creases);
-  workbench.onChange(() => {
+  workbench.onChange((slot) => {
+    // A new layout: redraw the tree sketch to face the way the leaves sit on the sheet, unless it was arranged by hand.
+    if (slot === "layout" && !treeUi.handPlaced) { resetTreeLayout(); renderTreePreview(); }
     renderShelf();
     renderNextBar();
     if (state.node?.kind === "step") renderHeldSummary($("heldSummary"));

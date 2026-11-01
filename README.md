@@ -97,6 +97,7 @@ Every solver and the Tree node use the same editor, `tree-editor.js`.
 - **Pure MILP and Symmetry-Breaking MILP only:** click an edge to add it to, or remove it from, the stretch set S, which edge optimization uses.
 - **Layout.** **Tidy** lays the tree out again. **Enlarge** opens the editor nearly full screen.
 - **Mirrored trees.** A tree with mirror pairs, such as the centipede presets, is drawn bilaterally: the body is a straight vertical line and each leg sits on its own side, opposite its partner. The longest flaps at the head and tail (antennae, cerci) point forward and back. The drawing is a sketch, not to scale: short body segments are spaced out so the legs don't overlap. The mirror pairs themselves make every solver place each pair symmetrically about the sheet's vertical axis, x_a + x_b = N. The folded base draws its stick figure the same way, to scale: the body straight and each leg opposite its partner.
+- **Facing the sheet.** Once there is a layout on the workbench for this tree, the tree drawing and the folded base turn to face the way the leaves sit on the sheet: a centipede's head points where its first legs landed, and left and right match the crease pattern. A tree without mirror pairs is turned by the rotation (or mirror image) that best matches its leaves' directions. A drawing you've arranged by dragging stays as you left it; **Tidy** re-orients it.
 
 The server tells the browser not to cache the page, and the scripts are versioned, so an updated app always loads its new scripts.
 
