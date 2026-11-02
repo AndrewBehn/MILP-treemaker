@@ -1,28 +1,33 @@
-// The workflow document: the steps after a tree, as one page that grows with every step. Solving, closing the
-// polygons by strain, adding stubs and building the crease pattern are all moves on one state, toward polygons that
-// are all valid and a crease pattern built in them. Each step shows its input and its output as tree widgets (the
-// tree beside the sheet), what changed, and what is still open; at the end of the page, "Add a step" holds the live
-// widget (the current state, interactive) and the moves. Steps are only added; "Continue from here" drops the steps
-// after one, and "Redo from here" drops it and the ones after, so you can take another path from any point.
+// The session: one document from a tree to a crease pattern. Step 1 is always the tree; then come solves, closings,
+// stubs and, if all goes well, the crease pattern (with its folded base). Each step holds its own settings, its
+// input and its output, shown as tree widgets (the tree beside the sheet).
+//
+// Only the last step is live. Its settings are the app's controls for that kind of step (the tree editor and leaf
+// conditions; a solver's settings; the closing bounds; the stub; the pleats), and running it replaces its output.
+// Choosing a next step freezes it: the step keeps its settings, input and output as they were, and the moves on
+// offer depend on its kind and on its output (a tree can only be solved; a layout with open polygons can be closed,
+// stubbed or solved again; valid polygons can be built into creases). "Go back to this step" makes an earlier
+// step the last one again, live, and drops the steps after it.
 //
 // A state is { problem, layout, closure, creases, report, stubs }:
 //   problem   the tree: edges, gridSize, leafConditions, mirrorPairs
-//   layout    { node, points: [{ leaf, x, y }], scale, edgeLengths, status } or null before a solve
+//   layout    { node, points: [{ leaf, x, y }], scale, edgeLengths, status }, or null before a solve
 //   closure   { strainMin, strainMax, completion } after closing, or null
 //   creases   { result, lengths, pleatHeight } after building the crease pattern, or null
-//   report    the polygon check of the state's lengths (closed lengths when there is a closure)
+//   report    the polygon check of the state's lengths (the closed lengths when there is a closure)
 //   stubs     names of the leaves added as stubs
-// The last step's output is what the workbench holds. The document is saved in this browser, and Save the session
-// writes it whole, every step with its input and output (schemas/treemaker-session.schema.json).
+// A step is { kind: tree | solve | close | stub | creases, node, title, params, input, output, notes, ms, at }; its
+// node is the map node whose controls it uses. The last step's output (or its input, before it has run) is what
+// the workbench holds. Save the session writes every step (schemas/treemaker-session.schema.json, version 2).
 "use strict";
 
 const workflowDoc = (() => {
-  const KEY = "treemaker.session.v1";
-  const doc = load() ?? { name: "", steps: [] };
-  let running = null;   // { kind, title, params, input, started, ticker, cancel }
-  let syncing = false;  // true while the document writes the workbench, so its listener knows the change is ours
-  let move = "solve";   // the move open in "Add a step"
-  let note = "";        // the last message for the move panel
+  const KEY = "treemaker.session.v2", OLD_KEY = "treemaker.session.v1";
+  const SOLVER_NODES = () => SOLVER_IDS;
+  const KIND_NODE = { tree: "tree", close: "close", stub: "stubs", creases: "creases" };
+  const doc = load();
+  let running = null;   // { title, started, ticker, progress }
+  let treeTimer = null;
 
   const q = (id) => document.getElementById(id);
   const svgEl = (name, attrs = {}) => {
@@ -36,26 +41,55 @@ const workflowDoc = (() => {
     if (text != null) e.textContent = text;
     return e;
   };
-
-  function load() {
-    try { return JSON.parse(localStorage.getItem(KEY)); } catch { return null; }
-  }
-  function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(doc)); } catch {
-      // Too big for this browser's storage: keep the crease patterns only in memory.
-      try { localStorage.setItem(KEY, JSON.stringify({ ...doc, steps: doc.steps.map(stripCreases) })); } catch { /* memory only */ }
-    }
-  }
-  const stripCreases = (s) => ({ ...s, input: { ...s.input, creases: null }, output: { ...s.output, creases: null } });
   const clone = (x) => JSON.parse(JSON.stringify(x ?? null));
   const slim = (r) => r && {
     valid: r.valid, polygons: r.polygons, segments: r.segments, missingBoundary: r.missingBoundary, tightPairs: r.tightPairs,
     hullLeaves: r.hullLeaves, hullArea: r.hullArea, coveredArea: r.coveredArea, issues: r.issues,
   };
+  const emptyState = (problem) => ({ problem: clone(problem), layout: null, closure: null, creases: null, report: null, stubs: [] });
+
+  // ───── Storage, and documents from before the tree was a step ─────
+
+  function load() {
+    try {
+      const d = JSON.parse(localStorage.getItem(KEY));
+      if (d?.steps?.length) return d;
+      const old = JSON.parse(localStorage.getItem(OLD_KEY));
+      if (old?.steps?.length) return migrate(old);
+    } catch { /* start afresh */ }
+    return { name: "", steps: [] };
+  }
+
+  /** Version 1 started at the first solve: give it its tree step, and every step its node. */
+  function migrate(d) {
+    const steps = d.steps.map((s) => ({ ...s, node: s.node ?? (s.kind === "solve" ? (s.params?.solver ?? s.output?.layout?.node ?? "scalable") : KIND_NODE[s.kind]) }));
+    if (steps[0]?.kind !== "tree") {
+      const problem = steps[0].input?.problem ?? steps[0].output.problem;
+      steps.unshift({ kind: "tree", node: "tree", title: "The tree", params: {}, input: null, output: emptyState(problem), notes: [] });
+    }
+    for (const s of steps) if (NODES[s.node] == null) s.node = "scalable";
+    return { name: d.name ?? "", steps };
+  }
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(doc)); } catch {
+      try { localStorage.setItem(KEY, JSON.stringify({ ...doc, steps: doc.steps.map(stripCreases) })); } catch { /* memory only */ }
+    }
+  }
+  const stripCreases = (s) => ({ ...s, input: s.input && { ...s.input, creases: null }, output: s.output && { ...s.output, creases: null } });
+
+  const last = () => doc.steps.at(-1);
+  /** What the last step works on: its output once it has run, else its input. */
+  const current = () => last()?.output ?? last()?.input ?? null;
+
+  /** A session always starts with the tree: the editor's, if there is none yet. */
+  function ensure() {
+    if (doc.steps.length) return;
+    doc.steps.push({ kind: "tree", node: "tree", title: "The tree", params: {}, input: null, output: emptyState(buildProblem()), notes: [] });
+    save();
+  }
 
   // ───── States ─────
-
-  const current = () => doc.steps.at(-1)?.output ?? null;
 
   /** The edge lengths a state's polygons and creases use: the closed ones after closing, else the layout's. */
   function lengthsOf(s) {
@@ -72,123 +106,62 @@ const workflowDoc = (() => {
     return slim(await postJson("/api/polygons", base(s, s.layout.edgeLengths ?? null)));
   }
 
-  /** The state the workbench holds now, for a document that starts from it. */
-  function fromWorkbench() {
-    const l = workbench.layout;
-    if (!l) return null;
-    return {
-      problem: clone(l.problem),
-      layout: { node: l.node, points: clone(l.points), scale: l.scale, edgeLengths: l.edgeLengths ?? null, status: l.status ?? "" },
-      closure: workbench.closure ? clone(workbench.closure) : null,
-      creases: workbench.creases ? clone(workbench.creases) : null,
-      report: null, stubs: [...(l.stubs ?? [])],
-    };
-  }
+  const problemKey = (p) => JSON.stringify({
+    e: p.edges.map((e) => [String(e.from), String(e.to), Number(e.length), !!e.stretch]), n: p.gridSize,
+    c: (p.leafConditions ?? []).map((c) => [c.leaf, c.kind, c.x ?? null, c.y ?? null]), m: (p.mirrorPairs ?? []).map((m) => [m.a, m.b]),
+  });
 
-  /** Puts a state on the workbench (and its tree into the editor). */
+  /** Puts a state on the workbench, and its tree into the editor. */
   function commit(s) {
-    syncing = true;
-    try {
-      if (JSON.stringify(buildProblem().edges.map((e) => [e.from, e.to, e.length])) !== JSON.stringify(s.problem.edges.map((e) => [e.from, e.to, Number(e.length)]))
-        || buildProblem().gridSize !== s.problem.gridSize) applyProblem(s.problem);
-      if (!s.layout) { workbench.setLayout(null); return; }
-      workbench.setLayout({
-        node: s.layout.node, problem: s.problem, gridSize: s.problem.gridSize, points: s.layout.points, scale: s.layout.scale,
-        edgeLengths: s.layout.edgeLengths ?? null, status: s.layout.status, stubs: s.stubs,
-        polygonsValid: s.closure ? undefined : s.report?.valid,
-      });
-      if (s.closure) workbench.setClosure(s.closure);
-      if (s.creases) workbench.setCreases(s.creases);
-    } finally {
-      syncing = false;
-    }
-  }
-
-  // ───── The document ─────
-
-  function addStep(step) {
-    doc.steps.push({ ...step, at: new Date().toISOString() });
-    save();
-    commit(step.output);
-    refresh(doc.steps.length - 1);
-  }
-
-  /** A layout that came from outside the document (a solver page, a layout file): it starts a new document. */
-  async function startFrom(state, title) {
-    doc.steps = [];
-    doc.name = "";
-    const step = { kind: "solve", title, params: {}, input: { problem: state.problem, layout: null, closure: null, creases: null, report: null, stubs: [] }, output: state, notes: [] };
-    doc.steps.push({ ...step, at: new Date().toISOString() });
-    save();
-    try { state.report = await check(state); save(); } catch { /* shown as unchecked */ }
-    if (onDocPage()) refresh(0);
-  }
-
-  /** Called by the workbench listener: a new layout not written by the document starts a new one. */
-  function workbenchChanged(slot) {
-    if (syncing || slot !== "layout") return;
-    const s = fromWorkbench();
-    if (!s) return;
-    const l = workbench.layout;
-    const from = l.node === "file" ? `Opened ${l.note ?? "a layout file"}` : `Solved by ${NODES[l.node]?.title ?? l.node}: m = ${fmt(l.scale, 4)}`;
-    startFrom(s, from);
-  }
-
-  function continueFrom(k) {
-    if (running) return;
-    doc.steps = doc.steps.slice(0, k + 1);
-    save();
-    commit(doc.steps[k].output);
-    setStatus(`Continuing from step ${k + 1}; the steps after it were dropped.`);
-    refresh(k);
-  }
-
-  function redoFrom(k) {
-    if (running) return;
-    const step = doc.steps[k];
-    doc.steps = doc.steps.slice(0, k);
-    save();
-    if (doc.steps.length) commit(doc.steps.at(-1).output);
-    else commit(step.input);
-    move = step.kind === "solve" ? "solve" : step.kind;
-    setStatus(`Step ${k + 1} and the steps after it were dropped; choose the move again below.`);
-    if (!doc.steps.length) { location.hash = "#/" + (step.output?.layout?.node && NODES[step.output.layout.node] ? step.output.layout.node : "tree"); return; }
-    refresh(null, true);
-  }
-
-  const onDocPage = () => ["close", "stubs", "creases", "fold"].includes(state.node?.id);
-
-  /** Re-renders the page around the workbench state (the live widget, the overlays) and scrolls to a step. */
-  function refresh(scrollTo, toMenu) {
-    if (!onDocPage()) return;
-    enterNode(state.node.id);
-    requestAnimationFrame(() => {
-      const target = toMenu ? q("docAdd") : scrollTo != null ? q("doc-step-" + scrollTo) : null;
-      target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (problemKey(buildProblem()) !== problemKey(s.problem)) applyProblem(s.problem);
+    if (!s.layout) { workbench.setLayout(null); return; }
+    workbench.setLayout({
+      node: s.layout.node, problem: s.problem, gridSize: s.problem.gridSize, points: s.layout.points, scale: s.layout.scale,
+      edgeLengths: s.layout.edgeLengths ?? null, status: s.layout.status, stubs: s.stubs,
+      polygonsValid: s.closure ? undefined : s.report?.valid,
     });
+    if (s.closure) workbench.setClosure(s.closure);
+    if (s.creases) workbench.setCreases(s.creases);
   }
 
-  // ───── What is open, and what to try next ─────
+  // ───── What is open, and what can come next ─────
 
   function outlook(s) {
     const r = s?.report;
-    if (!s?.layout) return { open: "No layout yet.", ok: false, next: [] };
-    if (!r) return { open: "Not checked yet.", ok: false, next: [] };
-    if (s.creases?.result?.built) return { open: `Crease pattern built: ${s.creases.result.creases.length} creases.`, ok: true, next: [] };
-    if (r.valid) return { open: "Every polygon is valid.", ok: true, next: [["Build the crease pattern", "creases"]] };
+    if (!s) return { open: "", ok: false };
+    if (!s.layout) return { open: `A tree of ${treeInfo(s.problem.edges).leaves.length} leaves on an ${s.problem.gridSize} × ${s.problem.gridSize} grid.`, ok: true };
+    if (!r) return { open: "Not checked yet.", ok: false };
+    if (s.creases?.result?.built) return { open: `Crease pattern built: ${s.creases.result.creases.length} creases.`, ok: true };
+    if (r.valid) return { open: "Every polygon is valid: ready for the crease pattern.", ok: true };
     const bad = (r.polygons ?? []).filter((p) => !p.valid);
-    const inside = bad.filter((p) => p.leavesInside?.length);
     const sides = r.missingBoundary?.length ?? 0;
     const parts = [];
     if (sides) parts.push(`${sides} hull side${sides === 1 ? "" : "s"} loose`);
     if (bad.length) parts.push(`${bad.length} polygon${bad.length === 1 ? "" : "s"} not valid`);
     if (r.hullArea > 0 && r.coveredArea < r.hullArea * (1 - 1e-6)) parts.push(`${Math.round((1 - r.coveredArea / r.hullArea) * 100)}% of the outline uncovered`);
-    const next = [];
-    if (inside.length) next.push([`Add a stub in ${inside[0].leaves.join("–")} (a leaf is inside it)`, "stub"]);
-    if (s.stubs?.length && !s.closure) next.push(["Solve just the stubs", "solve", { which: "stubs" }]);
-    next.push([s.closure ? "Close again with other bounds" : "Find the strain needed and close", "close"]);
-    if (!inside.length && bad.length) next.push(["Add a stub", "stub"]);
-    return { open: parts.join(", ") + ".", ok: false, next };
+    return { open: parts.join(", ") + ".", ok: false, inside: bad.find((p) => p.leavesInside?.length) };
+  }
+
+  /**
+   * The moves that can follow a step, from its kind and its output: [{ kind, label, note, which?, suggested? }].
+   * A tree is solved; a layout with open polygons is closed, stubbed or solved again; valid polygons become creases.
+   */
+  function movesAfter(step) {
+    const s = step?.output;
+    if (!s) return [];
+    if (step.kind === "tree") return [{ kind: "solve", label: "Solve", note: "Place the leaves on the grid with a layout solver." }];
+    if (step.kind === "creases") return [];
+    const o = outlook(s);
+    const moves = [];
+    if (s.report?.valid) moves.push({ kind: "creases", label: "Build the crease pattern", note: "Fill every polygon with universal molecules.", suggested: true });
+    else {
+      if (step.kind === "stub") moves.push({ kind: "solve", which: "stubs", label: "Solve just the stubs", note: "Let a solver place the stubs, every other leaf held.", suggested: true });
+      moves.push({ kind: "close", label: "Close the polygons", note: "Change edge lengths (strain) until the open pairs are tight.", suggested: step.kind !== "stub" && !o.inside });
+      moves.push({ kind: "stub", label: "Add a stub", note: o.inside ? `A leaf is inside ${o.inside.leaves.join("–")}: split it with a stub.` : "Split an open polygon with a short new flap.", suggested: !!o.inside && step.kind !== "stub" });
+    }
+    moves.push({ kind: "solve", which: "all", label: "Solve again", note: "Solve all the leaves again, from this layout." });
+    if (s.stubs?.length && step.kind !== "stub") moves.push({ kind: "solve", which: "stubs", label: "Solve just the stubs", note: "Every other leaf held where it is." });
+    return moves;
   }
 
   // ───── Tree widgets: a state's tree beside its sheet ─────
@@ -337,316 +310,428 @@ const workflowDoc = (() => {
     return fig;
   }
 
-  // ───── Rendering the document ─────
 
-  function paramsText(step) {
+  // ───── Rendering ─────
+
+  const kindName = { tree: "Tree", solve: "Solve", close: "Close the polygons", stub: "Add a stub", creases: "Crease pattern" };
+
+  /** The settings a frozen step ran with, as label/value pairs. */
+  function settings(step) {
     const p = step.params ?? {};
-    if (step.kind === "solve") {
-      if (!p.solver) return "";
-      return [NODES[p.solver]?.title, p.which === "stubs" ? "just the stubs (the other leaves held)" : "all leaves, from the previous layout", p.timeLimit ? `${p.timeLimit} s limit` : ""].filter(Boolean).join(" · ");
-    }
-    if (step.kind === "close") return p.auto ? "the smallest strain that closes them (A:4)" : `strain within [${fmt(p.strainMin, 3)}, ${fmt(p.strainMax, 3)}] (A:2)`;
-    if (step.kind === "stub") return `ℓ = ${fmt(p.len, 4)} from ${p.attach}, leaf at (${p.x}, ${p.y}), tight to ${(p.tight ?? []).join(", ")}`;
-    if (step.kind === "creases") return p.pleatHeight ? `pleated to height ${p.pleatHeight}` : "universal molecules (A:1)";
-    return "";
-  }
-
-  function render() {
-    const card = q("docCard");
-    const show = onDocPage() && (doc.steps.length > 0 || !!workbench.layout);
-    card.hidden = !show;
-    q("docSide").hidden = !show;
-    if (!show) return;
-    if (!doc.steps.length && workbench.layout) {
-      const s = fromWorkbench();
-      const l = workbench.layout;
-      startFrom(s, l.node === "file" ? `Opened ${l.note ?? "a layout file"}` : `Solved by ${NODES[l.node]?.title ?? l.node}: m = ${fmt(l.scale, 4)}`).then(render);
-    }
-    q("docName").value = doc.name ?? "";
-    const list = q("docSteps");
-    const last = doc.steps.length - 1;
-    list.replaceChildren(...doc.steps.map((step, k) => {
-      const li = h("li", "doc-step" + (k === last ? " current" : "") + (step.output.report?.valid ? " valid" : ""));
-      li.id = "doc-step-" + k;
-      const head = h("header", "doc-step-head");
-      head.append(h("span", "doc-no", String(k + 1)), h("h3", "", step.title));
-      const meta = h("p", "doc-meta", [paramsText(step), step.ms ? `${(step.ms / 1000).toFixed(1)} s` : ""].filter(Boolean).join(" · "));
-      const io = h("div", "doc-io");
-      io.append(widget(step.input, null, "Input"), h("span", "doc-arrow", "→"), widget(step.output, step.input, "Output"));
-      li.append(head, meta, io);
-      for (const n of step.notes ?? []) li.append(h("p", "doc-note", n));
-      const o = outlook(step.output);
-      li.append(h("p", "doc-open " + (o.ok ? "ok" : "no"), o.open));
-      const actions = h("div", "doc-actions");
-      if (k < last) {
-        const c = h("button", "quiet small", "Continue from here");
-        c.type = "button";
-        c.title = `Keep steps 1–${k + 1}, drop the ${last - k} after it, and add new steps from this output`;
-        c.addEventListener("click", () => continueFrom(k));
-        actions.append(c);
-      } else if (o.next.length) {
-        actions.append(h("span", "doc-try", "Try next:"));
-        for (const [label, m, params] of o.next) {
-          const b = h("button", "link-button", label);
-          b.type = "button";
-          b.addEventListener("click", () => openMove(m, params, true));
-          actions.append(b);
-        }
+    const o = step.output;
+    switch (step.kind) {
+      case "tree": {
+        const pr = o.problem;
+        return [["Leaves", String(treeInfo(pr.edges).leaves.length)], ["Edges", String(pr.edges.length)], ["Grid N", String(pr.gridSize)],
+          ["Leaf conditions", String((pr.leafConditions ?? []).length)], ["Mirror pairs", String((pr.mirrorPairs ?? []).length)]];
       }
-      const r = h("button", "quiet small", "Redo from here");
-      r.type = "button";
-      r.title = `Drop step ${k + 1}${k < last ? " and the steps after it" : ""}, and choose its move again from its input`;
-      r.addEventListener("click", () => redoFrom(k));
-      actions.append(r);
-      li.append(actions);
-      return li;
-    }));
-    if (running) list.append(runningItem());
-    renderOutline();
-    renderMoves();
+      case "solve": {
+        const rows = [["Solver", NODES[step.node]?.title ?? step.node]];
+        if (p.opened) rows.push(["Opened", p.opened]);
+        if (p.which) rows.push(["Leaves", p.which === "stubs" ? "just the stubs (the others held)" : "all, from the previous layout"]);
+        if (p.timeLimit) rows.push(["Time limit", `${p.timeLimit} s`]);
+        for (const [k, v] of Object.entries(p.options ?? {})) if (v != null && typeof v !== "object") rows.push([k, String(v)]);
+        for (const [k, v] of Object.entries(p.options?.options ?? {})) if (v != null) rows.push([k, String(v)]);
+        return rows;
+      }
+      case "close": return p.auto ? [["Bounds", "the smallest that closes them (A:4)"], ["Found", `±${fmt(p.strainMax, 3)}`]]
+        : [["σ_min", fmt(p.strainMin, 3)], ["σ_max", fmt(p.strainMax, 3)]];
+      case "stub": return [["Stub", p.name ?? ""], ["Hangs from", p.attach], ["Length ℓ", fmt(p.len, 4)], ["Leaf at", `(${p.x}, ${p.y})`], ["Tight to", (p.tight ?? []).join(", ")]];
+      case "creases": return [["Pleats", p.pleatHeight ? `to height ${p.pleatHeight}` : "none"]];
+      default: return [];
+    }
   }
 
-  function runningItem() {
-    const li = h("li", "doc-step running");
-    li.id = "doc-running";
+  function stepTitle(step) {
+    if (step.kind === "solve" && step.params?.opened) return `Opened ${step.params.opened}`;
+    if (step.kind === "solve") return `Solve with ${NODES[step.node]?.title ?? step.node}` + (step.params?.which === "stubs" ? ": just the stubs" : "");
+    if (step.kind === "stub" && step.params?.name) return `Add the stub ${step.params.name}`;
+    return kindName[step.kind];
+  }
+
+  function frozenItem(step, k) {
+    const li = h("li", "doc-step frozen" + (step.output?.report?.valid || step.kind === "creases" ? " valid" : ""));
+    li.id = "doc-step-" + k;
     const head = h("header", "doc-step-head");
-    head.append(h("span", "doc-no", String(doc.steps.length + 1)), h("h3", "", running.title));
-    const status = h("p", "doc-meta");
-    status.id = "docRunStatus";
-    status.textContent = running.progress ?? "Running…";
-    const io = h("div", "doc-io");
-    io.append(widget(running.input, null, "Input"), h("span", "doc-arrow", "→"), h("div", "state-widget pending", "Working…"));
-    li.append(head, status, io);
-    if (running.cancel) {
-      const b = h("button", "quiet small", "Cancel");
-      b.type = "button";
-      b.addEventListener("click", running.cancel);
-      li.append(b);
+    head.append(h("span", "doc-no", String(k + 1)), h("h3", "", stepTitle(step)));
+    if (step.ms) head.append(h("span", "doc-time", `${(step.ms / 1000).toFixed(1)} s`));
+    const back = h("button", "quiet small go-back", "Go back to this step");
+    back.type = "button";
+    const later = doc.steps.length - 1 - k;
+    back.title = `Make step ${k + 1} the live step again; the ${later} step${later === 1 ? "" : "s"} after it will be dropped`;
+    back.addEventListener("click", () => {
+      if (back.dataset.armed !== "yes") {
+        back.dataset.armed = "yes";
+        back.textContent = `Drop the ${later} later step${later === 1 ? "" : "s"} and go back?`;
+        setTimeout(() => { back.dataset.armed = ""; back.textContent = "Go back to this step"; }, 4000);
+        return;
+      }
+      goBack(k);
+    });
+    head.append(back);
+    li.append(head);
+    const spec = specLine(step.node);
+    if (spec) li.append(spec);
+    const dl = h("div", "doc-settings");
+    for (const [a, b] of settings(step)) {
+      const row = h("div", "setting");
+      row.append(h("span", "k", a), h("span", "v", b));
+      dl.append(row);
     }
+    const io = h("div", "doc-io" + (step.input ? "" : " single"));
+    if (step.input) io.append(widget(step.input, null, "Input"), h("span", "doc-arrow", "→"));
+    io.append(widget(step.output, step.input, "Output"));
+    li.append(dl, io);
+    for (const n of step.notes ?? []) li.append(h("p", "doc-note", n));
+    const o = outlook(step.output);
+    if (o.open) li.append(h("p", "doc-open " + (o.ok ? "ok" : "no"), o.open));
     return li;
+  }
+
+  /** "Spec: <doc> · <sections>", linked into the docs tab, for the map node a step uses. */
+  function specLine(nodeId) {
+    const node = NODES[nodeId];
+    if (!node?.doc || !DOCS[node.doc]) return null;
+    const p = h("p", "doc-spec");
+    p.append("Spec: ", specLinks.link(DOCS[node.doc].title, node.doc, null), " · ", specLinks.linkify(node.section, node.doc));
+    return p;
+  }
+
+  /** The whole document: the frozen steps, the live step's frame, the outline and the next moves. */
+  function render() {
+    ensure();
+    const steps = doc.steps;
+    const n = steps.length;
+    q("docSteps").replaceChildren(...steps.slice(0, -1).map(frozenItem));
+    const f = last();
+    q("finalNo").textContent = String(n);
+    q("finalStep").dataset.kind = f.kind;
+    q("finalInput").replaceChildren(...(f.input ? [widget(f.input, null, "Input")] : []));
+    renderFinalNotes();
+    renderWhich();
+    renderOutline();
+    renderNext();
+    q("docName").value = doc.name ?? "";
+  }
+
+  function renderFinalNotes() {
+    const f = last();
+    const box = q("finalNotes");
+    box.replaceChildren();
+    if (running) { box.append(h("p", "doc-note running", running.progress ?? "Running…")); return; }
+    for (const t of f.notes ?? []) box.append(h("p", "doc-note", t));
+    if (f.output && f.kind !== "tree") {
+      const o = outlook(f.output);
+      box.append(h("p", "doc-open " + (o.ok ? "ok" : "no"), o.open));
+    }
   }
 
   function renderOutline() {
     const ol = q("docOutline");
     ol.replaceChildren(...doc.steps.map((step, k) => {
-      const li = h("li", (k === doc.steps.length - 1 ? "current " : "") + (step.output.report?.valid ? "valid" : "open"));
-      const a = h("a", "", `${k + 1}. ${step.title}`);
-      a.href = "#doc-step-" + k;
-      a.addEventListener("click", (e) => { e.preventDefault(); q("doc-step-" + k)?.scrollIntoView({ behavior: "smooth", block: "start" }); });
+      const live = k === doc.steps.length - 1;
+      const li = h("li", (live ? "current " : "") + (step.output?.report?.valid || step.kind === "creases" ? "valid" : step.output ? "open" : "pending"));
+      const a = h("a", "", `${k + 1}. ${stepTitle(step)}${live ? (step.output ? " (live)" : " (not run yet)") : ""}`);
+      a.href = "#" + (live ? "finalStep" : "doc-step-" + k);
+      a.addEventListener("click", (e) => { e.preventDefault(); q(live ? "finalStep" : "doc-step-" + k)?.scrollIntoView({ behavior: "smooth", block: "start" }); });
       li.append(a);
       return li;
     }));
-    if (running) ol.append(h("li", "running", `${doc.steps.length + 1}. ${running.title}…`));
   }
 
-  // ───── The moves ─────
-
-  function openMove(m, params = {}, scroll = false) {
-    move = m;
-    if (m === "solve" && params.which) {
-      const radio = document.querySelector(`input[name="solveWhich"][value="${params.which}"]`);
-      if (radio) radio.checked = true;
+  /** The next moves, from the live step's kind and output. */
+  function renderNext() {
+    const f = last();
+    const menu = q("nextMenu");
+    const moves = running ? [] : movesAfter(f);
+    menu.hidden = false;
+    q("pickCard").hidden = !(f.kind === "tree" && f.output && !running);
+    const box = q("nextMoves");
+    box.replaceChildren();
+    if (running) { q("nextIntro").textContent = "Wait for this step to finish, or cancel it."; return; }
+    if (!f.output) { q("nextIntro").textContent = `Run step ${doc.steps.length} first: its output is what the next step starts from.`; return; }
+    if (f.kind === "creases") {
+      q("nextIntro").textContent = "The crease pattern is built: the end of this path. Go back to an earlier step to try another.";
+      return;
     }
-    renderMoves();
-    if (scroll) q("docAdd").scrollIntoView({ behavior: "smooth", block: "start" });
+    if (f.kind === "tree") {
+      q("nextIntro").textContent = "Choosing a solver freezes the tree: it becomes step 1, and the solve becomes step 2.";
+      return;
+    }
+    q("nextIntro").textContent = `Choosing a move freezes step ${doc.steps.length} as it is and adds step ${doc.steps.length + 1}.`;
+    const solver = h("select", "next-solver");
+    solver.setAttribute("aria-label", "Solver for the next solve");
+    for (const id of SOLVER_IDS) { const o = h("option", "", NODES[id].title); o.value = id; solver.append(o); }
+    const lastSolve = [...doc.steps].reverse().find((st) => st.kind === "solve" && SOLVER_IDS.includes(st.node) && !st.params?.opened);
+    solver.value = lastSolve?.node ?? "scalable";
+    for (const m of moves) {
+      const card = h("div", "next-move" + (m.suggested ? " suggested" : ""));
+      const b = h("button", m.suggested ? "primary small-primary" : "quiet", m.label);
+      b.type = "button";
+      b.addEventListener("click", () => addStep(m.kind, m.kind === "solve" ? solver.value : KIND_NODE[m.kind], m.which ? { which: m.which } : {}));
+      card.append(b, h("p", "btn-note", m.note));
+      const spec = specLine(m.kind === "solve" ? solver.value : KIND_NODE[m.kind]);
+      if (spec) card.append(spec);
+      if (m.suggested) card.append(h("span", "next-tag", "suggested"));
+      box.append(card);
+    }
+    if (moves.some((m) => m.kind === "solve")) {
+      const row = h("label", "field next-solver-row", "Solver for a solve ");
+      row.append(solver);
+      box.append(row);
+    }
   }
 
-  function renderMoves() {
-    const s = current();
-    const o = outlook(s);
-    const suggested = new Set(o.next.map(([, m]) => m));
-    for (const tab of document.querySelectorAll(".move-tab")) {
-      tab.setAttribute("aria-selected", String(tab.dataset.move === move));
-      tab.classList.toggle("suggested", suggested.has(tab.dataset.move));
-    }
-    for (const panel of document.querySelectorAll(".move-panel")) panel.hidden = panel.dataset.move !== move;
-    q("docMoveNote").textContent = note;
-    const busy = !!running;
-    for (const b of document.querySelectorAll(".move-panel button.run")) b.disabled = busy || !s?.layout;
-
-    // Solve: which leaves, and the warning for all of them once there is something to lose.
-    const hasStubs = !!s?.stubs?.length;
+  /** The "Which leaves" choice of a live solve step: only when it starts from a layout. */
+  function renderWhich() {
+    const f = last();
+    const block = q("whichBlock");
+    const has = f.kind === "solve" && !!f.input?.layout && !f.params?.opened;
+    block.hidden = !has;
+    if (!has) return;
+    const stubs = f.input.stubs ?? [];
     const stubsRadio = document.querySelector('input[name="solveWhich"][value="stubs"]');
-    stubsRadio.disabled = !hasStubs;
-    if (!hasStubs && stubsRadio.checked) document.querySelector('input[name="solveWhich"][value="all"]').checked = true;
-    q("solveStubsNote").textContent = hasStubs ? `Holds every other leaf where it is; the solver places ${s.stubs.join(", ")} and finds the scale.` : "No stubs yet: add one first.";
-    const all = document.querySelector('input[name="solveWhich"][value="all"]').checked;
-    q("solveWarning").hidden = !(all && doc.steps.length > 1);
-    if (!q("docSolver").value && s?.layout?.node && NODES[s.layout.node]?.kind === "solver") q("docSolver").value = s.layout.node;
-
-    // Close: nothing to do when valid.
-    const valid = !!s?.report?.valid;
-    q("closeValidNote").hidden = !valid || !!s?.closure;
-
-    // Creases: needs valid polygons.
-    q("docBuild").disabled = busy || !valid;
-    q("docBuildNote").textContent = valid
-      ? `Builds in the ${s.closure?.completion?.after ? "closed" : "solver's"} lengths.` : "Waits for valid polygons: close them, or add stubs, first.";
-
-    // Stub: the live widget picks the region, the point and the joint.
-    const stubOpen = move === "stub" && !!s?.layout && !busy;
-    document.body.dataset.stubbing = stubOpen ? "on" : "off";
-    if (stubOpen) {
-      const lengths = lengthsOf(s);
-      stubTool.show({ ...s.layout, problem: s.problem, gridSize: s.problem.gridSize, edgeLengths: lengths }, s.report);
-    } else {
-      stubTool.hide();
-      renderTreePreview();
-    }
+    stubsRadio.disabled = !stubs.length;
+    const want = f.params?.which ?? "all";
+    document.querySelector(`input[name="solveWhich"][value="${want === "stubs" && stubs.length ? "stubs" : "all"}"]`).checked = true;
+    q("solveStubsNote").textContent = stubs.length ? `Holds every other leaf where it is; the solver places ${stubs.join(", ")} and finds the scale.` : "No stubs yet.";
+    q("solveWarning").hidden = !document.querySelector('input[name="solveWhich"][value="all"]').checked;
   }
 
-  function begin(kind, title, params, cancel) {
-    running = { kind, title, params, input: clone(current()), started: performance.now(), cancel };
-    note = "";
-    running.ticker = setInterval(() => {
-      const el = q("docRunStatus");
-      if (el) el.textContent = `${running.progress ?? "Running"} · ${((performance.now() - running.started) / 1000).toFixed(1)} s`;
+  // ───── Moving through the document ─────
+
+  /** Freezes the live step and adds a new one of this kind after it. */
+  function addStep(kind, node, params = {}) {
+    const f = last();
+    if (!f.output || running) return;
+    doc.steps.push({ kind, node, title: "", params, input: clone(f.output), output: null, notes: [] });
+    save();
+    commit(last().input);
+    go(node, true);
+  }
+
+  /** Makes step k the live one again; the steps after it are dropped. */
+  function goBack(k) {
+    if (running) return;
+    const dropped = doc.steps.length - 1 - k;
+    doc.steps = doc.steps.slice(0, k + 1);
+    save();
+    const f = last();
+    commit(f.output ?? f.input);
+    setStatus(`Back at step ${k + 1}; ${dropped} later step${dropped === 1 ? " was" : "s were"} dropped.`);
+    go(f.node, true);
+  }
+
+  /** Shows the session at its live step (enterNode runs that step's part of the app), then scrolls to it. */
+  function go(node, scroll) {
+    if (location.hash !== "#/" + node) history.replaceState(null, "", "#/" + node);
+    enterNode(node);
+    if (scroll) requestAnimationFrame(() => q("finalStep").scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
+
+  /**
+   * Where a map node leads: the live step when it is that node; a new step when the node is a move the live step
+   * allows; otherwise the latest step of that kind, shown in place. Returns the node to enter and what to scroll to.
+   */
+  function navigate(id) {
+    ensure();
+    const f = last();
+    if (id === "fold") id = "creases";
+    if (id === f.node) return { node: id, scroll: id === "creases" ? "foldCard" : null };
+    const kind = SOLVER_IDS.includes(id) ? "solve" : Object.keys(KIND_NODE).find((k) => KIND_NODE[k] === id);
+    if (kind === "solve" && f.kind === "solve" && !f.output) { f.node = id; save(); return { node: id }; }
+    if (kind && kind !== "tree" && movesAfter(f).some((m) => m.kind === kind)) {
+      doc.steps.push({ kind, node: id, title: "", params: {}, input: clone(f.output), output: null, notes: [] });
+      save();
+      commit(last().input);
+      return { node: id, scroll: "finalStep" };
+    }
+    const k = doc.steps.map((s) => s.node).lastIndexOf(id);
+    return { node: f.node, scroll: k >= 0 && k < doc.steps.length - 1 ? "doc-step-" + k : "finalStep" };
+  }
+
+  // ───── The live step: its output ─────
+
+  /** The tree step's output follows the editor. */
+  function treeEdited() {
+    const f = last();
+    if (!f || f.kind !== "tree") return;
+    clearTimeout(treeTimer);
+    treeTimer = setTimeout(() => {
+      f.output = emptyState(buildProblem());
+      save();
+      renderNext();
     }, 200);
-    render();
-    q("doc-running")?.scrollIntoView({ behavior: "smooth", block: "center" });
-    return running;
   }
 
-  function end(message) {
-    if (running) clearInterval(running.ticker);
-    const ms = running ? performance.now() - running.started : 0;
-    running = null;
-    if (message != null) { note = message; render(); }
-    return ms;
-  }
-
-  async function runSolve() {
-    const s = current();
-    if (!s?.layout || running) return;
-    const solver = q("docSolver").value;
-    const node = NODES[solver], S = SOLVERS[node.api];
-    const which = document.querySelector('input[name="solveWhich"]:checked').value;
-    const timeLimit = Number(q("docTimeLimit").value) || 60;
-    let conditions = s.problem.leafConditions ?? [];
-    if (which === "stubs") {
-      const stubs = new Set(s.stubs);
-      conditions = [
-        ...conditions.filter((c) => stubs.has(c.leaf)),
-        ...s.layout.points.filter((p) => !stubs.has(p.leaf)).map((p) => ({ leaf: p.leaf, kind: "Fixed", x: p.x, y: p.y })),
-      ];
-    }
-    const request = {
-      ...s.problem, leafConditions: conditions, startLayout: s.layout.points,
-      timeLimitSeconds: timeLimit, threads: numberOrNull("threads"), ...S.options(node),
+  /** A solver page's request, as the live solve step wants it: just the stubs holds every other leaf. */
+  function adjustRequest(request) {
+    const f = last();
+    if (f?.kind !== "solve" || !f.input?.layout) return request;
+    const which = document.querySelector('input[name="solveWhich"]:checked')?.value ?? "all";
+    if (which !== "stubs" || !f.input.stubs?.length) return request;
+    const stubs = new Set(f.input.stubs);
+    return {
+      ...request,
+      leafConditions: [
+        ...(request.leafConditions ?? []).filter((c) => stubs.has(c.leaf)),
+        ...f.input.layout.points.filter((p) => !stubs.has(p.leaf)).map((p) => ({ leaf: p.leaf, kind: "Fixed", x: p.x, y: p.y })),
+      ],
+      startLayout: f.input.layout.points,
     };
-    const params = { solver, which, timeLimit };
-    let cancelled = false;
-    begin("solve", `Solve with ${node.title}` + (which === "stubs" ? ": just the stubs" : ": all leaves"), params, async () => {
-      cancelled = true;
-      running.progress = "Cancelling";
-      try { await postJson("/api/cancel"); } catch { /* the solve ends on its own */ }
-    });
-    try {
-      const response = await postJson(`/api/${node.api}/solve`, request);
-      if (S.isCancelled(response) || cancelled && !S.normalize(response).layout.length) { end("The solve was cancelled; nothing changed."); return; }
-      const v = S.normalize(response);
-      if (!v.layout.length) { end(`${node.title} found no layout: ${S.statusText(response)}.`); return; }
-      const out = {
-        problem: s.problem,
-        layout: { node: solver, points: v.layout.map((p) => ({ leaf: p.leaf, x: p.x, y: p.y })), scale: v.scale, edgeLengths: v.edgeLengths.length ? v.edgeLengths.map((e) => e.newLength) : null, status: v.status },
-        closure: null, creases: null, report: null, stubs: s.stubs ?? [],
-      };
-      running.progress = "Checking the polygons";
-      out.report = await check(out);
-      const moved = out.layout.points.filter((p) => { const o = s.layout.points.find((x) => x.leaf === p.leaf); return o && (o.x !== p.x || o.y !== p.y); }).length;
-      const ms = end();
-      addStep({
-        kind: "solve", title: running?.title ?? `Solve with ${node.title}` + (which === "stubs" ? ": just the stubs" : ": all leaves"), params, input: s, output: out, ms,
-        notes: [`${S.statusText(response)}. m = ${fmt(s.layout.scale, 4)} → ${fmt(out.layout.scale, 4)}; ${moved} lea${moved === 1 ? "f" : "ves"} moved.`],
-      });
-    } catch (e) {
-      end(`The solve failed: ${e.message}`);
-    }
   }
 
-  async function runClose(auto) {
-    const s = current();
-    if (!s?.layout || running) return;
-    const min = Number(q("docStrainMin").value), max = Number(q("docStrainMax").value);
-    const title = auto ? "Close the polygons: the strain needed" : `Close the polygons within ±${fmt(max, 3)}`;
-    const r = begin("close", title, auto ? { auto: true } : { strainMin: min, strainMax: max });
+  /** The live solve step ran: its output is the new layout. */
+  async function solved(request, view, response, node) {
+    const f = last();
+    if (f?.kind !== "solve") return;
+    const S = SOLVERS[node.api];
+    const which = document.querySelector('input[name="solveWhich"]:checked')?.value ?? "all";
+    const out = {
+      problem: f.input.problem,
+      layout: { node: node.id, points: view.layout.map((p) => ({ leaf: p.leaf, x: p.x, y: p.y })), scale: view.scale, edgeLengths: view.edgeLengths.length ? view.edgeLengths.map((e) => e.newLength) : null, status: view.status },
+      closure: null, creases: null, report: null, stubs: f.input.stubs ?? [],
+    };
+    f.node = node.id;
+    f.params = { which: f.input.layout ? which : undefined, timeLimit: request.timeLimitSeconds, options: S.options(node) };
+    f.ms = response.totalMilliseconds ?? null;
+    const before = f.input.layout;
+    const moved = before ? out.layout.points.filter((p) => { const o = before.points.find((x) => x.leaf === p.leaf); return o && (o.x !== p.x || o.y !== p.y); }).length : null;
+    f.notes = [`${S.statusText(response)}.` + (before ? ` m = ${fmt(before.scale, 4)} → ${fmt(out.layout.scale, 4)}; ${moved} lea${moved === 1 ? "f" : "ves"} moved.` : ` m = ${fmt(out.layout.scale, 4)}.`)];
+    f.output = out;
+    save();
+    render();
+    try { out.report = await check(out); save(); render(); } catch { /* shown as not checked */ }
+  }
+
+  /** The live step of kind close, stub or creases: run it, show progress, keep its output. */
+  async function run(kind, title, work) {
+    const f = last();
+    if (f.kind !== kind || running) return;
+    running = { title, started: performance.now(), progress: `${title}…` };
+    running.ticker = setInterval(() => { renderFinalNotes(); }, 250);
+    renderFinalNotes(); renderNext(); renderOutline();
     try {
+      const result = await work((t) => { running.progress = t; });
+      const ms = performance.now() - running.started;
+      if (result) {
+        Object.assign(f, result, { ms });
+        save();
+        commit(f.output);
+        clearInterval(running.ticker);
+        running = null;
+        go(f.node, false);
+        return;
+      }
+    } catch (e) {
+      setStatus(`${title} failed: ${e.message}`, "error");
+    }
+    clearInterval(running?.ticker);
+    running = null;
+    render();
+  }
+
+  function runClose(auto) {
+    const s = last().input;
+    const min = Number(q("docStrainMin").value), max = Number(q("docStrainMax").value);
+    return run("close", auto ? "Finding the strain needed" : `Closing within ±${fmt(max, 3)}`, async (progress) => {
       const req = base(s);
       let result, bounds, text;
       if (auto) {
-        const found = await creaseReadiness.searchStrain(req, (t) => { r.progress = t; });
-        if (found.already) { end("Nothing to close: " + found.text); return; }
-        if (!found.result) { end(found.text); return; }
+        const found = await creaseReadiness.searchStrain(req, progress);
+        if (found.already) { setStatus("Nothing to close: " + found.text); return null; }
+        if (!found.result) { setStatus(found.text, "error"); return null; }
         result = found.result;
         bounds = { strainMin: -Math.min(found.bound, 0.99), strainMax: found.bound };
         text = found.text;
       } else {
+        progress("Closing the polygons");
         result = await postJson("/api/complete", { ...req, strainMin: min, strainMax: max });
         bounds = { strainMin: min, strainMax: max };
         text = result.messages?.join(" ") ?? "";
       }
-      const out = { ...s, closure: { ...bounds, completion: result }, creases: null, report: slim(result.after) ?? s.report };
-      const ms = end();
       const changed = (result.edgeLengths ?? []).filter((e) => Math.abs(e.strain) > 1e-9).length;
-      addStep({
-        kind: "close", title: result.after?.valid ? `${title}: closed` : `${title}: still open`, params: { auto, ...bounds }, input: s, output: out, ms,
+      return {
+        params: { auto, ...bounds },
+        output: { ...s, closure: { ...bounds, completion: result }, creases: null, report: slim(result.after) ?? s.report },
         notes: [text, `${result.madeTight ?? 0} of ${result.targets?.length ?? 0} target pairs made tight; ${changed} edge length${changed === 1 ? "" : "s"} changed, largest strain ${fmt(result.largestStrain, 3)}.`].filter(Boolean),
-      });
-    } catch (e) {
-      end(`Closing failed: ${e.message}`);
-    }
+      };
+    });
   }
 
-  async function addStub(c) {
-    const s = current();
-    if (!s?.layout || running) return;
-    const lengths = lengthsOf(s);
-    const out = {
-      problem: { ...s.problem, edges: [...s.problem.edges, { from: c.attach, to: c.name, length: c.len, stretch: false }] },
-      layout: { ...s.layout, points: [...s.layout.points, { leaf: c.name, x: c.x, y: c.y }], edgeLengths: [...lengths, c.len], status: `${s.layout.status ?? "Layout"} + stub ${c.name}` },
-      closure: null, creases: null, report: null, stubs: [...(s.stubs ?? []), c.name],
-    };
-    begin("stub", `Add the stub ${c.name}`, c);
-    try {
+  function addStub(c) {
+    const s = last().input;
+    return run("stub", `Adding the stub ${c.name}`, async () => {
+      const lengths = lengthsOf(s);
+      const out = {
+        problem: { ...s.problem, edges: [...s.problem.edges, { from: c.attach, to: c.name, length: c.len, stretch: false }] },
+        layout: { ...s.layout, points: [...s.layout.points, { leaf: c.name, x: c.x, y: c.y }], edgeLengths: [...lengths, c.len], status: `${s.layout.status ?? "Layout"} + stub ${c.name}` },
+        closure: null, creases: null, report: null, stubs: [...(s.stubs ?? []), c.name],
+      };
       out.report = await check(out);
-      const ms = end();
-      addStep({
-        kind: "stub", title: `Add the stub ${c.name}`, params: { attach: c.attach, len: c.len, x: c.x, y: c.y, tight: c.tight }, input: s, output: out, ms,
+      return {
+        params: { name: c.name, attach: c.attach, len: c.len, x: c.x, y: c.y, tight: c.tight },
+        output: out,
         notes: [s.closure?.completion?.after ? "The stub keeps the closed lengths: they become the layout's lengths." : "The scale stays; every pair still fits."],
-      });
-    } catch (e) {
-      end(`Adding the stub failed: ${e.message}`);
-    }
+      };
+    });
   }
 
-  async function runCreases() {
-    const s = current();
-    if (!s?.report?.valid || running) return;
+  function runCreases() {
+    const s = last().input;
     const pleat = q("docPleatOn").checked ? Number(q("docPleatHeight").value) : null;
-    if (pleat !== null && !(pleat > 0)) { note = "The pleat height must be a positive number of grid units."; render(); return; }
-    begin("creases", "Build the crease pattern", { pleatHeight: pleat });
-    try {
+    if (pleat !== null && !(pleat > 0)) { setStatus("The pleat height must be a positive number of grid units.", "error"); return; }
+    return run("creases", "Building the crease pattern", async () => {
       const lengths = lengthsOf(s);
       const result = await postJson("/api/creases", { ...base(s, lengths), pleatHeight: pleat });
-      if (!result.built) { end(`The crease pattern was not built: ${(result.messages ?? []).join(" ")}`); return; }
-      const out = { ...s, creases: { result, lengths, pleatHeight: pleat } };
-      const ms = end();
-      addStep({
-        kind: "creases", title: "Build the crease pattern", params: { pleatHeight: pleat }, input: s, output: out, ms,
+      if (!result.built) { setStatus(`The crease pattern was not built: ${(result.messages ?? []).join(" ")}`, "error"); return null; }
+      return {
+        params: { pleatHeight: pleat },
+        output: { ...s, creases: { result, lengths, pleatHeight: pleat } },
         notes: [`${result.creases.length} creases.` + (result.messages?.length ? " " + result.messages.join(" ") : "")],
-      });
-    } catch (e) {
-      end(`Building the crease pattern failed: ${e.message}`);
-    }
+      };
+    });
   }
 
-  // ───── Session files ─────
+  /** The live step's controls for close, stub and creases, from its input. */
+  function prepareLive() {
+    const f = last();
+    const s = f.input;
+    document.body.dataset.stubbing = f.kind === "stub" && s?.layout ? "on" : "off";
+    if (f.kind === "close") {
+      q("closeValidNote").hidden = !s?.report?.valid;
+      if (f.params?.strainMax != null && !f.params.auto) { q("docStrainMin").value = f.params.strainMin; q("docStrainMax").value = f.params.strainMax; }
+    }
+    if (f.kind === "creases") {
+      q("docBuild").disabled = !s?.report?.valid;
+      q("docBuildNote").textContent = s?.report?.valid ? `Builds in the ${s.closure?.completion?.after ? "closed" : "solver's"} lengths.` : "Needs valid polygons.";
+      q("docPleatOn").checked = !!f.params?.pleatHeight;
+      q("docPleatHeight").disabled = !f.params?.pleatHeight;
+      if (f.params?.pleatHeight) q("docPleatHeight").value = f.params.pleatHeight;
+    }
+    if (f.kind === "stub" && s?.layout) stubTool.show({ ...s.layout, problem: s.problem, gridSize: s.problem.gridSize, edgeLengths: lengthsOf(s) }, s.report);
+  }
+
+  // ───── Starting a session from a file ─────
+
+  /** A layout file: a new session, its tree as step 1 and the opened layout as step 2 (live). */
+  async function startFromLayout(problem, layout, name) {
+    const tree = emptyState(problem);
+    const out = { ...emptyState(problem), layout: { node: "scalable", points: clone(layout.points), scale: layout.scale, edgeLengths: layout.edgeLengths ?? null, status: layout.status ?? "Imported" } };
+    doc.name = "";
+    doc.steps = [
+      { kind: "tree", node: "tree", title: "", params: {}, input: null, output: tree, notes: [] },
+      { kind: "solve", node: "scalable", title: "", params: { opened: name }, input: tree, output: out, notes: [`Opened the layout file ${name}.`] },
+    ];
+    save();
+    try { out.report = await check(out); save(); } catch { /* not checked */ }
+  }
 
   function saveFile() {
     const name = (q("docName").value || "session").trim();
     doc.name = name;
     save();
-    const file = { format: "treemaker-session", version: 1, name, savedAt: new Date().toISOString(), steps: doc.steps };
+    const file = { format: "treemaker-session", version: 2, name, savedAt: new Date().toISOString(), steps: doc.steps };
     const blob = new Blob([JSON.stringify(file, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -655,41 +740,47 @@ const workflowDoc = (() => {
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
 
-  /** A session file (files.js has checked its format and version): it becomes the document. */
+  /** A session file (files.js has checked its format): it becomes the document; version 1 gains its tree step. */
   function openFile(data, fileName) {
     if (!Array.isArray(data.steps) || !data.steps.length) throw new Error(`${fileName} has no steps.`);
-    for (const [k, s] of data.steps.entries()) {
-      if (!s.output?.problem?.edges) throw new Error(`${fileName}: step ${k + 1} has no output tree.`);
-    }
-    doc.name = data.name ?? fileName.replace(/\.json$/i, "");
-    doc.steps = data.steps;
+    const d = data.version === 1 ? migrate(data) : data;
+    doc.name = d.name ?? fileName.replace(/\.json$/i, "");
+    doc.steps = d.steps;
     save();
-    commit(doc.steps.at(-1).output);
-    if (onDocPage()) refresh(doc.steps.length - 1); else location.hash = "#/close";
+    const f = last();
+    commit(f.output ?? f.input);
+    go(f.node, true);
+  }
+
+  /** A new session from the tree of step 1. */
+  function startOver() {
+    if (running) return;
+    const tree = doc.steps[0]?.output?.problem ?? buildProblem();
+    doc.name = "";
+    doc.steps = [{ kind: "tree", node: "tree", title: "", params: {}, input: null, output: emptyState(tree), notes: [] }];
+    save();
+    commit(last().output);
+    go("tree", true);
   }
 
   function init() {
-    for (const tab of document.querySelectorAll(".move-tab")) tab.addEventListener("click", () => openMove(tab.dataset.move));
-    for (const r of document.querySelectorAll('input[name="solveWhich"]')) r.addEventListener("change", renderMoves);
-    q("docSolver").replaceChildren(...SOLVER_IDS.map((id) => { const o = document.createElement("option"); o.value = id; o.textContent = NODES[id].title; return o; }));
-    q("docSolver").value = "";
-    q("docRunSolve").addEventListener("click", runSolve);
+    for (const r of document.querySelectorAll('input[name="solveWhich"]')) r.addEventListener("change", () => {
+      q("solveWarning").hidden = !document.querySelector('input[name="solveWhich"][value="all"]').checked;
+      const f = last();
+      if (f.kind === "solve") { f.params = { ...f.params, which: r.value }; save(); }
+    });
     q("docAuto").addEventListener("click", () => runClose(true));
     q("docBounds").addEventListener("click", () => runClose(false));
     q("docBuild").addEventListener("click", runCreases);
     q("docPleatOn").addEventListener("change", () => { q("docPleatHeight").disabled = !q("docPleatOn").checked; });
     q("docSave").addEventListener("click", saveFile);
+    q("docNew").addEventListener("click", startOver);
     q("docName").addEventListener("change", () => { doc.name = q("docName").value; save(); });
     stubTool.hooks.onAdd = addStub;
   }
 
-  /** Which move a map node opens with. */
-  function moveFor(nodeId) {
-    return { close: "close", stubs: "stub", creases: "creases", fold: "creases" }[nodeId] ?? move;
-  }
-
   return {
-    init, render, workbenchChanged, openFile, openMove, moveFor, current,
-    get steps() { return doc.steps; }, get running() { return !!running; },
+    init, render, navigate, prepareLive, treeEdited, adjustRequest, solved, startFromLayout, openFile, startOver,
+    get steps() { return doc.steps; }, get running() { return !!running; }, last, current,
   };
 })();

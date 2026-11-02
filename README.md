@@ -28,7 +28,7 @@ You need the .NET 10 SDK. From this folder (the repository root):
 dotnet run
 ```
 
-It builds everything and opens <http://localhost:5080> in your browser: the map, the solvers, the workbench and the specs, all in one app. To use another port, add `--urls http://localhost:6000` after `--`, as in `dotnet run -- --urls http://localhost:6000`.
+It builds everything and opens <http://localhost:5080> in your browser: the map, the session from a tree to a crease pattern, and the specs, all in one app. To use another port, add `--urls http://localhost:6000` after `--`, as in `dotnet run -- --urls http://localhost:6000`.
 
 To build or run every test, also from the root:
 
@@ -41,7 +41,7 @@ The root project, `TreeMaker.csproj`, is only the entry point: it compiles nothi
 
 ## The map
 
-The first screen is a map of the specs and the steps after them, drawn like the document graph. Click a box to open that part of the app; **← Map** in the top bar brings you back, and the browser's back button works too. Each box's **Spec ↗** tag opens its document in the docs tab (see *The specs, in the app* below).
+The first screen is a map of the specs and the steps after them, drawn like the document graph. Every box opens **the session** (below) at its step: the live step when it is that box, a new step when the live step allows it (a solver after the tree or after a layout; Close the polygons, Add stubs or Crease pattern after a layout), and otherwise the latest step of that kind, shown in place; **← Map** in the top bar brings you back, and the browser's back button works too. Each box's **Spec ↗** tag opens its document in the docs tab (see *The specs, in the app* below).
 
 | Map node | Route | Spec, and where in it | What runs | API |
 |---|---|---|---|---|
@@ -64,7 +64,7 @@ The node definitions are in `src/TreeMaker.Web/wwwroot/nodes.js`. What a solver 
 
 All seven specification documents are packaged with the app and served by it, so the mathematics and the running solvers can be shared together, and read offline.
 
-- **A tab of their own.** The docs open in a separate browser tab (`docs.html`), so reading stays apart from the working app and its workbench. Every link from the app goes to that one tab, and every link from a doc back to the app goes to the app's tab, so the two tabs don't multiply.
+- **A tab of their own.** The docs open in a separate browser tab (`docs.html`), so reading stays apart from the working app. Every link from the app goes to that one tab, and every link from a doc back to the app goes to the app's tab, so the two tabs don't multiply.
 - **Opening them.** On the map, a box opens its part of the app and its **Spec ↗** tag opens its document; **Read the specs ↗** lists them all. In a part of the app, the **Spec ↗** link in the top bar, the spec line under its title, and any section or label in the sidebar (such as `§6` or `C:4`) open the right document at the right place. **Specs ↗** in the top bar lists them.
 - **In the docs tab.** The side bar lists the specs and the sections of the one shown. Section numbers and labels (P:, D:, C:, M:, A:, lemmas) are links, also between docs ("base C:1" opens the Pure MILP spec at C:1). Each doc names the parts of the app that implement it, and a tag at each section a part cites opens that part in the app's tab. **Open the app ↗** goes back to the map.
 - **Figures and maths.** The figures are drawn from the docs' own figure code into SVG files (static pictures), and the maths is typeset with KaTeX, which is bundled (`wwwroot/vendor/katex`).
@@ -73,23 +73,46 @@ All seven specification documents are packaged with the app and served by it, so
 
 The docs page is `src/TreeMaker.Web/wwwroot/docs.html`, driven by `specs.js`.
 
-## The workbench
+## The session
 
-The workbench holds what carries over from one part of the app to the next. The top bar shows it as four chips, and the map shows it as cards with **Continue**, **Save** and **Clear** buttons.
+The work view is one document, **the session** (`workflow.js`). It runs from a tree to a crease pattern, with every step in order. Step 1 is always the tree. Then come solves, closings and stubs, and, if all goes well, the crease pattern with its folded base.
 
-| Slot | Set by | Used as the starting point of |
-|---|---|---|
-| Tree | Every edit in the tree editor, a preset, or a tree file | Every solver |
-| Layout | Every solve that finds a layout, and opening a layout file | The next solve in any solver whose tree and grid it fits (the **Start the next solve from the workbench layout** box under the sheet); Close the polygons |
-| Closed polygons | **Close the polygons** and **Find the strain needed** | Crease pattern, which uses the closed edge lengths |
-| Crease pattern | **Build the crease pattern** | Folded base |
+- **Each step holds its settings, its input and its output.** The input and output are drawn as tree widgets: the state's tree beside its sheet, both in grid units, with the leaf circles, polygons, tight paths, loose hull sides and, once built, the creases. The output marks what the step changed:
+  - added edges and stubs in red;
+  - changed lengths in amber, with their values;
+  - moved leaves, with a ghost where they were.
 
-- **Replacing.** A new result replaces its slot and clears the slots after it, since they were made from the old one. A new layout clears the closed polygons and the crease pattern.
-- **Every solver.** Opening a solver with a layout on the workbench shows that layout as if the solver had just found it, together with its closed polygons and crease pattern, as long as it fits the editor's tree and grid.
-- **Leaving during a solve.** A solve keeps running if you go back to the map. Its layout goes on the workbench when it finishes. One solve runs at a time, in any solver.
-- **Kept between visits.** The workbench is stored in the browser (`localStorage`). It survives a reload, and **Clear** on a card empties that slot.
+  Under them are the step's notes and what is still open. Every step names its spec and section, linked into the docs tab.
+- **Only the last step is live.** Its settings are the controls for that kind of step:
+  - the tree editor, grid size, leaf conditions and mirror pairs for the tree;
+  - a solver's model and settings for a solve;
+  - the bounds for closing;
+  - the stub, picked on the live sheet and tree;
+  - the pleats for the crease pattern.
 
-The workbench is `src/TreeMaker.Web/wwwroot/workbench.js`.
+  Running it replaces its output. Every earlier step is frozen: its settings, input and output are shown as they were, with no controls.
+- **Next step.** Under the live step, the moves on offer depend on its kind and its output:
+
+  | After | You can |
+  |---|---|
+  | the tree | solve, with any solver: the solvers are listed with how well each suits the tree |
+  | a layout with open polygons | close the polygons, add a stub, or solve again |
+  | a stub | solve just the stubs (suggested), close the polygons, or add another stub |
+  | valid polygons | build the crease pattern (suggested), or solve again |
+  | the crease pattern | nothing: this is the end of the path |
+
+  Choosing a move freezes the live step and adds the new one.
+- **Solving after the first layout** has a **Which leaves** choice:
+  - **Solve all leaves** starts from the previous layout. A warning says this can make large changes and throw away refinements from earlier steps, such as where stubs were put and the lengths found by closing.
+  - **Solve just the stubs** holds every other leaf where it is, as a Fixed condition.
+
+  A running solve can be cancelled.
+- **Go back to this step**, on any frozen step, makes it the live step again and drops the steps after it. It asks once to confirm.
+- **The sidebar outlines the session**, one line per step. From there, **Save the session** writes it whole (every step with its settings, input and output) as a `treemaker-session` file, version 2 ([docs/FILE-FORMATS.md](docs/FILE-FORMATS.md)). **Open…** reads a session, layout or tree file, and **New session** starts again from step 1's tree.
+- **Opening a layout file** starts a new session: its tree as step 1 and the layout as step 2.
+- **Kept between visits.** The session is kept in the browser and survives a reload. The map shows it in short, with **Continue the session**.
+
+`workbench.js` still holds the live step's state for the drawing code (the sheet, the polygons, the folded base), but it is internal: there is no workbench in the interface.
 
 ## Where the code is
 
@@ -112,9 +135,7 @@ Every part of the app shows the tree and the sheet side by side, as one widget: 
 
 A row of toggles above the sheet chooses what it shows: leaf circles, every pair and, once they exist, the polygons and the creases.
 
-In the steps after a layout (Close the polygons, Add stubs, Crease pattern, Folded base), the tree is the workbench layout's, and it is locked. Edit it in the Tree node or a solver.
-
-Close the polygons, Crease pattern and Folded base are one page. Each map box opens it at its own part.
+The tree can be edited only while the tree is the session's live step. In every later step it is locked: go back to step 1 to change it.
 
 The editor works the same everywhere it can edit.
 
@@ -126,36 +147,16 @@ The editor works the same everywhere it can edit.
 - **Rename a vertex.** Double-click it.
 - **Pin or mirror a leaf.** Click a leaf to open its menu. The small square stands for the sheet: click a corner or a side to pin the leaf there, or the centre to free it. The menu can also put the leaf on the symmetry axis (2x = N, N even) or at a grid point. **Mirror with another leaf…** then a click on the partner makes a mirror pair (x_a + x_b = N, y_a = y_b). The drawing shows each condition as a tag under the leaf and each pair as a dashed line, and the leaf conditions list in the sidebar follows. Esc or a click elsewhere closes the menu or cancels the pick.
 - **Pure MILP and Symmetry-Breaking MILP only:** click an edge to add it to, or remove it from, the stretch set S, which edge optimization uses.
-- **Grid units.** The editor's background is the sheet's N × N grid, one cell per grid unit, at the sheet's size. **Leaf circles** (on by default) have the sheet's radius, m·ℓ grid units, so they match the circles on the sheet and keep their size when you drag. m is the workbench layout's scale when that layout is of this tree. Before a solve it is m̄ = √2·N / (the longest leaf-to-leaf path), the largest scale any layout can reach. A note in the corner says which m is in use. The edges are still a sketch: their drawn lengths aren't to scale.
+- **Grid units.** The editor's background is the sheet's N × N grid, one cell per grid unit, at the sheet's size. **Leaf circles** (on by default) have the sheet's radius, m·ℓ grid units, so they match the circles on the sheet and keep their size when you drag. m is the session's layout scale when there is a layout of this tree. Before a solve it is m̄ = √2·N / (the longest leaf-to-leaf path), the largest scale any layout can reach. A note in the corner says which m is in use. The edges are still a sketch: their drawn lengths aren't to scale.
 - **Layout.** **Tidy** lays the tree out again. **Enlarge** opens the editor nearly full screen.
 - **Mirrored trees.** A tree with mirror pairs, such as the centipede presets, is drawn bilaterally: the body is a straight vertical line and each leg sits on its own side, opposite its partner. The longest flaps at the head and tail (antennae, cerci) point forward and back. The drawing is a sketch, not to scale: short body segments are spaced out so the legs don't overlap. The mirror pairs themselves make every solver place each pair symmetrically about the sheet's vertical axis, x_a + x_b = N. The folded base draws its stick figure the same way, to scale: the body straight and each leg opposite its partner.
-- **Facing the sheet.** Once there is a layout on the workbench for this tree, the tree drawing and the folded base turn to face the way the leaves sit on the sheet: a centipede's head points where its first legs landed, and left and right match the crease pattern. A tree without mirror pairs is turned by the rotation (or mirror image) that best matches its leaves' directions. A drawing you've arranged by dragging stays as you left it; **Tidy** re-orients it.
+- **Facing the sheet.** Once the session has a layout for this tree, the tree drawing and the folded base turn to face the way the leaves sit on the sheet: a centipede's head points where its first legs landed, and left and right match the crease pattern. A tree without mirror pairs is turned by the rotation (or mirror image) that best matches its leaves' directions. A drawing you've arranged by dragging stays as you left it; **Tidy** re-orients it.
 
 The server tells the browser not to cache the page, and the scripts are versioned, so an updated app always loads its new scripts.
 
 ## Toward a crease pattern (the steps after a solve)
 
-After a solve, everything else happens in **the session**: one page that grows with every step (`workflow.js`). The Close the polygons, Add stubs, Crease pattern and Folded base boxes on the map all open it, each with its own move ready. Solving, closing by strain, adding stubs and building the crease pattern are all moves on one state (the tree, the leaf positions, the edge lengths and the conditions) toward polygons that are all valid.
-
-- **Each step shows its input and its output as tree widgets.** Each widget is the state's tree beside its sheet, both in grid units, with:
-  - the leaf circles and the polygons;
-  - the tight paths and the loose hull sides;
-  - the creases, once built.
-
-  The output marks what the step changed: added edges and stubs in red, changed lengths in amber with their new values, and moved leaves with a ghost where they were. Under the widgets are the step's notes and what is still open.
-- **Add a step** sits at the end of the page. It holds the live widget, which is the current state (point at leaves and pairs, or pick a stub on it), and four moves:
-  - **Solve** with any of the five solvers, using that solver's settings from its own page, with a time limit. It can **solve all leaves**, starting from the current layout. A warning says this can move every leaf, making large changes and throwing away earlier refinements such as stub placements and closed lengths. Or it can **solve just the stubs**, holding every other leaf where it is as a Fixed condition. A running solve shows as a step in progress with **Cancel**.
-  - **Close the polygons**: automatically (the strain needed) or within bounds you choose.
-  - **Add a stub** (below).
-  - **Build the crease pattern**, optionally pleated, once every polygon is valid. The folded base shows below the session.
-
-  The moves that fit the current state are marked *suggested*, and the last step says what to try next.
-- **Steps are only added.** **Continue from here** keeps the steps up to that one and drops the rest. **Redo from here** drops that step and the ones after it, so you can choose its move again from its input.
-- **Save the session** writes the whole document, with every step's input and output, as a `treemaker-session` file (`schemas/treemaker-session.schema.json`, [docs/FILE-FORMATS.md](docs/FILE-FORMATS.md)). **Open…** reads it back.
-- **A new layout starts a new session.** That means a solve on a solver's own page, or opening a layout file. The last step's output is always what the workbench holds.
-- **The sidebar lists the steps**, for a quick overview.
-
-The moves run the code in `src/TreeMaker.Core`:
+After a solve, the session's next steps close the polygons and build the crease pattern (see *The session* above). The moves run the code in `src/TreeMaker.Core`:
 
 1. **Check the polygons** (`ActivePaths`, `POST /api/polygons`). TreeMaker's universal-molecule construction needs the tight pairs (active paths) to divide the leaves' convex hull into polygons. Each polygon must be convex, bounded by tight paths, and empty of leaves. The panel lists what's missing: open boundary pieces, crossing paths, non-convex polygons, leaves inside a polygon, and uncovered area. The sheet marks what still needs closing:
    - Valid polygons are shaded.
@@ -177,13 +178,8 @@ The moves run the code in `src/TreeMaker.Core`:
 
 If **Build the crease pattern** stays greyed out, the polygons aren't valid yet. **Find the strain needed** first solves two linear programs. One finds the smallest strain bound ±s that makes the hull's boundary pairs tight. Valid polygons need those pairs tight, so this is a lower bound, and when no strain manages it the button says so at once. The other finds the smallest bound that makes the whole triangulation tight, which is an upper bound. If tightening the boundary already gives valid polygons, that bound is the answer. Otherwise the button bisects between the two bounds with the closing MILP, to within 0.01. It then closes the polygons at the bound found.
 
-**Progress strip.** Every part of the app has a strip at the top: Tree → Solve a layout → Close the polygons → Crease pattern → Folded base.
-- Each card shows what the workbench holds for that step.
-- The first step not yet done is marked **next**, and the marker moves on by itself as soon as a step is satisfied.
-- The card for the part you're in is outlined. Click any card to go there.
-
-**Add a stub** (`stubs.js`; the map's Add stubs box opens the session at this move) splits an open polygon the TreeMaker way. A stub is a new short leaf edge hung from a joint of the tree, with its leaf inside the polygon. Its leaf goes on a grid point X, so the layout stays a grid layout. Hung from joint v, at the layout's scale m, the longest stub that keeps every pair feasible is ℓ = min over leaves a of (|X − P_a| / m − d(v, a)), and the leaves that reach that minimum are tight to it.
-- It works on the live widget. The tree editor is locked against edits: the proposed stub is a dashed edge, and clicking a joint hangs the stub there. On the sheet, the open region is outlined and the stub is drawn with its circle and its tight paths. Clicking a grid point inside the region moves the stub there.
+**Add a stub** (`stubs.js`), a step of its own, splits an open polygon the TreeMaker way. A stub is a new short leaf edge hung from a joint of the tree, with its leaf inside the polygon. Its leaf goes on a grid point X, so the layout stays a grid layout. Hung from joint v, at the layout's scale m, the longest stub that keeps every pair feasible is ℓ = min over leaves a of (|X − P_a| / m − d(v, a)), and the leaves that reach that minimum are tight to it.
+- It works on the live step's tree and sheet. The tree editor is locked against edits: the proposed stub is a dashed edge, and clicking a joint hangs the stub there. On the sheet, the open region is outlined and the stub is drawn with its circle and its tight paths. Clicking a grid point inside the region moves the stub there.
 - **Find the best stub here** tries every joint and free grid point in the region. It prefers the most leaves tight, then the longest stub.
 - **Add this stub** adds the leaf `s1`, `s2`, … to the tree and to the layout, at the same scale, as a new step. A grid point seldom makes three leaves tight at once, so afterwards either solve just the stubs or close the polygons to tighten what is left.
 
@@ -245,14 +241,15 @@ The base and optimized times come from Python prototypes of their algorithms, wi
 
 ## Tree and layout files
 
-- **Open…** and **Save tree** are in the Tree panel. **Save layout** is under the sheet, and on the map's Layout card. **Open a file…** is also on the map and in the steps' sidebar.
+- **Open…** and **Save tree** are in the tree step. **Save layout** is under the sheet. **Open…** in the session's sidebar and **Open a file…** on the map read any of the three kinds.
 - A tree file holds the tree, grid size, leaf conditions and mirror pairs.
-- A layout file holds a solved layout with its tree, scale and edge lengths. Opening it puts it on the workbench as the layout, so the steps after a solve can start from it at once, and the next solve in any solver whose tree it fits starts from it.
+- A layout file holds a solved layout with its tree, scale and edge lengths. Opening it starts a new session from it.
+- A session file holds the whole session.
 - The formats are in `docs/FILE-FORMATS.md`, and their JSON Schemas are in `schemas/`.
 
 ## Starting a new solve
 
-**Solve** clears everything left on the page from the previous solve as soon as you press it: the sheet, the polygons and creases, the folded base, the tables and the traces. Any answer still arriving for the old layout is dropped. Moving to another node of the map clears the page the same way; the workbench keeps the results.
+**Solve** clears everything left on the page from the previous solve as soon as you press it: the sheet, the polygons and creases, the folded base, the tables and the traces. Any answer still arriving for the old layout is dropped. Moving to another part of the app clears the page the same way; the session keeps the results.
 
 ## Defaults
 

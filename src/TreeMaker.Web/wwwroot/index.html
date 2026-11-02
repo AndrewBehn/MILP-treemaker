@@ -7,10 +7,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=20261101s">
+  <link rel="stylesheet" href="styles.css?v=20261101v">
 </head>
 <body data-view="map">
-  <!-- ───────────── Top bar: the way back to the map, where you are, and the workbench ───────────── -->
+  <!-- ───────────── Top bar: the way back to the map, and where you are ───────────── -->
   <header class="topbar">
     <a class="home" href="#/" title="Back to the map">
       <svg class="mark small" viewBox="0 0 40 40" aria-hidden="true">
@@ -28,7 +28,7 @@
       <span id="crumbNode" class="crumb-node"></span>
       <a id="crumbSpec" class="spec-link" target="treemaker-specs" hidden>Spec ↗</a>
     </nav>
-    <div id="shelf" class="shelf" role="group" aria-label="Workbench: what carries over between steps"></div>
+    <div id="shelf" class="shelf" hidden></div>
     <a id="specsButton" class="specs-button" href="docs.html#/" target="treemaker-specs" title="The specification documents, in their own tab">Specs ↗</a>
   </header>
 
@@ -37,7 +37,7 @@
     <div class="map-head">
       <div>
         <h1>Pick a spec to run, or a step to continue</h1>
-        <p>Each box is one specification document and the part of the app that implements it. A tree goes into one of the layout solvers; the layout it finds goes on the workbench and carries over to the steps after it. Click a box to open it; <b>← Map</b> brings you back here. A box's <b>Spec ↗</b> tag opens its document in a separate tab: the models, the algorithms and why they are exact.</p>
+        <p>Each box is one specification document and the part of the app that implements it. A tree goes into one of the layout solvers, and the session carries the layout it finds on to closing the polygons and the crease pattern. Click a box to open it; <b>← Map</b> brings you back here. A box's <b>Spec ↗</b> tag opens its document in a separate tab: the models, the algorithms and why they are exact.</p>
       </div>
       <div class="map-tools">
         <button id="mapOpen" type="button" class="on-mat">Open a file…</button>
@@ -53,21 +53,46 @@
       <span><i class="lg build"></i>Spec builds on</span>
       <span><i class="lg hand"></i>Spec hands off to</span>
       <span><i class="lg cite"></i>Spec cites</span>
-      <span><i class="lg held"></i>Holds what is on the workbench</span>
+      <span><i class="lg held"></i>Holds the session's current result</span>
     </div>
     <section class="bench" aria-labelledby="benchTitle">
       <div class="bench-head">
-        <h2 id="benchTitle">Workbench</h2>
-        <p>What carries over from one part of the app to the next. Each step starts from what is here; a new result replaces the result of that step and clears the steps after it. It is kept in this browser between visits.</p>
+        <h2 id="benchTitle">The session</h2>
+        <p>One document from a tree to a crease pattern: every step with its settings, input and output. Each box above opens the session at its step. It is kept in this browser between visits; <b>Save the session</b> writes it to a file.</p>
       </div>
       <div id="benchCards" class="bench-cards"></div>
     </section>
   </main>
 
   <!-- ───────────── The workspace: one node of the map ───────────── -->
-  <div id="workView" class="app" hidden>
-    <aside class="panel">
-      <header class="brand node-head">
+  <div id="workView" class="app session" hidden>
+    <!-- The outline of the session: one line per step; the file holds them all. -->
+    <aside class="panel outline-panel">
+      <div class="outline">
+        <p class="kicker">The session</p>
+        <input id="docName" type="text" placeholder="Name this session" aria-label="Session name">
+        <div class="row gap-s wrap">
+          <button id="docSave" type="button" class="quiet small" title="Save every step, with its settings, input and output, as a .json session file">Save the session</button>
+          <button id="stepOpenFile" type="button" class="quiet small" title="Open a session file, a layout file or a tree file (.json)">Open…</button>
+          <button id="docNew" type="button" class="quiet small" title="Start a new session from the tree of step 1">New session</button>
+        </div>
+        <ol id="docOutline" class="outline-list"></ol>
+        <p class="hint">Only the last step can be changed. To change an earlier one, go back to it: the steps after it are dropped.</p>
+      </div>
+    </aside>
+
+    <!-- ───────────── The session: every step from the tree to the crease pattern, one document ───────────── -->
+    <main class="mat">
+      <div class="doc-head">
+        <h2>From a tree to a crease pattern</h2>
+        <p class="muted">Each step shows its settings, its input and its output (the tree beside the sheet). Earlier steps are frozen; the last one is live.</p>
+      </div>
+      <ol id="docSteps" class="doc-steps"></ol>
+
+      <!-- The last step: its settings, its input and its live output. -->
+      <section id="finalStep" class="doc-step final">
+      <header class="brand node-head final-head">
+        <span id="finalNo" class="doc-no"></span>
         <div>
           <p id="nodeKicker" class="kicker"></p>
           <h1 id="nodeTitle"></h1>
@@ -75,21 +100,10 @@
           <p id="nodeSpec" class="node-spec"></p>
         </div>
       </header>
-
-      <!-- Steps after a solve: what they start from. -->
-      <section class="block" data-nodes="close stubs creases fold">
-        <h2>Starting point</h2>
-        <div id="heldSummary" class="held-summary"></div>
-        <div id="docSide" class="hist-side" hidden>
-          <h3>Steps so far</h3>
-          <ol id="docOutline"></ol>
-        </div>
-        <div class="row gap-s wrap">
-          <button id="stepOpenFile" class="quiet" type="button" title="Open a session file, or a solved layout file to start a new session from (.json)">Open a session or layout…</button>
-        </div>
-      </section>
-
-      <section class="block" data-nodes="tree pure sym hull optimized scalable">
+        <div id="finalInput" class="final-input"></div>
+        <div class="final-config">
+          <h3 class="part">Settings</h3>
+      <section class="block" data-nodes="tree">
         <h2>Tree details</h2>
         <details class="edge-table">
           <summary>Edit as a table</summary>
@@ -258,7 +272,7 @@
         </details>
       </section>
 
-      <section class="block" data-nodes="tree pure sym hull optimized scalable">
+      <section class="block" data-nodes="tree">
         <h2>Leaf conditions</h2>
         <p class="hint">Pin leaves to an edge, a corner, the symmetry axis or a grid point, here or by clicking a leaf on the tree. <span class="ref" data-doc="pure">Sections 7.1–7.5</span></p>
         <table class="conditions">
@@ -275,11 +289,61 @@
           <button id="addMirror" class="quiet" type="button">Add pair</button>
         </div>
       </section>
-    </aside>
-
-    <!-- ───────────── Mat: the solve and its results ───────────── -->
-    <main class="mat">
-      <nav id="flowStrip" class="flow-strip" aria-label="Progress through the workflow" hidden></nav>
+      <section id="whichBlock" class="block move-block" data-nodes="pure sym hull optimized scalable" hidden>
+        <h2>Which leaves</h2>
+            <fieldset class="which">
+              <legend>Which leaves</legend>
+              <label><input type="radio" name="solveWhich" value="all" checked> <b>Solve all leaves</b>, starting from this layout</label>
+              <p id="solveWarning" class="warning" hidden>⚠ Solving all leaves can move every leaf. It may make large changes and throw away refinements from earlier steps: where stubs were put, and lengths found by closing.</p>
+              <label><input type="radio" name="solveWhich" value="stubs"> <b>Solve just the stubs</b></label>
+              <p id="solveStubsNote" class="btn-note"></p>
+            </fieldset>
+      </section>
+      <section class="block move-block" data-nodes="close">
+        <h2>Close the polygons</h2>
+            <p id="closeValidNote" class="crease-note good" hidden>Every polygon is already valid: nothing to close.</p>
+            <div class="close-ways">
+              <div class="close-way">
+                <h4>Automatic <span class="muted">(recommended)</span></h4>
+                <button id="docAuto" type="button" class="primary small-primary ">Find the strain needed and close</button>
+                <p class="btn-note">Searches for the smallest strain bound ±s that closes every polygon and closes them with it. The leaves and the scale stay; edge lengths change. <span class="ref" data-doc="closing">A:4</span></p>
+              </div>
+              <div class="close-or" aria-hidden="true">or</div>
+              <div class="close-way">
+                <h4>Within bounds you choose</h4>
+                <div class="row gap-s">
+                  <label class="field">Lowest σ_min <input id="docStrainMin" type="number" min="-0.99" max="0" step="0.05" value="-0.3"></label>
+                  <label class="field">Highest σ_max <input id="docStrainMax" type="number" min="0" step="0.05" value="0.3"></label>
+                </div>
+                <button id="docBounds" type="button" class="quiet small ">Close within these bounds</button>
+                <p class="btn-note">Makes as many pairs tight as these bounds allow, hull sides first. Some polygons may stay open. <span class="ref" data-doc="closing">A:2</span></p>
+              </div>
+            </div>
+                </section>
+      <section class="block move-block" data-nodes="stubs">
+        <h2>Add a stub</h2>
+            <p class="btn-note">A stub is a new short leaf edge. Its leaf goes on a grid point inside an open polygon, as long as every pair still fits at this scale, so the tight paths to it split the polygon. Click inside an open region on the sheet above, or a joint on the tree. <span class="ref" data-doc="closing">Section 10</span></p>
+            <p id="stubState" class="stub-state"></p>
+            <div id="stubRegions" class="stub-regions"></div>
+            <div id="stubFacts" class="held-summary"></div>
+            <div class="stub-actions">
+              <button id="addStub" type="button" class="primary small-primary " disabled>Add this stub</button>
+              <p class="btn-note">Adds <b id="stubName">a new leaf</b> to the tree, hung from the joint shown, at the grid point shown. The scale doesn't change.</p>
+              <button id="bestStub" type="button" class="quiet small" disabled>Find the best stub here</button>
+              <p class="btn-note">Tries every joint and every free grid point in the region: the most leaves tight, then the longest stub.</p>
+            </div>
+                </section>
+      <section class="block move-block" data-nodes="creases">
+        <h2>Build the crease pattern</h2>
+            <div class="pleat-row">
+              <label class="check"><input id="docPleatOn" type="checkbox"> Pleat the flaps to reduce the base's height</label>
+              <label class="inline-field">to height (grid units) <input id="docPleatHeight" type="number" min="0.05" step="0.25" value="1" disabled></label>
+            </div>
+            <button id="docBuild" type="button" class="primary small-primary " disabled>Build the crease pattern</button>
+            <p id="docBuildNote" class="btn-note"></p>
+            <p class="btn-note">Fills every polygon with Lang's universal molecule (ridges, hinges, gussets), then folds it and checks every facet; the folded base shows below. <span class="ref" data-doc="crease">A:1</span></p>
+                </section>
+        </div>
       <div class="toolbar">
         <div id="analysis" class="analysis" aria-live="polite"></div>
         <div class="run">
@@ -290,13 +354,6 @@
       </div>
       <div id="analysisError" class="mat-error" hidden></div>
 
-      <!-- Tree node: which solver to send the tree to. -->
-      <section id="pickCard" class="slip wide pick" hidden>
-        <h2>Send this tree to a layout solver</h2>
-        <p class="hint">Each solver is one spec. The faster ones handle bigger trees; the exact ones prove the best scale.</p>
-        <div id="pickList" class="pick-list"></div>
-      </section>
-
       <!-- Steps: nothing to start from yet. -->
       <section id="needCard" class="slip wide need" hidden>
         <h2 id="needTitle"></h2>
@@ -304,6 +361,8 @@
         <div id="needActions" class="row gap-s wrap"></div>
       </section>
 
+        <div class="final-output">
+          <h3 class="part">Output</h3>
       <div class="stage-area" id="stageArea">
         <!-- One widget: the tree and the sheet side by side, sharing what is selected (linked.js). -->
         <div class="duo">
@@ -375,7 +434,7 @@
           </div>
           <figcaption class="sheet-controls">
             <button id="saveLayout" type="button" class="on-mat small" disabled title="Save this layout, its scale and edge lengths as a .json layout file">Save layout</button>
-            <label id="startRow" class="check" hidden><input id="useStart" type="checkbox" checked> Start the next solve from the workbench layout<span id="startNote" class="muted"></span></label>
+            <label id="startRow" class="check" hidden><input id="useStart" type="checkbox" checked> Start the solve from the previous step's layout<span id="startNote" class="muted"></span></label>
             <span class="key"><i class="k-tight"></i>At minimum spacing</span>
             <span class="key"><i class="k-loose"></i>Has slack</span>
             <span id="polyKeys" class="poly-keys" hidden>
@@ -394,96 +453,6 @@
           <div id="messages"></div>
         </section>
       </div>
-
-      <nav id="nextBar" class="next-bar" hidden aria-label="Next step"></nav>
-
-      <!-- The workflow document (workflow.js): every step after the tree, with its input and output. -->
-      <section id="docCard" class="doc" hidden>
-        <div class="doc-head">
-          <div>
-            <h2>The session, step by step</h2>
-            <p class="muted">Each step shows its input and its output: the tree beside the sheet. Steps are only added; continue or redo from any step to take another path.</p>
-          </div>
-          <div class="doc-file">
-            <input id="docName" type="text" placeholder="Name this session" aria-label="Session name">
-            <button id="docSave" type="button" class="on-mat small" title="Save every step, with its input and output, as a .json session file">Save the session</button>
-          </div>
-        </div>
-        <ol id="docSteps" class="doc-steps"></ol>
-
-        <section id="docAdd" class="doc-add">
-          <h2>Add a step</h2>
-          <p class="muted">The current state, live: point at leaves and pairs, or pick a stub on it. Then choose a move.</p>
-          <div id="docLive" class="doc-live"></div>
-          <div class="move-tabs" role="tablist" aria-label="Moves">
-            <button type="button" class="move-tab" role="tab" data-move="solve">Solve</button>
-            <button type="button" class="move-tab" role="tab" data-move="close">Close the polygons</button>
-            <button type="button" class="move-tab" role="tab" data-move="stub">Add a stub</button>
-            <button type="button" class="move-tab" role="tab" data-move="creases">Build the crease pattern</button>
-          </div>
-          <p id="docMoveNote" class="doc-move-note" aria-live="polite"></p>
-
-          <div class="move-panel" data-move="solve" role="tabpanel">
-            <div class="row gap-s wrap move-fields">
-              <label class="field">Solver <select id="docSolver"></select></label>
-              <label class="field">Time limit (s) <input id="docTimeLimit" type="number" min="1" step="1" value="60"></label>
-            </div>
-            <fieldset class="which">
-              <legend>Which leaves</legend>
-              <label><input type="radio" name="solveWhich" value="all" checked> <b>Solve all leaves</b>, starting from this layout</label>
-              <p id="solveWarning" class="warning" hidden>⚠ Solving all leaves can move every leaf. It may make large changes and throw away refinements from earlier steps: where stubs were put, and lengths found by closing.</p>
-              <label><input type="radio" name="solveWhich" value="stubs"> <b>Solve just the stubs</b></label>
-              <p id="solveStubsNote" class="btn-note"></p>
-            </fieldset>
-            <button id="docRunSolve" type="button" class="primary small-primary run">Run the solve</button>
-            <p class="btn-note">Uses the solver's settings from its own page. The new layout becomes this step's output; Cancel stops it while it runs.</p>
-          </div>
-
-          <div class="move-panel" data-move="close" role="tabpanel" hidden>
-            <p id="closeValidNote" class="crease-note good" hidden>Every polygon is already valid: nothing to close.</p>
-            <div class="close-ways">
-              <div class="close-way">
-                <h4>Automatic <span class="muted">(recommended)</span></h4>
-                <button id="docAuto" type="button" class="primary small-primary run">Find the strain needed and close</button>
-                <p class="btn-note">Searches for the smallest strain bound ±s that closes every polygon and closes them with it. The leaves and the scale stay; edge lengths change. <span class="ref" data-doc="closing">A:4</span></p>
-              </div>
-              <div class="close-or" aria-hidden="true">or</div>
-              <div class="close-way">
-                <h4>Within bounds you choose</h4>
-                <div class="row gap-s">
-                  <label class="field">Lowest σ_min <input id="docStrainMin" type="number" min="-0.99" max="0" step="0.05" value="-0.3"></label>
-                  <label class="field">Highest σ_max <input id="docStrainMax" type="number" min="0" step="0.05" value="0.3"></label>
-                </div>
-                <button id="docBounds" type="button" class="quiet small run">Close within these bounds</button>
-                <p class="btn-note">Makes as many pairs tight as these bounds allow, hull sides first. Some polygons may stay open. <span class="ref" data-doc="closing">A:2</span></p>
-              </div>
-            </div>
-          </div>
-
-          <div class="move-panel" data-move="stub" role="tabpanel" hidden>
-            <p class="btn-note">A stub is a new short leaf edge. Its leaf goes on a grid point inside an open polygon, as long as every pair still fits at this scale, so the tight paths to it split the polygon. Click inside an open region on the sheet above, or a joint on the tree. <span class="ref" data-doc="closing">Section 10</span></p>
-            <p id="stubState" class="stub-state"></p>
-            <div id="stubRegions" class="stub-regions"></div>
-            <div id="stubFacts" class="held-summary"></div>
-            <div class="stub-actions">
-              <button id="addStub" type="button" class="primary small-primary run" disabled>Add this stub</button>
-              <p class="btn-note">Adds <b id="stubName">a new leaf</b> to the tree, hung from the joint shown, at the grid point shown. The scale doesn't change.</p>
-              <button id="bestStub" type="button" class="quiet small" disabled>Find the best stub here</button>
-              <p class="btn-note">Tries every joint and every free grid point in the region: the most leaves tight, then the longest stub.</p>
-            </div>
-          </div>
-
-          <div class="move-panel" data-move="creases" role="tabpanel" hidden>
-            <div class="pleat-row">
-              <label class="check"><input id="docPleatOn" type="checkbox"> Pleat the flaps to reduce the base's height</label>
-              <label class="inline-field">to height (grid units) <input id="docPleatHeight" type="number" min="0.05" step="0.25" value="1" disabled></label>
-            </div>
-            <button id="docBuild" type="button" class="primary small-primary run" disabled>Build the crease pattern</button>
-            <p id="docBuildNote" class="btn-note"></p>
-            <p class="btn-note">Fills every polygon with Lang's universal molecule (ridges, hinges, gussets), then folds it and checks every facet; the folded base shows below. <span class="ref" data-doc="crease">A:1</span></p>
-          </div>
-        </section>
-      </section>
 
       <div class="tables">
         <section id="creaseCard" class="slip wide crease" hidden>
@@ -507,7 +476,7 @@
           </div>
           <div class="crease-complete crease-step" data-step="2">
             <h3><span class="step-no">2</span> Close the polygons <span id="stepCloseState" class="step-state"></span></h3>
-            <p class="hint">Keeps every leaf where it is and the scale fixed, and stretches or shrinks edges (strain σ) until the open pairs become tight paths. Choose one way. A polygon with a leaf inside, or one that needs too much strain, can be split with a stub first (<a href="#/stubs">Add stubs</a>).</p>
+            <p class="hint">Keeps every leaf where it is and the scale fixed, and stretches or shrinks edges (strain σ) until the open pairs become tight paths. Choose one way.</p>
             <p id="closeSkip" class="crease-note good" hidden>Nothing to close: every polygon is already valid. Go on to step 3.</p>
             <div class="close-ways">
               <div class="close-way">
@@ -586,23 +555,40 @@
           <div class="table-wrap"><table id="edgesTable" class="data"></table></div>
         </section>
       </div>
+        </div>
+        <div id="finalNotes" class="final-notes"></div>
+      </section>
+
+      <!-- What can follow the last step. -->
+      <section id="nextMenu" class="next-menu" hidden>
+        <h2>Next step</h2>
+        <p id="nextIntro" class="muted"></p>
+        <div id="nextMoves" class="next-moves"></div>
+      <!-- Tree node: which solver to send the tree to. -->
+      <section id="pickCard" class="slip wide pick" hidden>
+        <h2>Send this tree to a layout solver</h2>
+        <p class="hint">Each solver is one spec. The faster ones handle bigger trees; the exact ones prove the best scale.</p>
+        <div id="pickList" class="pick-list"></div>
+      </section>
+
+      </section>
     </main>
   </div>
 
   <input id="fileInput" type="file" accept=".json,application/json" hidden>
 
-  <script src="nodes.js?v=20261101s"></script>
-  <script src="workbench.js?v=20261101s"></script>
-  <script src="tree-editor.js?v=20261101s"></script>
-  <script src="polygons.js?v=20261101s"></script>
-  <script src="stubs.js?v=20261101s"></script>
-  <script src="workflow.js?v=20261101s"></script>
-  <script src="linked.js?v=20261101s"></script>
-  <script src="folded.js?v=20261101s"></script>
-  <script src="files.js?v=20261101s"></script>
-  <script src="solvers.js?v=20261101s"></script>
-  <script src="map.js?v=20261101s"></script>
-  <script src="specs.js?v=20261101s"></script>
-  <script src="app.js?v=20261101s"></script>
+  <script src="nodes.js?v=20261101v"></script>
+  <script src="workbench.js?v=20261101v"></script>
+  <script src="tree-editor.js?v=20261101v"></script>
+  <script src="polygons.js?v=20261101v"></script>
+  <script src="stubs.js?v=20261101v"></script>
+  <script src="workflow.js?v=20261101v"></script>
+  <script src="linked.js?v=20261101v"></script>
+  <script src="folded.js?v=20261101v"></script>
+  <script src="files.js?v=20261101v"></script>
+  <script src="solvers.js?v=20261101v"></script>
+  <script src="map.js?v=20261101v"></script>
+  <script src="specs.js?v=20261101v"></script>
+  <script src="app.js?v=20261101v"></script>
 </body>
 </html>

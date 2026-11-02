@@ -2,86 +2,309 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/AndrewBehn/MILP-treemaker/schemas/treemaker-session.schema.json",
   "title": "TreeMaker session",
-  "description": "A workflow document saved whole: every step after a tree (solve, close the polygons, add a stub, build the crease pattern) with its input and output state. Saved by the app's \"Save the session\" (workflow.js); opening it makes it the document again and puts the last output on the workbench.",
+  "description": "The session saved whole: every step from the tree (step 1) to the crease pattern, each with its settings, input and output. Saved by the app's \"Save the session\" (workflow.js); opening it makes it the session again, at its last step. Version 1 (without the tree step) is still read.",
   "type": "object",
-  "required": ["format", "version", "steps"],
+  "required": [
+    "format",
+    "version",
+    "steps"
+  ],
   "properties": {
-    "format": { "const": "treemaker-session" },
-    "version": { "const": 1 },
-    "name": { "type": "string" },
-    "savedAt": { "type": "string", "format": "date-time" },
-    "steps": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/step" } }
+    "format": {
+      "const": "treemaker-session"
+    },
+    "version": {
+      "enum": [
+        1,
+        2
+      ]
+    },
+    "name": {
+      "type": "string"
+    },
+    "savedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/step"
+      }
+    }
   },
   "$defs": {
     "step": {
       "type": "object",
-      "required": ["kind", "title", "input", "output"],
+      "required": [
+        "kind",
+        "input",
+        "output"
+      ],
       "properties": {
-        "kind": { "enum": ["solve", "close", "stub", "creases"] },
-        "title": { "type": "string" },
+        "kind": {
+          "enum": [
+            "tree",
+            "solve",
+            "close",
+            "stub",
+            "creases"
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
         "params": {
           "type": "object",
-          "description": "What the move was given. solve: solver (a map node id), which (\"all\" or \"stubs\"), timeLimit. close: auto, strainMin, strainMax. stub: attach, len, x, y, tight. creases: pleatHeight."
+          "description": "The step's settings. solve: which (\"all\" or \"stubs\"), timeLimit, options (the solver's own), or opened (a layout file's name). close: auto, strainMin, strainMax. stub: name, attach, len, x, y, tight. creases: pleatHeight."
         },
-        "input": { "$ref": "#/$defs/state" },
-        "output": { "$ref": "#/$defs/state" },
-        "notes": { "type": "array", "items": { "type": "string" } },
-        "ms": { "type": "number", "minimum": 0 },
-        "at": { "type": "string", "format": "date-time" }
+        "input": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/state"
+            }
+          ],
+          "description": "null for the tree step."
+        },
+        "output": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/state"
+            }
+          ],
+          "description": "null for a last step that has not run yet."
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "node": {
+          "type": "string",
+          "description": "The map node whose controls the step uses: tree, a solver's id, close, stubs or creases."
+        }
       }
     },
     "state": {
       "type": "object",
-      "required": ["problem"],
+      "required": [
+        "problem"
+      ],
       "properties": {
-        "problem": { "$ref": "#/$defs/problem" },
+        "problem": {
+          "$ref": "#/$defs/problem"
+        },
         "layout": {
           "oneOf": [
-            { "type": "null" },
+            {
+              "type": "null"
+            },
             {
               "type": "object",
-              "required": ["points", "scale"],
+              "required": [
+                "points",
+                "scale"
+              ],
               "properties": {
-                "node": { "type": "string", "description": "The map node that solved it, or \"file\"." },
-                "points": { "type": "array", "items": { "$ref": "#/$defs/point" } },
-                "scale": { "type": "number", "exclusiveMinimum": 0 },
-                "edgeLengths": { "oneOf": [{ "type": "null" }, { "type": "array", "items": { "type": "number", "exclusiveMinimum": 0 } }] },
-                "status": { "type": "string" }
+                "node": {
+                  "type": "string",
+                  "description": "The map node that solved it, or \"file\"."
+                },
+                "points": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/point"
+                  }
+                },
+                "scale": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "edgeLengths": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      }
+                    }
+                  ]
+                },
+                "status": {
+                  "type": "string"
+                }
               }
             }
           ]
         },
         "closure": {
           "description": "After closing the polygons: the strain bounds and the server's completion result (its edgeLengths[].newLength are the closed lengths).",
-          "oneOf": [{ "type": "null" }, { "type": "object", "properties": { "strainMin": { "type": "number" }, "strainMax": { "type": "number" }, "completion": { "type": "object" } } }]
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "strainMin": {
+                  "type": "number"
+                },
+                "strainMax": {
+                  "type": "number"
+                },
+                "completion": {
+                  "type": "object"
+                }
+              }
+            }
+          ]
         },
         "creases": {
           "description": "After building the crease pattern: the server's result, the edge lengths used, and the pleat height.",
-          "oneOf": [{ "type": "null" }, { "type": "object", "properties": { "result": { "type": "object" }, "lengths": { "type": "array", "items": { "type": "number" } }, "pleatHeight": { "type": ["number", "null"] } } }]
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "result": {
+                  "type": "object"
+                },
+                "lengths": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                "pleatHeight": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              }
+            }
+          ]
         },
-        "report": { "description": "The polygon check of the state's lengths, as /api/polygons returns it.", "oneOf": [{ "type": "null" }, { "type": "object" }] },
-        "stubs": { "type": "array", "items": { "type": "string" }, "description": "Leaves added as stubs." }
+        "report": {
+          "description": "The polygon check of the state's lengths, as /api/polygons returns it.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
+        "stubs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Leaves added as stubs."
+        }
       }
     },
     "problem": {
       "type": "object",
-      "required": ["edges", "gridSize"],
+      "required": [
+        "edges",
+        "gridSize"
+      ],
       "properties": {
         "edges": {
-          "type": "array", "minItems": 1,
+          "type": "array",
+          "minItems": 1,
           "items": {
-            "type": "object", "required": ["from", "to", "length"],
-            "properties": { "from": { "type": "string" }, "to": { "type": "string" }, "length": { "type": "number", "exclusiveMinimum": 0 }, "stretch": { "type": "boolean" } }
+            "type": "object",
+            "required": [
+              "from",
+              "to",
+              "length"
+            ],
+            "properties": {
+              "from": {
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              },
+              "length": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "stretch": {
+                "type": "boolean"
+              }
+            }
           }
         },
-        "gridSize": { "type": "integer", "minimum": 1 },
-        "leafConditions": { "type": "array", "items": { "type": "object", "required": ["leaf", "kind"] } },
-        "mirrorPairs": { "type": "array", "items": { "type": "object", "required": ["a", "b"] } }
+        "gridSize": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "leafConditions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "leaf",
+              "kind"
+            ]
+          }
+        },
+        "mirrorPairs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "a",
+              "b"
+            ]
+          }
+        }
       }
     },
     "point": {
-      "type": "object", "required": ["leaf", "x", "y"],
-      "properties": { "leaf": { "type": "string" }, "x": { "type": "integer" }, "y": { "type": "integer" } }
+      "type": "object",
+      "required": [
+        "leaf",
+        "x",
+        "y"
+      ],
+      "properties": {
+        "leaf": {
+          "type": "string"
+        },
+        "x": {
+          "type": "integer"
+        },
+        "y": {
+          "type": "integer"
+        }
+      }
     }
   }
 }

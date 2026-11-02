@@ -137,8 +137,8 @@ const treeFiles = (() => {
       return;
     }
     if (data?.format === "treemaker-session") {
-      if (data.version !== 1) fail(`${file.name} is session format version ${data.version}; this app reads version 1.`);
-      for (const [k, step] of (data.steps ?? []).entries()) checkTree(step.output?.problem ?? {}, `${file.name}, step ${k + 1}`);
+      if (data.version !== 1 && data.version !== 2) fail(`${file.name} is session format version ${data.version}; this app reads versions 1 and 2.`);
+      for (const [k, step] of (data.steps ?? []).entries()) checkTree((step.output ?? step.input)?.problem ?? {}, `${file.name}, step ${k + 1}`);
       workflowDoc.openFile(data, file.name);
       host.status?.(`Opened the session in ${file.name}: ${data.steps.length} steps.`);
       return;

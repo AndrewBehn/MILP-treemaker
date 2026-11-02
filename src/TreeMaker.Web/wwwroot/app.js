@@ -250,6 +250,11 @@ function buildRequest() {
   };
 }
 
+/** The request the Solve button sends: the live session step can hold every leaf but the stubs. */
+function solveRequest() {
+  return workflowDoc.adjustRequest(buildRequest());
+}
+
 async function postJson(url, body) {
   const response = await fetch(url, {
     method: "POST",
@@ -448,7 +453,7 @@ function renderTreeStats() {
     stat("Edges", p.edges.length.toLocaleString()),
     stat("Grid", `${p.gridSize} × ${p.gridSize}`),
   ];
-  if (state.node?.kind === "step" && workbench.layout) stats.push(stat("Scale m", fmt(workbench.layout.scale, 4), "workbench layout"));
+  if (state.node?.kind === "step" && workbench.layout) stats.push(stat("Scale m", fmt(workbench.layout.scale, 4), "this step's layout"));
   $("analysis").replaceChildren(...stats);
 }
 
@@ -476,7 +481,7 @@ async function solve() {
   const s = solver();
   if (!s || state.solving) return;
   const node = state.node;
-  const request = buildRequest();
+  const request = solveRequest();
   clearResults({ solving: true });
   const seq = state.viewSeq;
   state.solving = { node };
@@ -493,20 +498,22 @@ async function solve() {
       return;
     }
     const view = s.normalize(response);
-    // The result goes on the workbench even if you have moved to another node meanwhile.
+    // The result is the live session step's output, even if you have moved elsewhere meanwhile.
     if (view.layout.length) {
+      const live = workflowDoc.last();
       workbench.setLayout({
-        node: node.id, problem: buildProblemFrom(request), gridSize: request.gridSize,
+        node: node.id, problem: live?.kind === "solve" ? live.input.problem : buildProblemFrom(request), gridSize: request.gridSize,
         points: view.layout.map((p) => ({ leaf: p.leaf, x: p.x, y: p.y })), scale: view.scale,
         edgeLengths: view.edgeLengths.length ? view.edgeLengths.map((e) => e.newLength) : null,
-        status: view.status, polygonsValid: view.polygonsValid,
+        status: view.status, polygonsValid: view.polygonsValid, stubs: live?.input?.stubs ?? [],
       });
+      workflowDoc.solved(request, view, response, node);
     }
     if (state.node === node && state.viewSeq === seq) {
       showResponse(response, request, true);
       setStatus(s.statusText(response));
     } else {
-      setStatus(`${node.title}: ${s.statusText(response)}. The layout is on the workbench.`);
+      setStatus(`${node.title}: ${s.statusText(response)}. The layout is the output of the session's last step.`);
     }
   } catch (e) {
     setStatus("Error: " + e.message, "error");
@@ -549,7 +556,6 @@ function clearResults({ solving = false } = {}) {
   empty.hidden = false;
   for (const id of ALL_CARDS) { const card = $(id); if (card) card.hidden = true; }
   for (const id of ALL_PANES) $(id)?.replaceChildren();
-  $("nextBar").hidden = true;
 }
 
 /** Puts the empty sheet's own words back once the solve has finished. */
@@ -810,6 +816,7 @@ function changed({ structure = false } = {}) {
   if (structure) renderLeafControls();
   renderTreePreview();
   workbench.setTree(buildProblem());
+  workflowDoc.treeEdited();
   renderShelf();
   updateStartRow();
   scheduleAnalyze();
@@ -900,9 +907,10 @@ async function showHeldOnSolver() {
     if (seq !== state.viewSeq || node !== state.node) return;
     showResponse(response, request, false, heldSteps());
     const from = NODES[held.node]?.title ?? "a layout file";
-    setStatus(held.node === node.id ? "The workbench layout from this solver." : `Showing the workbench layout from ${from}; the next solve starts from it.`);
+    const f = workflowDoc.last();
+    setStatus(f.output ? "This step's layout." : `The previous step's layout (from ${from}): the solve starts from it.`);
   } catch (e) {
-    if (seq === state.viewSeq) { console.error(e.stack); setStatus("Could not show the workbench layout: " + e.message, "error"); }
+    if (seq === state.viewSeq) { console.error(e.stack); setStatus("Could not show the layout: " + e.message, "error"); }
   }
 }
 
@@ -911,12 +919,12 @@ async function importLayout({ points, scale, edgeLengths, name, solvedBy }) {
   const problem = buildProblem();
   const response = await postJson("/api/pure/layout", { problem: { ...problem, startLayout: null }, layout: points, scale, edgeLengths });
   const v = SOLVERS.pure.normalize(response);
-  workbench.setLayout({
-    node: "file", note: name, problem, gridSize: problem.gridSize, points, scale: v.scale,
-    edgeLengths: edgeLengths ?? null, status: "Imported" + (solvedBy ? ` (solved by ${solvedBy})` : ""),
-  });
-  setStatus(`Opened ${name}: the layout is on the workbench, ready for the steps after a solve and as the start of the next solve.`);
-  if (state.node) enterNode(state.node.id);
+  const status = "Imported" + (solvedBy ? ` (solved by ${solvedBy})` : "");
+  await workflowDoc.startFromLayout(problem, { points, scale: v.scale, edgeLengths: edgeLengths ?? null, status }, name);
+  workbench.setLayout({ node: "scalable", note: name, problem, gridSize: problem.gridSize, points, scale: v.scale, edgeLengths: edgeLengths ?? null, status });
+  setStatus(`Opened ${name}: a new session, its tree as step 1 and the layout as step 2.`);
+  location.hash = "#/scalable";
+  route();
 }
 
 // ───────────────────────── Steps after a solve ─────────────────────────
@@ -936,19 +944,12 @@ function showNeed(title, text, actions) {
 
 async function showStep(node) {
   const held = workbench.layout;
-  const summary = $("heldSummary");
-  renderHeldSummary(summary);
   $("resultCard").hidden = false;
   if (!held) {
     $("resultCard").hidden = true;
-    showNeed("No layout on the workbench yet", "Every step after a solve starts from a layout. Solve the tree with one of the layout solvers, or open a layout file.",
-      [["Pick a solver on the map", "#/", true], ["Edit the tree", "#/tree"]]);
+    showNeed("No layout yet", "This step starts from a layout: go back to an earlier step and solve the tree first.", []);
     return;
   }
-  if (node.id === "fold" && !workbench.creases?.result?.built) {
-    showNeed("No crease pattern yet", "The folded base comes from a crease pattern. Add the step \u201cBuild the crease pattern\u201d below once every polygon is valid.", []);
-  }
-  workflowDoc.render();
   const seq = state.viewSeq;
   try {
     const response = await evaluateLayout("pure", { ...held.problem, startLayout: null }, { ...held, edgeLengths: held.edgeLengths });
@@ -969,11 +970,11 @@ async function showStep(node) {
       // the live sheet and shows the folded base.
       creaseReadiness.focus("all");
       await creaseReadiness.restore(context, heldSteps());
-      if (seq === state.viewSeq) { workflowDoc.render(); scrollToStep(node.id); }
+      if (seq === state.viewSeq) workflowDoc.prepareLive();
     }
     renderNextBar();
   } catch (e) {
-    if (seq === state.viewSeq) { console.error(e.stack); setStatus("Could not show the workbench layout: " + e.message, "error"); }
+    if (seq === state.viewSeq) { console.error(e.stack); setStatus("Could not show the layout: " + e.message, "error"); }
   }
 }
 
@@ -986,7 +987,7 @@ function scrollToStep(id) {
 function renderHeldMetrics(held, v) {
   const from = NODES[held.node]?.title ?? (held.node === "file" ? "Layout file" : held.node);
   $("metrics").replaceChildren(
-    group("Workbench layout", [
+    group("Layout", [
       ["From", from],
       ["Status", held.status ?? "—"],
       ["Scale m", fmt(v.scale, 6)],
@@ -1029,49 +1030,7 @@ function renderHeldSummary(box) {
  * from the workbench" links under the sheet.)
  */
 function renderNextBar() {
-  $("nextBar").hidden = true;
-  const strip = $("flowStrip");
-  const node = state.node;
-  if (!node) { strip.hidden = true; return; }
-  strip.hidden = false;
-  const wb = workbench;
-  const l = wb.layout;
-  const valid = wb.polygonsValid();
-  const built = !!wb.creases?.result?.built;
-  const leaves = wb.tree?.edges?.length ? treeInfo(wb.tree.edges).leaves.length : 0;
-  const steps = [
-    { key: "tree", title: "Tree", done: leaves > 0, href: "#/tree", text: leaves ? `${leaves} leaves · N ${wb.tree.gridSize}` : "Make a tree" },
-    {
-      key: "layout", title: "Solve a layout", done: !!l, href: l && NODES[l.node]?.kind === "solver" ? `#/${l.node}` : "#/tree",
-      text: l ? `${NODES[l.node]?.title ?? "File"} · m ${fmt(l.scale, 3)}` : "Pick a solver",
-    },
-    {
-      key: "polygons", title: "Close the polygons", done: valid, href: "#/close",
-      text: !l ? "Waits for a layout" : valid ? (wb.closure?.completion?.after?.valid ? `Closed ±${fmt(wb.closure.strainMax, 2)}` : "Valid as solved")
-        : `Open${l.stubs?.length ? ` · ${l.stubs.length} stub${l.stubs.length === 1 ? "" : "s"}` : ""}: close or add stubs`,
-    },
-    { key: "creases", title: "Crease pattern", done: built, href: "#/creases", text: built ? `${wb.creases.result.creases.length} creases` : valid ? "Ready to build" : "Waits for closed polygons" },
-    { key: "fold", title: "Folded base", done: built && node.id === "fold", href: "#/fold", text: built ? "Ready to view" : "Waits for a crease pattern" },
-  ];
-  const here = node.kind === "tree" ? "tree" : node.kind === "solver" ? "layout" : { close: "polygons", stubs: "polygons", creases: "creases", fold: "fold" }[node.id];
-  const next = steps.find((s) => !s.done)?.key ?? null;
-  const moved = state.flowNext !== undefined && state.flowNext !== next;
-  state.flowNext = next;
-  strip.replaceChildren(...steps.map((s, k) => {
-    const a = document.createElement("a");
-    a.href = s.href;
-    a.className = "flow-step" + (s.done ? " done" : "") + (s.key === next ? " next" : "") + (s.key === here ? " here" : "") + (moved && s.key === next ? " arrived" : "");
-    if (s.key === here) a.setAttribute("aria-current", "step");
-    a.innerHTML = `<span class="fs-no"></span><span class="fs-body"><span class="fs-title"></span><span class="fs-text"></span></span>`;
-    a.querySelector(".fs-no").textContent = s.done ? "✓" : String(k + 1);
-    a.querySelector(".fs-title").textContent = s.title + (s.key === next ? " · next" : "");
-    a.querySelector(".fs-text").textContent = s.text;
-    return a;
-  }));
-  if (moved && next && next !== here) {
-    const target = steps.find((s) => s.key === next);
-    setStatus(`${steps[steps.findIndex((s) => s.key === next) - 1]?.title ?? "That step"} is done. Next: ${target.title} (top of the page).`);
-  }
+  // The session's own "Next step" menu (workflow.js) follows the live step.
 }
 
 // ───────────────────────── Tree node ─────────────────────────
@@ -1105,26 +1064,7 @@ function appMapFit(id, leaves) {
 // ───────────────────────── The shelf (top bar) ─────────────────────────
 
 function renderShelf() {
-  const wb = workbench;
-  const chips = [];
-  const t = wb.tree;
-  if (t?.edges?.length) chips.push(["Tree", `${treeInfo(t.edges).leaves.length} leaves · N ${t.gridSize}`, "#/tree", true]);
-  const l = wb.layout;
-  chips.push(["Layout", l ? `${NODES[l.node]?.title ?? "file"} · m ${fmt(l.scale, 3)}` : "none", "#/close", !!l]);
-  const closed = wb.polygonsValid();
-  chips.push(["Polygons", closed ? (wb.closure?.completion?.after?.valid ? `closed ±${fmt(wb.closure.strainMax, 2)}` : "valid") : l ? "open" : "—", "#/creases", closed]);
-  const k = wb.creases?.result;
-  chips.push(["Creases", k?.built ? `${k.creases.length}` : "—", "#/fold", !!k?.built]);
-  $("shelf").replaceChildren(...chips.map(([key, value, href, on]) => {
-    const a = document.createElement("a");
-    a.className = "shelf-chip" + (on ? " on" : "");
-    a.href = href;
-    a.title = `Workbench ${key.toLowerCase()}: ${value}`;
-    const k1 = document.createElement("span"); k1.className = "k"; k1.textContent = key;
-    const v1 = document.createElement("span"); v1.className = "v"; v1.textContent = value;
-    a.append(k1, v1);
-    return a;
-  }));
+  // The header shows where you are; the session (workflow.js) shows what has been done.
 }
 
 // ───────────────────────── Routing between the map and the nodes ─────────────────────────
@@ -1140,10 +1080,15 @@ function route() {
     specLinks.open(doc || null, at || null);
   }
   const id = NODES[path] ? path : "";
-  if (id !== (state.node?.id ?? "") || !state.routed) {
+  if (!id) { if (state.node || !state.routed) { state.routed = true; showMap(); } return; }
+  // Every node is a part of the session: its live step, a new step it allows, or an earlier step of that kind.
+  const to = workflowDoc.navigate(id);
+  if (location.hash !== "#/" + to.node) history.replaceState(null, "", "#/" + to.node);
+  if (to.node !== (state.node?.id ?? "") || !state.routed || to.node !== id) {
     state.routed = true;
-    if (!id) showMap(); else enterNode(id);
+    enterNode(to.node);
   }
+  if (to.scroll) setTimeout(() => $(to.scroll)?.scrollIntoView({ behavior: "smooth", block: "start" }), 400);
 }
 
 function showMap() {
@@ -1177,11 +1122,8 @@ function enterNode(id) {
   state.flowNext = undefined;   // entering a node is not "moving on"
   linked.reset();
   renderNextBar();
-  // The steps after a layout are one document: the live widget (tree beside sheet) moves into its "Add a step".
-  const duo = document.querySelector(".duo");
-  if (node.kind === "step") { if (duo.parentElement !== $("docLive")) $("docLive").append(duo); }
-  else if (duo.parentElement !== $("stageArea")) $("stageArea").prepend(duo);
-  if (state.docNode !== id) { state.docNode = id; workflowDoc.openMove(workflowDoc.moveFor(id)); }
+  workflowDoc.render();
+  $("startRow").hidden = node.kind !== "solver";
 
   // Header and crumbs: which spec this part of the app implements.
   const doc = nodeDoc(node);
@@ -1217,9 +1159,9 @@ function enterNode(id) {
     ? "Drag vertices to move them, or onto another vertex to re-attach. Click a leaf to pin it to an edge, a corner or the axis, or to mirror it with another leaf. Click an edge to toggle S, click a length to edit it, double-click a vertex to rename it."
     : "Drag vertices to move them, or onto another vertex to re-attach. Click a leaf to pin it to an edge, a corner or the axis, or to mirror it with another leaf. Click a length to edit it, double-click a vertex to rename it.";
   if (node.id === "stubs") {
-    $("treeHelp").textContent = "The workbench layout's tree, locked: edit the tree in the Tree node. The dashed edge is the proposed stub; click a joint to hang it there, click it again to let the search choose.";
-  } else if (node.kind === "step") {
-    $("treeHelp").textContent = "The workbench layout's tree, locked: edit it in the Tree node. Point at a leaf here or on the sheet to see it in both; point at a pair on the sheet to see the tree path it measures. Click a leaf to keep it lit.";
+    $("treeHelp").textContent = "The tree from step 1, locked (go back to step 1 to change it). The dashed edge is the proposed stub; click a joint to hang it there, click it again to let the search choose.";
+  } else if (node.kind !== "tree") {
+    $("treeHelp").textContent = "The tree from step 1, locked (go back to step 1 to change it). Point at a leaf here or on the sheet to see it in both; point at a pair on the sheet to see the tree path it measures. Click a leaf to keep it lit.";
   }
   if (node.lockOptions?.symmetryBreaking === false) {
     $("optSymmetry").checked = false;
@@ -1255,6 +1197,7 @@ function enterNode(id) {
     renderTreeStats();
     showStep(node);
   }
+  workflowDoc.prepareLive();
 }
 
 /** Greys out presets that the current solver cannot solve in reasonable time. */
@@ -1377,8 +1320,6 @@ async function init() {
     if (slot === "layout" && !treeUi.handPlaced) { resetTreeLayout(); renderTreePreview(); }
     renderShelf();
     renderNextBar();
-    workflowDoc.workbenchChanged(slot);
-    if (state.node?.kind === "step") renderHeldSummary($("heldSummary"));
   });
 
   // The tree: from the workbench when there is one, otherwise the running example.

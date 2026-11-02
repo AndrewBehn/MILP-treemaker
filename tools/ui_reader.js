@@ -54,7 +54,7 @@ const base = 'http://127.0.0.1:5099/';
   await app.click('#nodeSpec a.xref >> nth=0'); await app.waitForTimeout(1200);
   log.headerLink = docs.url();
   check('headerLinkToDocsTab', /docs\.html#\/pure:/.test(docs.url()) && ctx.pages().length === tabs);
-  await app.click('aside .ref:visible >> nth=0'); await app.waitForTimeout(1200);
+  await app.click('#finalStep .ref:visible >> nth=0'); await app.waitForTimeout(1200);
   log.sidebarRef = docs.url();
   check('resultsKept', await app.evaluate(() => !document.getElementById('metricsCard').hidden && location.hash === '#/pure'));
   await app.screenshot({ path: `${out}/app-tab.png` });
@@ -84,7 +84,8 @@ const base = 'http://127.0.0.1:5099/';
   check('oldLink', app.url().endsWith('#/scalable') && /docs\.html#\/scalable:A-4/.test(docs.url()));
 
   // The centipede presets: body on a vertical line, each leg opposite its partner.
-  await app.goto(`${base}#/scalable`); await app.waitForTimeout(800);   // the solver that offers every preset
+  // A new session: its tree step is live, so the presets can be loaded.
+  await app.evaluate(() => workflowDoc.startOver()); await app.waitForTimeout(800);
   for (const preset of ['centipede4', 'centipede']) {
     await app.selectOption('#preset', preset); await app.waitForTimeout(800);
     const sym = await app.evaluate(() => {
@@ -110,6 +111,7 @@ const base = 'http://127.0.0.1:5099/';
     return sheet.headUp === sketch.headUp && sheet.lLeft === sketch.lLeft;
   });
   await app.selectOption('#preset', 'centipede6'); await app.waitForTimeout(500);
+  await app.click('#pickList a[href="#/scalable"]'); await app.waitForTimeout(1200);
   await app.click('#solve');
   await app.waitForFunction(() => !document.getElementById('metricsCard').hidden && !document.getElementById('solve').disabled, null, { timeout: 20000 });
   await app.waitForTimeout(500);
