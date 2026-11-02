@@ -24,7 +24,8 @@ const treeUi = {
 };
 
 /** In the Add stubs node the tree is the workbench layout's: it can be looked at and rearranged, not edited. */
-const treeLocked = () => ["stubs", "close", "creases", "fold"].includes(document.body.dataset.node);
+/** Only the session's tree step edits the tree; every later step shows it locked (go back to step 1 to change it). */
+const treeLocked = () => document.body.dataset.view === "work" && document.body.dataset.node !== "tree";
 /** True while the workflow document's "Add a stub" move is open: clicks on joints hang the stub (stubs.js). */
 const stubbing = () => document.body.dataset.stubbing === "on";
 
@@ -558,7 +559,7 @@ function renderTreePreview() {
   }
   const scaleNote = el("text", { x: 10, y: height - 10, class: "unit-note" });
   scaleNote.textContent = `1 cell = 1 grid unit (N = ${sheet.N}) · circles m·ℓ with ` +
-    (sheet.from === "layout" ? `m = ${fmt(sheet.m, 3)} (workbench layout)` : `m̄ = ${fmt(sheet.m, 3)}, the most possible`);
+    (sheet.from === "layout" ? `m = ${fmt(sheet.m, 3)} (this step's layout)` : `m̄ = ${fmt(sheet.m, 3)}, the most possible`);
   svg.append(scaleNote);
 
   // Edges: a wide invisible stroke for clicking, then the drawn edge.

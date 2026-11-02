@@ -1308,3 +1308,91 @@ body[data-kind="step"] .duo-tree .block-head .row, body[data-kind="step"] .tree-
 body[data-kind="step"] #stageArea > #metricsCard { display: none; }
 .doc-live button.on-mat { color: var(--ink); border-color: #cfd3cc; background: var(--paper); }
 .doc-live .pleat-row, .move-panel .pleat-row { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+
+/* ───────────── The session as one document (index.html #workView.session, workflow.js) ───────────── */
+.app.session { grid-template-columns: 300px minmax(0, 1fr); }
+.outline { padding: 20px 18px; display: flex; flex-direction: column; gap: 10px; }
+.outline .kicker { margin: 0; }
+.outline input { width: 100%; height: 32px; }
+.outline-list { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.outline-list li a { display: block; padding: 6px 8px 6px 11px; border-left: 3px solid #cfd3cc; font-size: 13px; color: var(--ink); text-decoration: none; border-radius: 0 4px 4px 0; }
+.outline-list li.valid a { border-left-color: #23704a; }
+.outline-list li.open a { border-left-color: var(--beni); }
+.outline-list li.pending a { border-left-style: dashed; }
+.outline-list li.current a { background: #fff; font-weight: 700; }
+.outline-list li a:hover { background: #fff; }
+.doc-head { padding-top: 22px; }
+.mat > .doc-head h2 { margin: 0 0 4px; font-size: 22px; color: #fff; }
+.mat > .doc-head .muted { margin: 0 0 16px; color: var(--mat-ink-soft); max-width: 80ch; }
+.doc-steps { margin-bottom: 14px; }
+.doc-time { font-size: 12px; color: var(--ink-soft); }
+.go-back { margin-left: auto; }
+.go-back[data-armed="yes"] { border-color: var(--beni); color: var(--beni); }
+.doc-spec { margin: 2px 0 6px 34px; font-size: 12.5px; color: var(--ink-soft); }
+.doc-spec a { color: var(--beni); }
+.doc-settings { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 2px 18px; margin: 4px 0 10px 34px; font-size: 12.5px; }
+.doc-settings dt { color: var(--ink-soft); }
+.doc-settings dd { margin: 0 0 4px; font-weight: 650; overflow-wrap: anywhere; }
+.doc-io.single { grid-template-columns: minmax(0, 1fr); max-width: 50%; }
+
+/* The live step: a frame round its settings, its run bar and its output. */
+.doc-step.final { background: rgba(0, 0, 0, .12); color: var(--mat-ink); border: 2px solid #ff8095; border-radius: 10px; padding: 0 18px 18px; box-shadow: none; }
+.final-head { padding: 16px 0 10px; gap: 12px; }
+.final-head .doc-no { background: #ff8095; color: #3a0d16; width: 30px; height: 30px; font-size: 14px; }
+.final-head h1 { color: #fff; }
+.final-head p, .final-head .kicker { color: var(--mat-ink-soft); }
+.final-head .node-spec a { color: #ffb3c0; }
+.final-input { margin-bottom: 12px; }
+.final-input .state-widget { background: var(--paper); color: var(--ink); border-radius: 8px; padding: 10px 12px; max-width: 520px; }
+.part { margin: 4px 0 8px; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--mat-ink-soft); }
+.final-config { background: var(--panel); color: var(--ink); border-radius: 8px; padding: 10px 16px 6px; margin-bottom: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 0 22px; align-items: start; }
+.final-config > .part { grid-column: 1 / -1; color: var(--ink-soft); }
+.final-config > .block { border-top: 0; padding: 8px 0 12px; }
+.final-config > .block[hidden] { display: none; }
+.final-output { margin-top: 10px; }
+.final-notes .doc-note, .final-notes .doc-open { margin: 10px 0 0; }
+.final-notes .doc-note { color: var(--mat-ink-soft); }
+.final-notes .doc-open.no { color: #ffb3c0; }
+.final-notes .doc-open.ok { color: #a8e6c1; }
+.final-notes .running { color: #fff; font-weight: 650; }
+.doc-step.final .toolbar { padding-left: 0; padding-right: 0; }
+
+/* What can follow. */
+.next-menu { margin-top: 18px; background: var(--panel); color: var(--ink); border-radius: 8px; padding: 16px 18px; }
+.next-menu > h2 { margin: 0 0 4px; font-size: 18px; }
+.next-menu > .muted { margin: 0 0 12px; }
+.next-moves { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.next-move { position: relative; border: 1px solid var(--rule); border-radius: 8px; padding: 12px; background: var(--paper); display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.next-move.suggested { border-color: var(--beni); box-shadow: inset 3px 0 0 var(--beni); }
+.next-tag { position: absolute; top: 8px; right: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--beni); }
+.next-move .doc-spec { margin: 0; }
+.next-solver-row { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.next-menu #pickCard { margin: 0; box-shadow: none; padding: 0; background: none; }
+.next-menu #pickCard > h2 { font-size: 15px; }
+body:not([data-node="tree"]) .duo-tree .block-head .row, body:not([data-node="tree"]) .tree-tools .drag-chip, body:not([data-node="tree"]) .tree-tools .chip-label { display: none; }
+@media (max-width: 1100px) { .app.session { grid-template-columns: 1fr; } .outline-panel { position: static; height: auto; } }
+.mat > .doc-head { display: block; }
+.doc-settings { display: flex; flex-wrap: wrap; gap: 4px 22px; margin: 4px 0 10px 34px; font-size: 12.5px; }
+.doc-settings .setting { display: flex; gap: 6px; }
+.doc-settings .k { color: var(--ink-soft); }
+.doc-settings .k::after { content: ":"; }
+.doc-settings .v { font-weight: 650; }
+.stub-count { margin: 4px 0; font-size: 13px; font-weight: 650; }
+
+/* Progress: whether each step got anywhere (workflow.js progressOf). The live step's frame takes the colour. */
+.doc-step.final[data-progress="progress"] { border-color: #8fdcae; }
+.doc-step.final[data-progress="neutral"] { border-color: #cfd8d2; }
+.doc-step.final[data-progress="worse"], .doc-step.final[data-progress="none"] {
+  border-color: #f3b23c; background: rgba(243, 178, 60, .10);
+  animation: step-warn 2.4s ease-in-out infinite;
+}
+@keyframes step-warn { 0%, 100% { box-shadow: 0 0 0 0 rgba(243, 178, 60, .0); } 50% { box-shadow: 0 0 0 10px rgba(243, 178, 60, .28); } }
+.doc-progress { margin: 8px 0 0; font-size: 13px; font-weight: 650; padding: 6px 10px; border-radius: 5px; border-left: 4px solid; }
+.doc-progress.progress { color: #1d6a45; background: rgba(35, 112, 74, .08); border-color: #23704a; }
+.doc-progress.neutral { color: var(--ink-soft); background: rgba(0, 0, 0, .03); border-color: #b9beb7; }
+.doc-progress.worse, .doc-progress.none { color: #7a4d00; background: #fff3d6; border-color: #f3b23c; }
+.final-notes .doc-progress.progress { color: #a8e6c1; background: rgba(168, 230, 193, .1); border-color: #8fdcae; }
+.final-notes .doc-progress.neutral { color: var(--mat-ink); background: rgba(255, 255, 255, .06); }
+.final-notes .doc-progress.worse, .final-notes .doc-progress.none { color: #ffe0a3; background: rgba(243, 178, 60, .16); }
+.doc-step.frozen[data-progress="none"], .doc-step.frozen[data-progress="worse"] { box-shadow: 0 0 0 2px #f3b23c, 0 6px 18px rgba(10, 30, 22, .25); }
+.outline-list li[data-progress="worse"] a, .outline-list li[data-progress="none"] a { border-left-color: #f3b23c; background: #fff3d6; }

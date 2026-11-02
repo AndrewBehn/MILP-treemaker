@@ -146,7 +146,7 @@ const creaseReadiness = (() => {
     return `${report.tightPairs.length} tight pair${report.tightPairs.length === 1 ? "" : "s"} · ` +
       `${valid} of ${polygons} polygon${polygons === 1 ? "" : "s"} valid · ` +
       `boundary ${closed} of ${hullPieces} tight · ` +
-      `${Math.round((report.hullArea ? report.coveredArea / report.hullArea : 0) * 100)}% of the hull covered`;
+      (report.hullArea - report.coveredArea > 1e-6 ? `${fmt(report.hullArea - report.coveredArea, 2)} square grid units not yet in a polygon` : "the whole hull in polygons");
   }
 
   // Number of hull-boundary pieces: those already tight plus those missing.
@@ -384,7 +384,7 @@ const creaseReadiness = (() => {
       const sides = report.missingBoundary.length;
       if (sides) parts.push(`${sides} hull side${sides === 1 ? "" : "s"} to make tight (dashed)`);
       if (open.length) parts.push(`${open.length} polygon${open.length === 1 ? "" : "s"} not valid (hatched)`);
-      if (uncovered) parts.push(`${Math.round((1 - report.coveredArea / report.hullArea) * 100)}% of the outline not covered (hatched)`);
+      if (uncovered) parts.push(`${fmt(report.hullArea - report.coveredArea, 2)} square grid units of the outline not yet in a polygon (hatched)`);
       todo.hidden = false;
       todo.className = "poly-todo " + (report.valid ? "ok" : "no");
       todo.textContent = report.valid

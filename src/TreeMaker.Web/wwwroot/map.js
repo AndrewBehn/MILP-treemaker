@@ -128,7 +128,7 @@ const appMap = (() => {
       const on = lit.has(key);
       svgEl("path", { d: `M${a[0]},${a[1]} L${b[0] - 2},${b[1]}`, class: "map-flow" + (on ? " lit" : ""), "marker-end": `url(#mk-${on ? "lit" : "flow"})` }, svg);
     }
-    // The stubs detour: down from Close the polygons into Add stubs, and back up with the new layout.
+    // The stubs detour: down from Strain the edges into Add stubs, and back up with the new layout.
     {
       const cx = BOX.close.x + SW / 2, top = BOX.stubs.y, bottom = BOX.close.y + H;
       const on = !!wb.layout?.stubs?.length;
@@ -233,68 +233,24 @@ const appMap = (() => {
     try { return new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); } catch { return ""; }
   };
 
+  /** The session in short: one line per step, and the way back into it. */
   function renderBench() {
-    const wb = workbench;
-    const cards = [];
-    const t = wb.tree;
-    if (t?.edges?.length) {
-      const info = treeInfo(t.edges);
-      cards.push(card("Tree", [
-        `${info.leaves.length} leaves, ${t.edges.length} edges, on a ${t.gridSize} × ${t.gridSize} grid.`,
-        `${(t.leafConditions ?? []).length} leaf conditions, ${(t.mirrorPairs ?? []).length} mirror pairs.`,
-      ], [["Edit the tree", "#/tree", "primary"]]));
-    } else {
-      cards.push(card("Tree", ["No tree yet."], [["Make a tree", "#/tree", "primary"]], true));
+    const steps = workflowDoc.steps;
+    const live = steps.at(-1);
+    const list = document.createElement("ol");
+    list.className = "bench-steps";
+    for (const [k, step] of steps.entries()) {
+      const li = document.createElement("li");
+      li.textContent = `${k + 1}. ${step.kind === "solve" ? `Solve with ${NODES[step.node]?.title ?? step.node}` : { tree: "Tree", close: "Strain the edges", stub: `Add stubs: ${(step.params?.stubs ?? (step.params?.name ? [step.params] : [])).map((t) => t.name).join(", ")}`, creases: "Crease pattern" }[step.kind]}`
+        + (k === steps.length - 1 ? (step.output ? " (live)" : " (not run yet)") : "");
+      list.append(li);
     }
-
-    const l = wb.layout;
-    if (l) {
-      const from = NODES[l.node]?.title ?? (l.node === "file" ? `the file ${l.note ?? ""}`.trim() : l.node);
-      const fits = sameTreeShape(l.problem, t);
-      cards.push(card("Layout", [
-        `From ${from}, ${when(l.at)}.`,
-        `m = ${fmt(l.scale, 6)} on a ${l.gridSize} × ${l.gridSize} grid · ${l.points.length} leaves · ${l.status ?? ""}`.trim(),
-        l.polygonsValid ? "Its polygons are already valid." : "Its polygons still need closing.",
-        fits ? "Matches the tree in the editor: the next solve can start from it." : "Made for a different tree than the one in the editor.",
-      ], [
-        [l.polygonsValid ? "Continue: Crease pattern" : "Continue: Close the polygons", l.polygonsValid ? "#/creases" : "#/close", "primary"],
-        ...(NODES[l.node] ? [[`Open in ${NODES[l.node].title}`, "#/" + l.node]] : []),
-        ["Save layout file", () => treeFiles.saveLayout({ problem: l.problem, layout: l.points, scale: l.scale, edgeLengths: wb.closedLengths() ?? l.edgeLengths })],
-        ["Clear", () => wb.clear("layout")],
-      ]));
-    } else {
-      cards.push(card("Layout", ["No layout yet. Solve the tree with one of the solvers, or open a layout file."], [["Open a file…", () => q("fileInput").click()]], true));
-    }
-
-    const c = wb.closure;
-    if (c) {
-      const done = c.completion?.after?.valid;
-      cards.push(card("Closed polygons", [
-        done ? `Closed with strains within [${fmt(c.strainMin, 3)}, ${fmt(c.strainMax, 3)}], ${when(c.at)}.` : `Not closed yet (last try within [${fmt(c.strainMin, 3)}, ${fmt(c.strainMax, 3)}]).`,
-        c.completion ? `Largest strain ${fmt(c.completion.largestStrain, 4)}; ${c.completion.madeTight} of ${c.completion.targets.length} target pairs tight.` : "",
-      ].filter(Boolean), [
-        [done ? "Continue: Crease pattern" : "Try again: Close the polygons", done ? "#/creases" : "#/close", "primary"],
-        ["Clear", () => wb.clear("closure")],
-      ]));
-    } else {
-      cards.push(card("Closed polygons", [l ? "Not closed yet." : "Comes after a layout."], l ? [["Close the polygons", "#/close", "primary"]] : [], true));
-    }
-
-    const k = wb.creases;
-    if (k?.result) {
-      const r = k.result;
-      cards.push(card("Crease pattern", [
-        r.built ? `${r.creases.length} creases, ${r.facets.length} facets${k.pleatHeight ? `, pleated to ${k.pleatHeight}` : ""}, ${when(k.at)}.` : "The last build failed.",
-        r.built ? (r.problems.length ? `The fold check found ${r.problems.length} problem${r.problems.length === 1 ? "" : "s"}.` : "The fold check passed.") : "",
-      ].filter(Boolean), [
-        ...(r.built ? [["View the folded base", "#/fold", "primary"]] : []),
-        ["Open the crease pattern", "#/creases"],
-        ["Clear", () => wb.clear("creases")],
-      ]));
-    } else {
-      cards.push(card("Crease pattern", [wb.polygonsValid() ? "Not built yet." : "Comes after closed polygons."], wb.polygonsValid() ? [["Build it", "#/creases", "primary"]] : [], true));
-    }
-    q("benchCards").replaceChildren(...cards);
+    const c = card(steps.length ? `${steps.length} step${steps.length === 1 ? "" : "s"}` : "No steps yet", [],
+      [[steps.length ? "Continue the session" : "Start with a tree", "#/" + (live?.node ?? "tree"), "primary"],
+       ["Open a session…", () => q("fileInput").click()],
+       ["New session", () => workflowDoc.startOver()]]);
+    c.insertBefore(list, c.querySelector(".bench-actions"));
+    q("benchCards").replaceChildren(c);
   }
 
   function init() {
