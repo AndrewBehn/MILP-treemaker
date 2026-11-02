@@ -1055,6 +1055,7 @@ function route() {
     enterNode(to.node);
   }
   if (to.scroll) setTimeout(() => $(to.scroll)?.scrollIntoView({ behavior: "smooth", block: "start" }), 400);
+  if (to.auto) workflowDoc.autoRun();
 }
 
 function showMap() {

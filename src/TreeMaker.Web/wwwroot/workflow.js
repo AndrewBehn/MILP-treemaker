@@ -421,8 +421,8 @@ const workflowDoc = (() => {
         if (p.opened) rows.push(["Opened", p.opened]);
         if (p.which) rows.push(["Leaves", p.which === "stubs" ? "just the stubs (the others held)" : "all, from the previous layout"]);
         if (p.timeLimit) rows.push(["Time limit", `${p.timeLimit} s`]);
-        for (const [k, v] of Object.entries(p.options ?? {})) if (v != null && typeof v !== "object") rows.push([k, String(v)]);
-        for (const [k, v] of Object.entries(p.options?.options ?? {})) if (v != null) rows.push([k, String(v)]);
+        // Only the settings that say what was solved; the solver's full option set is under Notes.
+        if (p.options?.stage) rows.push(["Model", p.options.stage]);
         return rows;
       }
       case "close": return p.auto ? [["Strain", "the smallest that closes the polygons (A:4)"], ["Found", `±${fmt(p.strainMax, 3)}`]]
@@ -476,11 +476,31 @@ const workflowDoc = (() => {
     if (step.input) io.append(widget(step.input, null, "Input"), h("span", "doc-arrow", "→"));
     io.append(widget(step.output, step.input, "Output"));
     li.append(dl, io);
-    for (const n of step.notes ?? []) li.append(h("p", "doc-note", n));
-    if (step.kind !== "tree") li.append(h("p", "doc-progress " + pr.kind, pr.text));
-    const o = outlook(step.output);
-    if (o.open) li.append(h("p", "doc-open " + (o.ok ? "ok" : "no"), o.open));
+    li.append(resultLine(step), notesBox(step));
     return li;
+  }
+
+  /** One line under a step: what it changed, and what is still open (or that it is done). */
+  function resultLine(step) {
+    const pr = progressOf(step);
+    const o = outlook(step.output);
+    const p = h("p", "doc-progress " + pr.kind, step.kind === "tree" ? o.open : pr.text);
+    if (step.kind !== "tree" && o.open && !pr.text.includes(o.open)) p.append(h("span", "still", (o.ok ? " " : " Still open: ") + (o.ok ? o.open : o.open.replace(/^./, (c) => c.toLowerCase()))));
+    return p;
+  }
+
+  /** The solver's and the server's own messages, folded away. */
+  function notesBox(step) {
+    const notes = (step.notes ?? []).filter(Boolean);
+    // A solve's full option set, too: the settings line shows only the solver, the leaves and the model.
+    const opts = { ...(step.params?.options ?? {}), ...(step.params?.options?.options ?? {}) };
+    delete opts.options;
+    const shown = Object.entries(opts).filter(([, v]) => v != null && typeof v !== "object");
+    if (shown.length) notes.push("Solver settings: " + shown.map(([k, v]) => `${k} ${v}`).join(", ") + ".");
+    if (!notes.length) return document.createTextNode("");
+    const d = h("details", "doc-more");
+    d.append(h("summary", "", "Notes"), ...notes.map((n) => h("p", "doc-note", n)));
+    return d;
   }
 
   /** "Spec: <doc> · <sections>", linked into the docs tab, for the map node a step uses. */
@@ -516,13 +536,7 @@ const workflowDoc = (() => {
     const box = q("finalNotes");
     box.replaceChildren();
     if (running) { box.append(h("p", "doc-note running", running.progress ?? "Running…")); return; }
-    for (const t of f.notes ?? []) box.append(h("p", "doc-note", t));
-    if (f.output && f.kind !== "tree") {
-      const pr = progressOf(f);
-      box.append(h("p", "doc-progress " + pr.kind, pr.text));
-      const o = outlook(f.output);
-      box.append(h("p", "doc-open " + (o.ok ? "ok" : "no"), o.open));
-    }
+    if (f.output && f.kind !== "tree") box.append(resultLine(f), notesBox(f));
   }
 
   /**
@@ -603,20 +617,20 @@ const workflowDoc = (() => {
     const lastSolve = [...doc.steps].reverse().find((st) => st.kind === "solve" && SOLVER_IDS.includes(st.node) && !st.params?.opened);
     solver.value = lastSolve?.node ?? "scalable";
     for (const m of moves) {
-      const card = h("div", "next-move" + (m.suggested ? " suggested" : ""));
+      const card = h("div", "next-move" + (m.suggested ? " suggested" : "") + (m.kind === "solve" ? " solve" : ""));
       const b = h("button", m.suggested ? "primary small-primary" : "quiet", m.label);
       b.type = "button";
       b.addEventListener("click", () => addStep(m.kind, m.kind === "solve" ? solver.value : KIND_NODE[m.kind], m.which ? { which: m.which } : {}));
-      card.append(b, h("p", "btn-note", m.note));
-      const spec = specLine(m.kind === "solve" ? solver.value : KIND_NODE[m.kind]);
-      if (spec) card.append(spec);
-      if (m.suggested) card.append(h("span", "next-tag", "suggested"));
+      const note = h("p", "btn-note", m.note + " ");
+      const node = NODES[m.kind === "solve" ? solver.value : KIND_NODE[m.kind]];
+      if (node?.doc) note.append(specLinks.link("Spec", node.doc, specLinks.firstTarget(node.section, node.doc).at, "spec-mini"));
+      card.append(b, note);
       box.append(card);
     }
     if (moves.some((m) => m.kind === "solve")) {
-      const row = h("label", "field next-solver-row", "Solver for a solve ");
+      const row = h("label", "next-solver-row", "Solve with ");
       row.append(solver);
-      box.append(row);
+      box.prepend(row);
     }
   }
 
@@ -646,6 +660,23 @@ const workflowDoc = (() => {
     save();
     commit(last().input);
     go(node, true);
+    autoRun();
+  }
+
+  /**
+   * A new step runs at once with its default settings: a solve solves, straining finds the smallest strain, the
+   * crease pattern builds. Change the settings and run it again if the result is not what you want. Stubs wait for
+   * you to pick them (the best is proposed).
+   */
+  function autoRun() {
+    const f = last();
+    if (f.output || running) return;
+    setTimeout(() => {
+      if (last() !== f || f.output || running) return;
+      if (f.kind === "solve" && typeof solve === "function" && !state.solving) solve();
+      else if (f.kind === "close" && f.input?.layout && !f.input.report?.valid) runClose(true);
+      else if (f.kind === "creases" && f.input?.report?.valid) runCreases();
+    }, 350);
   }
 
   /** Makes step k the live one again; the steps after it are dropped. */
@@ -693,7 +724,7 @@ const workflowDoc = (() => {
       doc.steps.push({ kind, node: id, title: "", params: {}, input: clone(f.output), output: null, notes: [] });
       save();
       commit(last().input);
-      return { node: id, scroll: "finalStep" };
+      return { node: id, scroll: "finalStep", auto: true };
     }
     const k = doc.steps.map((s) => s.node).lastIndexOf(id);
     return { node: f.node, scroll: k >= 0 && k < doc.steps.length - 1 ? "doc-step-" + k : "finalStep" };
@@ -1007,7 +1038,7 @@ const workflowDoc = (() => {
   }
 
   return {
-    init, render, navigate, captureDefaults, restore, prepareLive, treeEdited, adjustRequest, solved, startFromLayout, openFile, startOver,
+    init, render, navigate, captureDefaults, restore, autoRun, prepareLive, treeEdited, adjustRequest, solved, startFromLayout, openFile, startOver,
     get steps() { return doc.steps; }, get running() { return !!running; }, last, current,
   };
 })();

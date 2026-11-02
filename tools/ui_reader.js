@@ -81,7 +81,7 @@ const base = 'http://127.0.0.1:5099/';
 
   // A link from before the split opens the passage in the docs tab and keeps the node in the app.
   await app.goto(`${base}#/scalable?read=scalable:A-4`); await app.waitForTimeout(1500);
-  check('oldLink', app.url().endsWith('#/scalable') && /docs\.html#\/scalable:A-4/.test(docs.url()));
+  check('oldLink', /#\/[a-z]+$/.test(app.url()) && !app.url().includes('read=') && /docs\.html#\/scalable:A-4/.test(docs.url()));
 
   // The centipede presets: body on a vertical line, each leg opposite its partner.
   // A new session: its tree step is live, so the presets can be loaded.

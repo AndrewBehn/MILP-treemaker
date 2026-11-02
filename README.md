@@ -101,7 +101,12 @@ The work view is one document, **the session** (`workflow.js`). It runs from a t
   | valid polygons | build the crease pattern (suggested), or solve again |
   | the crease pattern | nothing: this is the end of the path |
 
-  Choosing a move freezes the live step and adds the new one.
+  Choosing a move freezes the live step and adds the new one, which runs at once with its default settings:
+  - a solve solves;
+  - straining finds the smallest strain;
+  - the crease pattern builds.
+
+  If the result isn't what you want, change the step's settings and run it again. Add stubs is the exception: it waits for you to pick the stubs, with the best one proposed.
 - **Solving after the first layout** has a **Which leaves** choice:
   - **Solve all leaves** starts from the previous layout. A warning says this can make large changes and throw away refinements from earlier steps, such as where stubs were put and the lengths found by closing.
   - **Solve just the stubs** holds every other leaf where it is, as a Fixed condition.
@@ -114,6 +119,15 @@ The work view is one document, **the session** (`workflow.js`). It runs from a t
   - **■ no progress**: nothing was feasible (strain bounds too tight) or nothing changed.
 
   A live step with no progress, or one that made things worse, is framed in amber with a pulsing glow. A step with no progress offers no next move: change its settings and run it again, or go back. The sidebar outline carries the same marks.
+- **What each step shows.** One result line says what the step changed and what is still open. Everything else is folded away under small toggles:
+  - the step's notes, including the solver's full settings;
+  - the sheet's key;
+  - the model size;
+  - **About this step**, the step's description;
+  - **How to edit the tree**;
+  - **Details**: the solver's metrics, leaf pairs, traces and edge lengths.
+
+  Toggles are the same rounded pills on the tree and on the sheet. The main action of each step is the one red button.
 - **Go back to this step**, on any frozen step, makes it the live step again and drops the steps after it. It asks once to confirm.
 - **Step cards** run down the side of the document, one per step. Each card has the step's number, title, progress mark, a line on what it did and a small sheet. They stay in view as you scroll, the card of the step on screen is outlined, and a click goes to that step. Above the cards, **Save the session** writes the whole session (every step with its settings, input and output) as a `treemaker-session` file, version 2 ([docs/FILE-FORMATS.md](docs/FILE-FORMATS.md)). **Open…** reads a session, layout or tree file, and **New session** starts an empty one.
 - **Opening a layout file** starts a new session: its tree as step 1 and the layout as step 2.
