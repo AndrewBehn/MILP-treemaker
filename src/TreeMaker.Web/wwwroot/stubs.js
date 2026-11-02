@@ -6,7 +6,7 @@
 // With the layout's scale m and the tree distances d(v, a), the longest stub that keeps every pair feasible is
 //     ℓ(X, v) = min over leaves a of ( |X − P_a| / m − d(v, a) ),
 // and the leaves a that attain the minimum are tight to the stub. A grid point rarely makes three tight at once; the
-// Close the polygons step then strains the edges to tighten what is left.
+// Strain the edges step then tightens what is left.
 //
 // The same two widgets as everywhere else: the tree editor (locked against edits; click a joint to hang the stub
 // there) and the sheet (click inside an open polygon to put the stub's leaf on that grid point).

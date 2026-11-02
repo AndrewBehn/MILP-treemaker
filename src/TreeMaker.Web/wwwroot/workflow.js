@@ -155,9 +155,11 @@ const workflowDoc = (() => {
     const moves = [];
     if (s.report?.valid) moves.push({ kind: "creases", label: "Build the crease pattern", note: "Fill every polygon with universal molecules.", suggested: true });
     else {
-      if (step.kind === "stub") moves.push({ kind: "solve", which: "stubs", label: "Solve just the stubs", note: "Let a solver place the stubs, every other leaf held.", suggested: true });
-      moves.push({ kind: "close", label: "Close the polygons", note: "Change edge lengths (strain) until the open pairs are tight.", suggested: step.kind !== "stub" && !o.inside });
-      moves.push({ kind: "stub", label: "Add a stub", note: o.inside ? `A leaf is inside ${o.inside.leaves.join("–")}: split it with a stub.` : "Split an open polygon with a short new flap.", suggested: !!o.inside && step.kind !== "stub" });
+      // After stubs the layout is already feasible; straining is what usually closes it. A solve of just the stubs
+      // is offered, but with the other leaves held it can at best keep the scale, so it is not the suggestion.
+      moves.push({ kind: "close", label: "Strain the edges", note: "Stretch or shrink edge lengths, leaves held, until the open pairs are tight and the polygons close.", suggested: !o.inside || step.kind === "stub" });
+      if (step.kind === "stub") moves.push({ kind: "solve", which: "stubs", label: "Solve just the stubs", note: "Let a solver re-place the stubs, every other leaf held. Optional: the stubs already fit." });
+      if (step.kind !== "stub") moves.push({ kind: "stub", label: "Add stubs", note: o.inside ? `A leaf is inside ${o.inside.leaves.join("–")}: split it with stubs.` : "Split open polygons with short new flaps, as many as you like in one step.", suggested: !!o.inside });
     }
     moves.push({ kind: "solve", which: "all", label: "Solve again", note: "Solve all the leaves again, from this layout." });
     if (s.stubs?.length && step.kind !== "stub") moves.push({ kind: "solve", which: "stubs", label: "Solve just the stubs", note: "Every other leaf held where it is." });
@@ -313,7 +315,7 @@ const workflowDoc = (() => {
 
   // ───── Rendering ─────
 
-  const kindName = { tree: "Tree", solve: "Solve", close: "Close the polygons", stub: "Add a stub", creases: "Crease pattern" };
+  const kindName = { tree: "Tree", solve: "Solve", close: "Strain the edges", stub: "Add stubs", creases: "Crease pattern" };
 
   /** The settings a frozen step ran with, as label/value pairs. */
   function settings(step) {
@@ -334,9 +336,9 @@ const workflowDoc = (() => {
         for (const [k, v] of Object.entries(p.options?.options ?? {})) if (v != null) rows.push([k, String(v)]);
         return rows;
       }
-      case "close": return p.auto ? [["Bounds", "the smallest that closes them (A:4)"], ["Found", `±${fmt(p.strainMax, 3)}`]]
+      case "close": return p.auto ? [["Strain", "the smallest that closes the polygons (A:4)"], ["Found", `±${fmt(p.strainMax, 3)}`]]
         : [["σ_min", fmt(p.strainMin, 3)], ["σ_max", fmt(p.strainMax, 3)]];
-      case "stub": return [["Stub", p.name ?? ""], ["Hangs from", p.attach], ["Length ℓ", fmt(p.len, 4)], ["Leaf at", `(${p.x}, ${p.y})`], ["Tight to", (p.tight ?? []).join(", ")]];
+      case "stub": return stubsOf(p).map((t) => [t.name, `from ${t.attach}, ℓ = ${fmt(t.len, 4)}, at (${t.x}, ${t.y}), tight to ${(t.tight ?? []).join(", ")}`]);
       case "creases": return [["Pleats", p.pleatHeight ? `to height ${p.pleatHeight}` : "none"]];
       default: return [];
     }
@@ -345,7 +347,8 @@ const workflowDoc = (() => {
   function stepTitle(step) {
     if (step.kind === "solve" && step.params?.opened) return `Opened ${step.params.opened}`;
     if (step.kind === "solve") return `Solve with ${NODES[step.node]?.title ?? step.node}` + (step.params?.which === "stubs" ? ": just the stubs" : "");
-    if (step.kind === "stub" && step.params?.name) return `Add the stub ${step.params.name}`;
+    if (step.kind === "stub" && stubsOf(step.params).length) return `Add stubs: ${stubsOf(step.params).map((t) => t.name).join(", ")}`;
+    if (step.kind === "close" && step.output?.closure) return `Strain the edges: ±${fmt(step.output.closure.strainMax, 3)}` + (step.output.report?.valid ? ", polygons closed" : ", still open");
     return kindName[step.kind];
   }
 
@@ -634,12 +637,12 @@ const workflowDoc = (() => {
   function runClose(auto) {
     const s = last().input;
     const min = Number(q("docStrainMin").value), max = Number(q("docStrainMax").value);
-    return run("close", auto ? "Finding the strain needed" : `Closing within ±${fmt(max, 3)}`, async (progress) => {
+    return run("close", auto ? "Finding the smallest strain" : `Straining within ±${fmt(max, 3)}`, async (progress) => {
       const req = base(s);
       let result, bounds, text;
       if (auto) {
         const found = await creaseReadiness.searchStrain(req, progress);
-        if (found.already) { setStatus("Nothing to close: " + found.text); return null; }
+        if (found.already) { setStatus("No strain needed: " + found.text); return null; }
         if (!found.result) { setStatus(found.text, "error"); return null; }
         result = found.result;
         bounds = { strainMin: -Math.min(found.bound, 0.99), strainMax: found.bound };
@@ -659,8 +662,13 @@ const workflowDoc = (() => {
     });
   }
 
+  /** The stubs a stub step added (version 2 saved one stub per step, as the params themselves). */
+  const stubsOf = (p) => p?.stubs ?? (p?.name ? [p] : []);
+
+  /** Adds one more stub to the live stub step: a step can add as many as you like. */
   function addStub(c) {
-    const s = last().input;
+    const f = last();
+    const s = f.output ?? f.input;
     return run("stub", `Adding the stub ${c.name}`, async () => {
       const lengths = lengthsOf(s);
       const out = {
@@ -669,12 +677,29 @@ const workflowDoc = (() => {
         closure: null, creases: null, report: null, stubs: [...(s.stubs ?? []), c.name],
       };
       out.report = await check(out);
+      const added = [...stubsOf(f.params), { name: c.name, attach: c.attach, len: c.len, x: c.x, y: c.y, tight: c.tight }];
       return {
-        params: { name: c.name, attach: c.attach, len: c.len, x: c.x, y: c.y, tight: c.tight },
+        params: { stubs: added },
         output: out,
-        notes: [s.closure?.completion?.after ? "The stub keeps the closed lengths: they become the layout's lengths." : "The scale stays; every pair still fits."],
+        states: [...(f.states ?? []), out],
+        notes: [(f.input.closure?.completion?.after ? "The stubs keep the closed lengths: they become the layout's lengths. " : "") + `The scale stays; every pair still fits. ${added.length} stub${added.length === 1 ? "" : "s"} in this step; add more, or choose the next step.`],
       };
     });
+  }
+
+  /** Takes the last stub out of the live stub step again. */
+  function removeStub() {
+    const f = last();
+    if (f.kind !== "stub" || running || !stubsOf(f.params).length) return;
+    const states = (f.states ?? []).slice(0, -1);
+    const stubs = stubsOf(f.params).slice(0, -1);
+    f.states = states;
+    f.params = { stubs };
+    f.output = states.at(-1) ?? null;
+    f.notes = stubs.length ? [`${stubs.length} stub${stubs.length === 1 ? "" : "s"} in this step.`] : [];
+    save();
+    commit(f.output ?? f.input);
+    go(f.node, false);
   }
 
   function runCreases() {
@@ -709,7 +734,14 @@ const workflowDoc = (() => {
       q("docPleatHeight").disabled = !f.params?.pleatHeight;
       if (f.params?.pleatHeight) q("docPleatHeight").value = f.params.pleatHeight;
     }
-    if (f.kind === "stub" && s?.layout) stubTool.show({ ...s.layout, problem: s.problem, gridSize: s.problem.gridSize, edgeLengths: lengthsOf(s) }, s.report);
+    if (f.kind === "stub" && s?.layout) {
+      const now = f.output ?? s;   // each stub starts from the ones already added in this step
+      stubTool.show({ ...now.layout, problem: now.problem, gridSize: now.problem.gridSize, edgeLengths: lengthsOf(now) }, now.report);
+      const n = stubsOf(f.params).length;
+      q("removeStub").hidden = !n;
+      q("removeStub").textContent = n ? `Remove ${stubsOf(f.params).at(-1).name}` : "Remove the last stub";
+      q("stubCount").textContent = n ? `${n} stub${n === 1 ? "" : "s"} added in this step: ${stubsOf(f.params).map((t) => t.name).join(", ")}.` : "No stubs added in this step yet.";
+    }
   }
 
   // ───── Starting a session from a file ─────
@@ -772,6 +804,7 @@ const workflowDoc = (() => {
     q("docAuto").addEventListener("click", () => runClose(true));
     q("docBounds").addEventListener("click", () => runClose(false));
     q("docBuild").addEventListener("click", runCreases);
+    q("removeStub").addEventListener("click", removeStub);
     q("docPleatOn").addEventListener("change", () => { q("docPleatHeight").disabled = !q("docPleatOn").checked; });
     q("docSave").addEventListener("click", saveFile);
     q("docNew").addEventListener("click", startOver);

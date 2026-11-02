@@ -128,7 +128,7 @@ const appMap = (() => {
       const on = lit.has(key);
       svgEl("path", { d: `M${a[0]},${a[1]} L${b[0] - 2},${b[1]}`, class: "map-flow" + (on ? " lit" : ""), "marker-end": `url(#mk-${on ? "lit" : "flow"})` }, svg);
     }
-    // The stubs detour: down from Close the polygons into Add stubs, and back up with the new layout.
+    // The stubs detour: down from Strain the edges into Add stubs, and back up with the new layout.
     {
       const cx = BOX.close.x + SW / 2, top = BOX.stubs.y, bottom = BOX.close.y + H;
       const on = !!wb.layout?.stubs?.length;
@@ -241,7 +241,7 @@ const appMap = (() => {
     list.className = "bench-steps";
     for (const [k, step] of steps.entries()) {
       const li = document.createElement("li");
-      li.textContent = `${k + 1}. ${step.kind === "solve" ? `Solve with ${NODES[step.node]?.title ?? step.node}` : { tree: "Tree", close: "Close the polygons", stub: `Add the stub ${step.params?.name ?? ""}`.trim(), creases: "Crease pattern" }[step.kind]}`
+      li.textContent = `${k + 1}. ${step.kind === "solve" ? `Solve with ${NODES[step.node]?.title ?? step.node}` : { tree: "Tree", close: "Strain the edges", stub: `Add stubs: ${(step.params?.stubs ?? (step.params?.name ? [step.params] : [])).map((t) => t.name).join(", ")}`, creases: "Crease pattern" }[step.kind]}`
         + (k === steps.length - 1 ? (step.output ? " (live)" : " (not run yet)") : "");
       list.append(li);
     }

@@ -51,7 +51,7 @@ The first screen is a map of the specs and the steps after them, drawn like the 
 | Lattice-Hull MILP | `#/hull` | [Lattice-Hull MILP](src/TreeMaker.Web/wwwroot/specs/hull.md), Sections 8 and 10 | Lattice-hull feasibility tests and bisection over candidate scales, without symmetry breaking | `/api/optimized/*` with `options.symmetryBreaking: false` |
 | Optimized MILP | `#/optimized` | [Optimized MILP](src/TreeMaker.Web/wwwroot/specs/optimized.md), Section 7 | Lattice hulls, symmetry breaking, pair and facet generation, leaf windows, border seed | `/api/optimized/*` |
 | Scalable MILP | `#/scalable` | [Scalable MILP](src/TreeMaker.Web/wwwroot/specs/scalable.md), Section 9 | Continuous LP, CP-SAT repair, neighbourhood search, foldability finish | `/api/scalable/*` |
-| Close the polygons | `#/close` | [Polygon Closing](src/TreeMaker.Web/wwwroot/specs/closing.md), A:1 to A:4 (Sections 4–7) | Check the polygons; close them by strain; find the strain needed | `/api/polygons`, `/api/complete`, `/api/strain-needed` |
+| Strain the edges | `#/close` | [Polygon Closing](src/TreeMaker.Web/wwwroot/specs/closing.md), A:1 to A:4 (Sections 4–7) | Check the polygons; change edge lengths (strain) until they close; find the smallest strain | `/api/polygons`, `/api/complete`, `/api/strain-needed` |
 | Add stubs (optional) | `#/stubs` | [Polygon Closing](src/TreeMaker.Web/wwwroot/specs/closing.md), open problem 1 (Section 10) | Hang a short new leaf edge inside an open polygon; then close again | none: computed in the browser (`stubs.js`), checked by `/api/polygons` |
 | Crease pattern | `#/creases` | [Crease Pattern](src/TreeMaker.Web/wwwroot/specs/crease.md), A:1 and A:3 (Sections 4, 5, 7 and 8) | Universal molecules, pleats, .fold and .svg | `/api/creases` |
 | Folded base | `#/fold` | [Crease Pattern](src/TreeMaker.Web/wwwroot/specs/crease.md), A:2 (Section 6) | The base in 3D | (from the crease pattern) |
@@ -96,8 +96,8 @@ The work view is one document, **the session** (`workflow.js`). It runs from a t
   | After | You can |
   |---|---|
   | the tree | solve, with any solver: the solvers are listed with how well each suits the tree |
-  | a layout with open polygons | close the polygons, add a stub, or solve again |
-  | a stub | solve just the stubs (suggested), close the polygons, or add another stub |
+  | a layout with open polygons | strain the edges, add stubs, or solve again |
+  | added stubs | strain the edges (suggested), or solve just the stubs (optional: the stubs already fit) |
   | valid polygons | build the crease pattern (suggested), or solve again |
   | the crease pattern | nothing: this is the end of the path |
 
@@ -156,7 +156,7 @@ The server tells the browser not to cache the page, and the scripts are versione
 
 ## Toward a crease pattern (the steps after a solve)
 
-After a solve, the session's next steps close the polygons and build the crease pattern (see *The session* above). The moves run the code in `src/TreeMaker.Core`:
+After a solve, the session's next steps close the polygons (by straining the edges, adding stubs or solving again) and build the crease pattern (see *The session* above). The moves run the code in `src/TreeMaker.Core`:
 
 1. **Check the polygons** (`ActivePaths`, `POST /api/polygons`). TreeMaker's universal-molecule construction needs the tight pairs (active paths) to divide the leaves' convex hull into polygons. Each polygon must be convex, bounded by tight paths, and empty of leaves. The panel lists what's missing: open boundary pieces, crossing paths, non-convex polygons, leaves inside a polygon, and uncovered area. The sheet marks what still needs closing:
    - Valid polygons are shaded.
@@ -165,9 +165,9 @@ After a solve, the session's next steps close the polygons and build the crease 
    - Hull sides that aren't tight paths yet are dashed red.
 
    A key under the live sheet explains the marks, with a line such as "To close before a crease pattern: 3 hull sides to make tight, 1 polygon not valid".
-2. **Close the polygons** (`PolygonCompletion`, `POST /api/complete`). There are two ways, and you pick one:
-   - **Find the strain needed and close** (recommended): finds the smallest bound for you (below).
-   - **Close within these bounds**: uses the σ_min and σ_max you type.
+2. **Strain the edges** (`PolygonCompletion`, `POST /api/complete`): one of the three ways to close the polygons, beside adding stubs and solving again. There are two ways to run it, and you pick one:
+   - **Find the smallest strain** (recommended): finds the smallest bound for you (below).
+   - **Strain within these bounds**: uses the σ_min and σ_max you type.
 
    The leaves and the scale stay fixed. The edge lengths change (strain σₑ within your bounds) so the pairs of a triangulation that keeps the existing tight pairs become exactly tight, and every other pair still fits. Boundary pairs come first, since the polygons cannot cover the hull without them. A second solve then uses the least total strain.
 
@@ -176,12 +176,13 @@ After a solve, the session's next steps close the polygons and build the crease 
 
 5. **Pleat the flaps** (optional, in step 3). This lowers the base to a chosen height H, in grid units. Each facet is cut along the elevation contours z = H, 2H, 3H, …, and the contours fold valley, mountain, valley, … in turn, so every flap collapses into a band of height H. A contour changes from mountain to valley where it crosses a ridge, as a pleat over a fold must. H = 1 gives pleats one grid unit apart, as in box pleating. The pleat creases carry their mountain or valley assignment into the FOLD file.
 
-If **Build the crease pattern** stays greyed out, the polygons aren't valid yet. **Find the strain needed** first solves two linear programs. One finds the smallest strain bound ±s that makes the hull's boundary pairs tight. Valid polygons need those pairs tight, so this is a lower bound, and when no strain manages it the button says so at once. The other finds the smallest bound that makes the whole triangulation tight, which is an upper bound. If tightening the boundary already gives valid polygons, that bound is the answer. Otherwise the button bisects between the two bounds with the closing MILP, to within 0.01. It then closes the polygons at the bound found.
+If **Build the crease pattern** stays greyed out, the polygons aren't valid yet. **Find the smallest strain** first solves two linear programs. One finds the smallest strain bound ±s that makes the hull's boundary pairs tight. Valid polygons need those pairs tight, so this is a lower bound, and when no strain manages it the button says so at once. The other finds the smallest bound that makes the whole triangulation tight, which is an upper bound. If tightening the boundary already gives valid polygons, that bound is the answer. Otherwise the button bisects between the two bounds with the closing MILP, to within 0.01. It then closes the polygons at the bound found.
 
-**Add a stub** (`stubs.js`), a step of its own, splits an open polygon the TreeMaker way. A stub is a new short leaf edge hung from a joint of the tree, with its leaf inside the polygon. Its leaf goes on a grid point X, so the layout stays a grid layout. Hung from joint v, at the layout's scale m, the longest stub that keeps every pair feasible is ℓ = min over leaves a of (|X − P_a| / m − d(v, a)), and the leaves that reach that minimum are tight to it.
+**Add stubs** (`stubs.js`), a step of its own that can add as many stubs as you like, splits open polygons the TreeMaker way. A stub is a new short leaf edge hung from a joint of the tree, with its leaf inside the polygon. Its leaf goes on a grid point X, so the layout stays a grid layout. Hung from joint v, at the layout's scale m, the longest stub that keeps every pair feasible is ℓ = min over leaves a of (|X − P_a| / m − d(v, a)), and the leaves that reach that minimum are tight to it.
 - It works on the live step's tree and sheet. The tree editor is locked against edits: the proposed stub is a dashed edge, and clicking a joint hangs the stub there. On the sheet, the open region is outlined and the stub is drawn with its circle and its tight paths. Clicking a grid point inside the region moves the stub there.
 - **Find the best stub here** tries every joint and free grid point in the region. It prefers the most leaves tight, then the longest stub.
-- **Add this stub** adds the leaf `s1`, `s2`, … to the tree and to the layout, at the same scale, as a new step. A grid point seldom makes three leaves tight at once, so afterwards either solve just the stubs or close the polygons to tighten what is left.
+- **Add this stub** adds the leaf `s1`, `s2`, … to the tree and to the layout, at the same scale. The polygons are checked again, ready for the next stub. **Remove** takes the last stub out again.
+- **After stubs, no solve is needed.** Every stub already fits at the layout's scale, so the layout stays feasible. A grid point seldom makes three leaves tight at once, though, so **Strain the edges** is the suggested next step: it tightens what is left. **Solve just the stubs** is offered too, but with every other leaf held it can at best keep the scale.
 
 The spec has stubs only as an open problem so far.
 

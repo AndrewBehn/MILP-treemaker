@@ -1,5 +1,6 @@
 // UI check of the session (workflow.js) against tools/mock_api.py on port 5099. One document from a tree to a crease
-// pattern: step 1 the tree (live, then frozen), a solve, a stub, a solve of just the stubs, closing, the crease
+// pattern: step 1 the tree (live, then frozen), a solve, two stubs in one step, a solve of just the stubs, straining,
+// the crease
 // pattern; only the last step is live; "Go back to this step" drops the later ones; the session saves and reopens.
 // Usage: node tools/ui_session.js [screenshot dir] (needs Playwright with Chromium).
 const { chromium } = require('playwright');
@@ -33,11 +34,20 @@ const base = 'http://127.0.0.1:5099/';
   log.moves = await p.evaluate(() => [...document.querySelectorAll('#nextMoves .next-move button')].map((b) => b.textContent));
   await p.screenshot({ path: `${out}/session-solve.png`, fullPage: true });
 
-  await next('Add a stub');
+  await next('Add stubs');
   await p.click('#addStub'); await p.waitForFunction(() => !workflowDoc.running && workflowDoc.last().output, null, { timeout: 20000 }); await p.waitForTimeout(1500);
+  // A second stub in the same step, then take it out and put it back.
+  await p.click('#bestStub'); await p.waitForTimeout(300);
+  await p.click('#addStub'); await p.waitForFunction(() => !workflowDoc.running && (workflowDoc.last().params.stubs ?? []).length === 2, null, { timeout: 20000 }); await p.waitForTimeout(1500);
+  log.twoStubs = await p.evaluate(() => ({ stubs: workflowDoc.last().params.stubs.map((t) => t.name), leaves: workflowDoc.last().output.stubs, steps: workflowDoc.steps.length }));
+  check('two stubs in one step', log.twoStubs.stubs.join() === 's1,s2' && log.twoStubs.steps === 3);
+  await p.click('#removeStub'); await p.waitForTimeout(1500);
+  log.removed = await p.evaluate(() => workflowDoc.last().params.stubs.map((t) => t.name));
+  check('remove the last stub', log.removed.join() === 's1');
+  await p.click('#addStub'); await p.waitForFunction(() => !workflowDoc.running && (workflowDoc.last().params.stubs ?? []).length === 2, null, { timeout: 20000 }); await p.waitForTimeout(1500);
   log.afterStub = await steps();
   log.stubMoves = await p.evaluate(() => [...document.querySelectorAll('#nextMoves .next-move.suggested button')].map((b) => b.textContent));
-  check('after a stub, solving just the stubs is suggested', log.stubMoves.includes('Solve just the stubs'));
+  check('after stubs, straining is suggested', log.stubMoves.includes('Strain the edges'));
 
   await next('Solve just the stubs');
   log.which = await p.evaluate(() => ({ shown: !document.getElementById('whichBlock').hidden, value: document.querySelector('input[name="solveWhich"]:checked').value, warn: !document.getElementById('solveWarning').hidden }));
@@ -45,7 +55,7 @@ const base = 'http://127.0.0.1:5099/';
   await p.click('#solve'); await idle(); await p.waitForTimeout(1500);
   log.afterStubSolve = await steps();
 
-  await next('Close the polygons');
+  await next('Strain the edges');
   await p.click('#docAuto'); await p.waitForFunction(() => !workflowDoc.running && workflowDoc.last().output, null, { timeout: 20000 }); await p.waitForTimeout(1500);
   log.afterClose = await steps();
 

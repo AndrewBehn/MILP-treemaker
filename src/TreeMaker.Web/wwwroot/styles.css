@@ -1377,3 +1377,4 @@ body:not([data-node="tree"]) .duo-tree .block-head .row, body:not([data-node="tr
 .doc-settings .k { color: var(--ink-soft); }
 .doc-settings .k::after { content: ":"; }
 .doc-settings .v { font-weight: 650; }
+.stub-count { margin: 4px 0; font-size: 13px; font-weight: 650; }
