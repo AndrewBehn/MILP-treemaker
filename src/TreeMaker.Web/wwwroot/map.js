@@ -170,10 +170,12 @@ const appMap = (() => {
     const has = workflowDoc.steps.length > 1 || !!live?.output;
     go.href = "#/" + (live?.node ?? "tree");
     go.textContent = has ? `Continue the session: step ${workflowDoc.steps.length} →` : "Start with a tree →";
+    q("mapNew").hidden = !has;
   }
 
   function init() {
     q("showRefs").addEventListener("change", render);
+    q("mapNew").addEventListener("click", () => workflowDoc.startOver());
     workbench.onChange(() => { if (document.body.dataset.view === "map") render(); });
   }
 

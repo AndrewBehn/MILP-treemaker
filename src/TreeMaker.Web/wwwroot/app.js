@@ -1126,9 +1126,9 @@ function enterNode(id) {
     ? "Drag vertices to move them, or onto another vertex to re-attach. Click a leaf to pin it to an edge, a corner or the axis, or to mirror it with another leaf. Click an edge to toggle S, click a length to edit it, double-click a vertex to rename it."
     : "Drag vertices to move them, or onto another vertex to re-attach. Click a leaf to pin it to an edge, a corner or the axis, or to mirror it with another leaf. Click a length to edit it, double-click a vertex to rename it.";
   if (node.id === "stubs") {
-    $("treeHelp").textContent = "The tree from step 1, locked (delete the steps below step 1 to change it). The dashed edge is the proposed stub; click a joint to hang it there, click it again to let the search choose.";
+    $("treeHelp").textContent = "The tree from step 1, locked (“Go back to this result” on step 1 to change it). The dashed edge is the proposed stub; click a joint to hang it there, click it again to let the search choose.";
   } else if (node.kind !== "tree") {
-    $("treeHelp").textContent = "The tree from step 1, locked (delete the steps below step 1 to change it). Point at a leaf here or on the sheet to see it in both; point at a pair on the sheet to see the tree path it measures. Click a leaf to keep it lit.";
+    $("treeHelp").textContent = "The tree from step 1, locked (“Go back to this result” on step 1 to change it). Point at a leaf here or on the sheet to see it in both; point at a pair on the sheet to see the tree path it measures. Click a leaf to keep it lit.";
   }
   if (node.lockOptions?.symmetryBreaking === false) {
     $("optSymmetry").checked = false;

@@ -369,13 +369,6 @@ details.edge-table summary { cursor: pointer; font-size: 13px; font-weight: 600;
   min-width: 0;
   padding: 0 32px 48px;
   background-color: var(--mat);
-  background-image:
-    linear-gradient(var(--mat-line-strong) 1px, transparent 1px),
-    linear-gradient(90deg, var(--mat-line-strong) 1px, transparent 1px),
-    linear-gradient(var(--mat-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--mat-line) 1px, transparent 1px);
-  background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
-  background-position: -1px -1px;
   color: var(--mat-ink);
 }
 
@@ -833,12 +826,6 @@ details.rounds summary { cursor: pointer; font-size: 13px; font-weight: 600; }
   min-height: calc(100vh - var(--topbar));
   padding: 26px 32px 56px;
   background-color: var(--mat);
-  background-image:
-    linear-gradient(var(--mat-line-strong) 1px, transparent 1px),
-    linear-gradient(90deg, var(--mat-line-strong) 1px, transparent 1px),
-    linear-gradient(var(--mat-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--mat-line) 1px, transparent 1px);
-  background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
   color: var(--mat-ink);
 }
 .map-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; max-width: 1360px; margin: 0 auto 16px; }
@@ -1328,7 +1315,6 @@ body[data-kind="step"] #stageArea > #metricsCard { display: none; }
 .doc-time { font-size: 12px; color: var(--ink-soft); }
 .back-to-result { margin-left: auto; }
 .back-to-result:hover { border-color: var(--ink); color: var(--ink); }
-.back-to-result + .delete-below { margin-left: 0; }
 .delete-below { margin-left: auto; }
 .delete-below:hover { border-color: var(--beni); color: var(--beni); }
 .final-delete { margin-left: auto; align-self: flex-start; }
@@ -1361,7 +1347,8 @@ body[data-kind="step"] #stageArea > #metricsCard { display: none; }
 .final-notes .doc-open.no { color: #ffb3c0; }
 .final-notes .doc-open.ok { color: #a8e6c1; }
 .final-notes .running { color: #fff; font-weight: 650; }
-.doc-step.final .toolbar { padding-left: 0; padding-right: 0; }
+/* Inside the live step's frame the metrics bar stays within the frame. */
+.doc-step.final .toolbar { margin-left: 0; margin-right: 0; padding: 10px 14px; border-radius: 6px; }
 
 /* What can follow. */
 .next-menu { margin-top: 18px; background: var(--panel); color: var(--ink); border-radius: 8px; padding: 16px 18px; }

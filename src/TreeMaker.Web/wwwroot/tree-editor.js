@@ -24,7 +24,7 @@ const treeUi = {
 };
 
 /** In the Add stubs node the tree is the workbench layout's: it can be looked at and rearranged, not edited. */
-/** Only the session's tree step edits the tree; every later step shows it locked (delete the steps below step 1 to change it). */
+/** Only the session's tree step edits the tree; every later step shows it locked (“Go back to this result” on step 1 to change it). */
 const treeLocked = () => document.body.dataset.view === "work" && document.body.dataset.node !== "tree";
 /** True while the workflow document's "Add a stub" move is open: clicks on joints hang the stub (stubs.js). */
 const stubbing = () => document.body.dataset.stubbing === "on";

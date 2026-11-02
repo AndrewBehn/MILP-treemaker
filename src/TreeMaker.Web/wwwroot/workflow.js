@@ -6,8 +6,8 @@
 // conditions; a solver's settings; the closing bounds; the stub; the pleats), and running it replaces its output.
 // Choosing a next step freezes it: the step keeps its settings, input and output as they were, and the moves on
 // offer depend on its kind and on its output (a tree can only be solved; a layout with open polygons can be closed,
-// stubbed or solved again; valid polygons can be built into creases). "Delete this and below" deletes a step and
-// every later one, with no confirmation; the step before it becomes the live one.
+// stubbed or solved again; valid polygons can be built into creases). "Go back to this result" on a frozen step
+// deletes the later steps, and "Delete this step" deletes the live one; neither asks for confirmation.
 //
 // A state is { problem, layout, closure, creases, report, stubs }:
 //   problem   the tree: edges, gridSize, leafConditions, mirrorPairs
@@ -206,6 +206,8 @@ const workflowDoc = (() => {
     if (!step?.output) return { kind: "pending", text: "Not run yet." };
     if (step.kind === "tree") {
       const edges = step.output.problem.edges;
+      // An empty tree is not a failure, just not started: it is dashed, not red.
+      if (!edges.length) return { kind: "pending", text: "Draw a tree, load a preset or open a file: at least two leaves." };
       const info = treeInfo(edges);
       return info.leaves.length >= 2 && info.vertices.length === edges.length + 1
         ? { kind: "progress", text: "The tree is ready to solve." }
@@ -453,7 +455,7 @@ const workflowDoc = (() => {
     const head = h("header", "doc-step-head");
     head.append(h("span", "doc-no", String(k + 1)), h("h3", "", stepTitle(step)));
     if (step.ms) head.append(h("span", "doc-time", `${(step.ms / 1000).toFixed(1)} s`));
-    head.append(backButton(k), deleteButton(k));
+    head.append(backButton(k));
     li.append(head);
     const spec = specLine(step.node);
     if (spec) li.append(spec);
@@ -590,14 +592,14 @@ const workflowDoc = (() => {
     box.replaceChildren();
     if (running) { q("nextIntro").textContent = "Wait for this step to finish, or cancel it."; return; }
     if (!f.output) { q("nextIntro").textContent = `Run step ${doc.steps.length} first: its output is what the next step starts from.`; return; }
-    if (progressOf(f).kind === "none") {
+    if (progressOf(f).kind === "none" || (f.kind === "tree" && progressOf(f).kind !== "progress")) {
       q("pickCard").hidden = true;
       q("nextIntro").textContent = f.kind === "tree" ? progressOf(f).text
         : `Step ${doc.steps.length} made no progress, so there is nothing new to build on. Change its settings and run it again, or delete it.`;
       return;
     }
     if (f.kind === "creases") {
-      q("nextIntro").textContent = "The crease pattern is built: the end of this path. Delete the steps below an earlier one to try another.";
+      q("nextIntro").textContent = "The crease pattern is built: the end of this path. Go back to an earlier result to try another.";
       return;
     }
     if (f.kind === "tree") {
@@ -673,9 +675,9 @@ const workflowDoc = (() => {
     }, 350);
   }
 
-  /** "Delete this and below" for step k: no confirmation; the step before it becomes the live one. */
+  /** "Delete this step" for the live step k: no confirmation; the step before it becomes the live one. */
   function deleteButton(k) {
-    const b = h("button", "quiet small delete-below", k === doc.steps.length - 1 ? "Delete this step" : "Delete this and below");
+    const b = h("button", "quiet small delete-below", "Delete this step");
     b.type = "button";
     const n = doc.steps.length - k;
     b.title = k === 0 ? "Delete every step, and start again from an empty tree"
@@ -763,7 +765,12 @@ const workflowDoc = (() => {
     treeTimer = setTimeout(() => {
       f.output = emptyState(buildProblem());
       save();
+      // The tree step's status follows the tree as it is edited: its frame, its card, its notes and the moves.
+      q("finalStep").dataset.progress = progressOf(f).kind;
+      renderFinalNotes();
+      renderOutline();
       renderNext();
+      if (typeof renderPick === "function" && !q("pickCard").hidden) renderPick();
     }, 200);
   }
 

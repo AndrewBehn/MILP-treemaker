@@ -129,7 +129,7 @@ The work view is one document, **the session** (`workflow.js`). It runs from a t
 
   Toggles are the same rounded pills on the tree and on the sheet. The main action of each step is the one red button.
 - **Go back to this result**, on any frozen step, deletes the steps after it, with no confirmation, so that step's result is live again, and scrolls to the moves offered after it, to choose another next step.
-- **Delete this and below**, on any step, deletes that step and every step after it, with no confirmation. The step before it becomes the live step again. On the live step the button reads **Delete this step**. Deleting step 1 starts an empty session.
+- **Delete this step**, on the live step only, deletes it with no confirmation; the step before it becomes the live step again. Deleting step 1 starts an empty session.
 - **Step cards** run down the side of the document, one per step. Each card has the step's number, title, progress mark, a line on what it did and a small sheet. They stay in view as you scroll, the card of the step on screen is outlined, and a click goes to that step. Above the cards, **Save the session** writes the whole session (every step with its settings, input and output) as a `treemaker-session` file, version 2 ([docs/FILE-FORMATS.md](docs/FILE-FORMATS.md)). **Open…** reads a session, layout or tree file, and **New session** starts an empty one.
 - **Opening a layout file** starts a new session: its tree as step 1 and the layout as step 2.
 - **Only the session is kept.** The session document is the only thing the app keeps in the browser between visits, and it survives a reload. A new session starts empty, with default settings: it takes nothing from the previous one. An opened file starts afresh the same way. The map shows the session in short, with **Continue the session**.
@@ -162,7 +162,7 @@ Every part of the app shows the tree and the sheet side by side, as one widget: 
 
 A row of toggles above the sheet chooses what it shows: leaf circles, every pair and, once they exist, the polygons and the creases.
 
-The tree can be edited only while the tree is the session's live step. In every later step it is locked: delete the steps below step 1 (“Delete this and below” on step 2) to change it.
+The tree can be edited only while the tree is the session's live step. In every later step it is locked: use **Go back to this result** on step 1 to change it.
 
 The editor works the same everywhere it can edit.
 
