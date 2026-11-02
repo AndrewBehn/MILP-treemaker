@@ -36,17 +36,20 @@ public static class StepEndpoints
                 StrainMin = request.StrainMin ?? -0.3,
                 StrainMax = request.StrainMax ?? 0.3,
                 Targets = request.Targets ?? new List<LeafPairName>(),
+                Edges = EdgeStrain.From(request.EdgeRoom, request.EdgeCost, spec.Tree.Edges.Count),
                 TimeLimit = spec.Solver.TimeLimit,
             };
             return PolygonCompletion.Complete(spec, layout, request.Scale, request.EdgeLengths, options);
         }));
 
-        // "Find the strain needed": the smallest symmetric strain bound that closes the polygons, as one or two LPs.
+        // "Find the strain needed": the smallest symmetric strain bound that closes the polygons, as one or two LPs
+        // (each edge's bound is its room times it).
         api.MapPost("/strain-needed", (PolygonRequest request) => Solving.CheckedAsync(() =>
         {
             var spec = (request.Problem with { StartLayout = null }).ToSpec();
             var layout = ActivePaths.Place(spec.Tree, request.Layout.Select(p => (p.Leaf, p.X, p.Y)));
-            return StrainNeeded.Find(spec, layout, request.Scale, request.EdgeLengths);
+            return StrainNeeded.Find(spec, layout, request.Scale, request.EdgeLengths,
+                edgeStrain: EdgeStrain.From(request.EdgeRoom, request.EdgeCost, spec.Tree.Edges.Count));
         }));
 
         // Step 3: the crease pattern (universal molecules) and the folded base, for a layout whose polygons are valid.

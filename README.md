@@ -198,6 +198,13 @@ After a solve, the session's next steps close the polygons (by straining the edg
 
    The leaves and the scale stay fixed. The edge lengths change (strain σₑ within your bounds) so the pairs of a triangulation that keeps the existing tight pairs become exactly tight, and every other pair still fits. Boundary pairs come first, since the polygons cannot cover the hull without them. A second solve then uses the least total strain.
 
+   Each edge gets its own strain, but by default every edge shares the same bounds and costs the same. Under **Per-edge room and cost** you can change that for single edges, and both ways of straining honour it (closing spec P:8 and D:7):
+   - **Lock** keeps an edge's length (room 0).
+   - **Room ×** multiplies the bounds for that edge: 2 lets it strain twice as far as the others, 0.5 half as far. In **Find the smallest strain**, the bound found is the one for an edge with room 1.
+   - **Cost** weighs the edge's strain in the least-strain solves, so an edge with cost 3 is strained only where a cheaper one can't do the job.
+
+   The step keeps only the edges you changed, and they are listed in its settings once it is frozen. σ is a relative change of length, ℓₑ(1 + σₑ). A strain below −1 would give a negative length, so shrinking stops at −0.99. Stretching has no upper limit beyond the σ_max you set.
+
 3. **Build the crease pattern** (`CreasePatternBuilder`, `POST /api/creases`). This fills every polygon with Lang's universal molecule. Each polygon shrinks, with all sides moving inward at the same rate and the corners sliding along their bisectors, which traces the **ridge** creases. It stops when two corners meet or when a shortened diagonal becomes tight. In the second case it splits along that diagonal (a **gusset**) and repeats on each piece. **Hinge** creases run perpendicular to each side at every internal tree node along its path. The creases are drawn on the sheet. **Download .fold** gives a FOLD file that Origami Simulator and other tools can open; **Download .svg** gives a drawing styled by crease type.
 4. **The folded base** (`folded.js`). Every facet is mapped to its folded position: it lies over one tree edge, at its height above the axis. The base is drawn in 3D: drag to turn it, or pick a view from above, from the side, or three-quarter. Seen from above it is the tree's stick figure. The builder also checks the fold: every vertex must fold to one point from all its facets, and every facet must keep its shape. The result of that check is shown with the pattern.
 

@@ -32,7 +32,9 @@ public sealed record StrainNeededResult
 /// strains σₑ make a set T of pairs exactly tight, while every other pair still fits, is the LP
 ///     minimize s   subject to   m₀(ℓᵢⱼ + Σ ℓₑσₑ) = D   for (i, j) ∈ T,
 ///                               m₀(ℓᵢⱼ + Σ ℓₑσₑ) ≤ D   for every other pair,
-///                               −s ≤ σₑ ≤ s,  σₑ ≥ −0.99.
+///                               −rₑs ≤ σₑ ≤ rₑs,  σₑ ≥ −0.99,
+/// where rₑ is edge e's room (D:7; 1 for every edge by default, 0 for a locked edge), so s is the bound on an edge with
+/// room 1.
 /// Valid polygons need every pair on the hull's boundary tight, so the first LP, with T = the boundary pairs, gives a
 /// lower bound on the strain needed, and proves at once that no strain helps when it is infeasible. If the polygons are
 /// valid at its solution, that bound is the answer. Otherwise the second LP, with T = the whole triangulation (all
@@ -42,8 +44,9 @@ public sealed record StrainNeededResult
 public static class StrainNeeded
 {
     public static StrainNeededResult Find(ProblemSpec spec, IReadOnlyList<LeafPlacement> layout, double scale,
-        IReadOnlyList<double>? startLengths = null, CancellationToken token = default)
+        IReadOnlyList<double>? startLengths = null, CancellationToken token = default, EdgeStrain? edgeStrain = null)
     {
+        var room = edgeStrain ?? EdgeStrain.Uniform;
         ArgumentNullException.ThrowIfNull(spec);
         if (!(scale > 0)) throw new ArgumentException("The scale must be positive.");
         var clock = Stopwatch.StartNew();
@@ -51,6 +54,7 @@ public static class StrainNeeded
         var defs = new Definitions(tree, spec.GridSize);
         var lengths = (startLengths ?? tree.Edges.Select(e => e.Length).ToArray()).ToArray();
         if (lengths.Length != tree.Edges.Count) throw new ArgumentException("There must be one starting length per edge.");
+        room.Validate(tree.Edges.Count);
 
         var points = layout.ToDictionary(p => p.Leaf, p => (X: (long)p.X, Y: (long)p.Y), StringComparer.Ordinal);
         var before = ActivePaths.Analyze(layout, LayoutAnalysis.Pairs(defs, layout, scale, lengths));
@@ -76,7 +80,7 @@ public static class StrainNeeded
         var all = triangulation.Select(t => index[Key(t.A, t.B)]).Distinct().ToArray();
 
         int solves = 1;
-        var sb = Solve(tree, lengths, scale, distance, boundary, out var strains);
+        var sb = Solve(tree, lengths, scale, distance, boundary, room, out var strains);
         bool boundaryValid = false;
         double? st = null;
         IReadOnlyList<LeafPairName> tightTargets = Array.Empty<LeafPairName>();
@@ -89,7 +93,7 @@ public static class StrainNeeded
             if (!boundaryValid)
             {
                 token.ThrowIfCancellationRequested();
-                st = Solve(tree, lengths, scale, distance, all, out _);
+                st = Solve(tree, lengths, scale, distance, all, room, out _);
                 solves++;
             }
         }
@@ -98,7 +102,8 @@ public static class StrainNeeded
         if (sb is null)
         {
             messages.Add("No strain can make the hull's boundary pairs all tight with every other pair still fitting, " +
-                "so no strain closes the polygons with the leaves where they are. Try another layout or grid size.");
+                "so no strain closes the polygons with the leaves where they are. " +
+                (room.IsUniform ? "Try another layout or grid size." : "Give the locked or tight edges more room, or try another layout or grid size."));
         }
         else if (boundaryValid)
         {
@@ -117,12 +122,14 @@ public static class StrainNeeded
     }
 
     /// <summary>The LP's optimal s, or null when it is infeasible.</summary>
-    private static double? Solve(Tree tree, double[] lengths, double m0, double[] distance, int[] targets, out double[] strains)
+    private static double? Solve(Tree tree, double[] lengths, double m0, double[] distance, int[] targets, EdgeStrain room, out double[] strains)
     {
         using var solver = Solver.CreateSolver("GLOP") ?? throw new InvalidOperationException("GLOP is not available.");
         int edges = lengths.Length;
         var s = solver.MakeNumVar(0, double.PositiveInfinity, "s");
-        var sigma = Enumerable.Range(0, edges).Select(e => solver.MakeNumVar(-0.99, double.PositiveInfinity, $"sigma[{e}]")).ToArray();
+        var sigma = Enumerable.Range(0, edges).Select(e => room.Locked(e)
+            ? solver.MakeNumVar(0, 0, $"sigma[{e}]")
+            : solver.MakeNumVar(EdgeStrain.Floor, double.PositiveInfinity, $"sigma[{e}]")).ToArray();
         var abs = Enumerable.Range(0, edges).Select(e => solver.MakeNumVar(0, double.PositiveInfinity, $"a[{e}]")).ToArray();
         var isTarget = new HashSet<int>(targets);
         for (int p = 0; p < tree.Pairs.Count; p++)
@@ -137,13 +144,17 @@ public static class StrainNeeded
         }
         for (int e = 0; e < edges; e++)
         {
-            // −s ≤ σₑ ≤ s, and aₑ ≥ |σₑ| for the tie-break.
-            var up = solver.MakeConstraint(0, double.PositiveInfinity, $"s+[{e}]");
-            up.SetCoefficient(s, 1);
-            up.SetCoefficient(sigma[e], -1);
-            var down = solver.MakeConstraint(0, double.PositiveInfinity, $"s-[{e}]");
-            down.SetCoefficient(s, 1);
-            down.SetCoefficient(sigma[e], 1);
+            // −rₑs ≤ σₑ ≤ rₑs (a locked edge is fixed at 0 above), and aₑ ≥ |σₑ| for the tie-break.
+            double r = room.RoomOf(e);
+            if (r > 0)
+            {
+                var up = solver.MakeConstraint(0, double.PositiveInfinity, $"s+[{e}]");
+                up.SetCoefficient(s, r);
+                up.SetCoefficient(sigma[e], -1);
+                var down = solver.MakeConstraint(0, double.PositiveInfinity, $"s-[{e}]");
+                down.SetCoefficient(s, r);
+                down.SetCoefficient(sigma[e], 1);
+            }
             var ap = solver.MakeConstraint(0, double.PositiveInfinity, $"a+[{e}]");
             ap.SetCoefficient(abs[e], 1);
             ap.SetCoefficient(sigma[e], -1);
@@ -151,10 +162,11 @@ public static class StrainNeeded
             an.SetCoefficient(abs[e], 1);
             an.SetCoefficient(sigma[e], 1);
         }
-        // The largest strain first; among equal ones, the least total (a weight small enough never to trade against s).
+        // The largest strain first; among equal ones, the least total weighed by cost (small enough never to trade against s).
         var objective = solver.Objective();
         objective.SetCoefficient(s, 1);
-        foreach (var a in abs) objective.SetCoefficient(a, 1e-4 / Math.Max(1, edges));
+        double costScale = Math.Max(1, Enumerable.Range(0, edges).Sum(e => room.CostOf(e)));
+        for (int e = 0; e < edges; e++) objective.SetCoefficient(abs[e], 1e-4 * room.CostOf(e) / costScale);
         objective.SetMinimization();
         var status = solver.Solve();
         if (status != Solver.ResultStatus.OPTIMAL)

@@ -18,6 +18,9 @@ public sealed record CompletionOptions
     /// </summary>
     public IReadOnlyList<LeafPairName> Targets { get; init; } = Array.Empty<LeafPairName>();
 
+    /// <summary>Per-edge room and cost (P:8, D:7): edge e strains within rₑ times the bounds above, at cost cₑ.</summary>
+    public EdgeStrain Edges { get; init; } = EdgeStrain.Uniform;
+
     public TimeSpan? TimeLimit { get; init; }
 }
 
@@ -57,7 +60,8 @@ public sealed record CompletionResult
 /// (strain σₑ, as in Section 11.3) so that chosen pairs become exactly tight, which closes the network of tight paths into
 /// polygons. Every other pair must still fit. Two solves: first make as many targets tight as possible, counting each
 /// pair on the hull's boundary above all interior pairs together (the polygons cannot cover the hull without them);
-/// then, keeping that, use the least total strain.
+/// then, keeping that, use the least total strain, each edge's |σₑ| weighed by its cost cₑ. Each edge strains within
+/// its room rₑ times the bounds (D:7); an edge with no room keeps its length.
 /// </summary>
 public static class PolygonCompletion
 {
@@ -78,6 +82,7 @@ public static class PolygonCompletion
         var defs = new Definitions(tree, spec.GridSize);
         var lengths = (startLengths ?? tree.Edges.Select(e => e.Length).ToArray()).ToArray();
         if (lengths.Length != tree.Edges.Count) throw new ArgumentException("There must be one starting length per edge.");
+        options.Edges.Validate(tree.Edges.Count);
         if (layout.Count != tree.Leaves.Count) throw new ArgumentException("The layout must place every leaf.");
 
         var points = layout.ToDictionary(p => p.Leaf, p => (X: (long)p.X, Y: (long)p.Y), StringComparer.Ordinal);
@@ -169,7 +174,9 @@ public static class PolygonCompletion
         else if (boundaryTight < boundaryTotal)
         {
             messages.Add($"Only {boundaryTight} of the {boundaryTotal} boundary pairs could be made tight within strain " +
-                $"{options.StrainMin:0.##}…{options.StrainMax:+0.##;-0.##;0}. Widen the bounds, or re-solve the layout.");
+                $"{options.StrainMin:0.##}…{options.StrainMax:+0.##;-0.##;0}" +
+                (options.Edges.IsUniform ? "" : " (scaled by each edge's room)") +
+                ". Widen the bounds" + (options.Edges.IsUniform ? "" : " or give the edges more room") + ", or re-solve the layout.");
         }
         else
         {
@@ -207,9 +214,10 @@ public static class PolygonCompletion
         using var solver = Solver.CreateSolver("SCIP")
             ?? throw new InvalidOperationException("The SCIP backend of OR-Tools is not available on this machine.");
         int edges = lengths.Length;
-        double magnitude = Math.Max(-options.StrainMin, options.StrainMax);
-        var sigma = Enumerable.Range(0, edges).Select(e => solver.MakeNumVar(options.StrainMin, options.StrainMax, $"sigma[{e}]")).ToArray();
-        var abs = Enumerable.Range(0, edges).Select(e => solver.MakeNumVar(0, magnitude, $"a[{e}]")).ToArray();
+        // σₑ within its room times the bounds (D:7); aₑ ≥ |σₑ| is bounded by the larger side.
+        var bounds = Enumerable.Range(0, edges).Select(e => options.Edges.Bounds(e, options.StrainMin, options.StrainMax)).ToArray();
+        var sigma = Enumerable.Range(0, edges).Select(e => solver.MakeNumVar(bounds[e].Lo, bounds[e].Hi, $"sigma[{e}]")).ToArray();
+        var abs = Enumerable.Range(0, edges).Select(e => solver.MakeNumVar(0, Math.Max(-bounds[e].Lo, bounds[e].Hi), $"a[{e}]")).ToArray();
         var tight = targets.Select((_, i) => solver.MakeBoolVar($"t[{i}]")).ToArray();
 
         // Every pair still fits: m₀(ℓᵢⱼ + Σ ℓₑσₑ) ≤ D.
@@ -246,7 +254,7 @@ public static class PolygonCompletion
         {
             var row = solver.MakeConstraint(keep, double.PositiveInfinity, "keep");
             for (int i = 0; i < targets.Length; i++) row.SetCoefficient(tight[i], weights[i]);
-            foreach (var a in abs) objective.SetCoefficient(a, 1);
+            for (int e = 0; e < edges; e++) objective.SetCoefficient(abs[e], options.Edges.CostOf(e));
             objective.SetMinimization();
         }
         else

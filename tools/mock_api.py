@@ -151,6 +151,12 @@ class H(SimpleHTTPRequestHandler):
                 ok = (body.get("strainMax") or 0) >= 0.18
                 after = report(p, lay, body["scale"], None, force_valid=ok)
                 er = edge_reports(p, 0.18 if ok else 0.1)
+                room = body.get("edgeRoom")
+                if room:   # per-edge room: a locked edge keeps its length, the others strain within their room
+                    if len(room) != len(p["edges"]): raise ValueError("There must be one edge room per edge.")
+                    for e in er:
+                        e["strain"] = max(-0.99, min(e["strain"] * room[e["edge"]], 0.18 * room[e["edge"]]))
+                        e["newLength"] = e["length"] * (1 + e["strain"])
                 return self.send_json(dict(status="Optimal", after=after, edgeLengths=er, targets=[dict(a=lay[0]["leaf"], b=lay[1]["leaf"], onBoundary=True, tightBefore=False, tightAfter=ok, distance=1, requiredAfter=1)], madeTight=1 if ok else 0, boundaryMadeTight=1 if ok else 0, boundaryTargets=1, totalStrain=0.5, largestStrain=0.18 if ok else 0.1, variables=20, binaries=5, constraints=30, milliseconds=40, messages=["Closed (mock)." if ok else "Not closed (mock)."]))
             if self.path == "/api/creases":
                 edges = p["edges"]; n = p["gridSize"]

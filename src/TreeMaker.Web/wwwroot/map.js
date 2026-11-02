@@ -1,6 +1,6 @@
 // The first screen: a map of the specs and the steps after them, akin to the document graph. Every box opens the
-// part of the app that implements it (#/<node id>); its "Spec ↗" pill opens the document. The workbench cards below
-// show what carries over between the parts.
+// part of the app that implements it (#/<node id>); its "Spec ↗" pill opens the document. What was done lives in the
+// session (workflow.js), not here: the map marks only the box of the session's live step.
 "use strict";
 
 const appMap = (() => {
@@ -39,48 +39,21 @@ const appMap = (() => {
     return lines;
   }
 
-  /** A rough guide from the README's timings: can this solver handle the editor's tree in about a minute? */
-  function suitability(id, leaves) {
-    if (!leaves || !NODES[id] || NODES[id].kind !== "solver") return null;
-    const limits = { pure: [4, 6], sym: [4, 6], hull: [10, 12], optimized: [12, 16], scalable: [200, 200] }[id];
-    return appMapFit(id, leaves);
+  /** A rough guide from the README's timings, shown only as a warning: a solver that may be slow for the tree. */
+  function warning(id, leaves) {
+    if (!leaves || NODES[id]?.kind !== "solver") return null;
+    const fit = appMapFit(id, leaves);
+    return fit.cls === "fit" ? null : fit;
   }
 
-  function badgeFor(id) {
-    const wb = workbench;
-    const node = NODES[id];
-    if (node.kind === "solver") {
-      if (wb.layout?.node === id) return { cls: "held", text: `Holds the layout · m = ${fmt(wb.layout.scale, 4)}` };
-      return null;
-    }
-    if (id === "tree") {
-      const t = wb.tree;
-      if (!t?.edges?.length) return { cls: "need", text: "No tree yet" };
-      return { cls: "held", text: `${treeInfo(t.edges).leaves.length} leaves · N = ${t.gridSize}` };
-    }
-    if (id === "close") {
-      if (!wb.layout) return { cls: "need", text: "Needs a layout" };
-      if (wb.closure?.completion?.after?.valid) return { cls: "held", text: `Closed · ±${fmt(wb.closure.strainMax, 3)}` };
-      if (wb.layout.polygonsValid) return { cls: "held", text: "Already closed" };
-      if (wb.closure) return { cls: "slow", text: "Tried; not closed yet" };
-      return { cls: "fit", text: "Ready: layout waiting" };
-    }
-    if (id === "stubs") {
-      if (!wb.layout) return { cls: "need", text: "Needs a layout" };
-      if (wb.layout.stubs?.length) return { cls: "held", text: `${wb.layout.stubs.length} stub${wb.layout.stubs.length === 1 ? "" : "s"} added` };
-      if (wb.layout.polygonsValid) return { cls: "held", text: "Not needed: closed" };
-      return { cls: "fit", text: "Optional: open polygons" };
-    }
-    if (id === "creases") {
-      if (wb.creases?.result?.built) return { cls: "held", text: `Built · ${wb.creases.result.creases.length} creases` };
-      if (wb.polygonsValid()) return { cls: "fit", text: "Ready: polygons valid" };
-      return { cls: "need", text: "Needs closed polygons" };
-    }
-    if (id === "fold") {
-      if (wb.creases?.result?.built) return { cls: "fit", text: "Ready: pattern waiting" };
-      return { cls: "need", text: "Needs a crease pattern" };
-    }
-    return null;
+  /**
+   * The map shows what each part is; the session shows what was done. The one link between them is the box of the
+   * session's live step, marked so you can see where Continue leads.
+   */
+  function liveStep() {
+    const steps = workflowDoc.steps;
+    const live = steps.at(-1);
+    return live ? { node: live.node, n: steps.length } : null;
   }
 
   function port(id, side, dy = 0) {
@@ -108,14 +81,7 @@ const appMap = (() => {
     const title = svgEl("text", { x: FRAME.x + 18, y: FRAME.y + 26, class: "map-frame-title" }, svg);
     title.textContent = "Layout solvers · one per spec";
     const sub = svgEl("text", { x: FRAME.x + 18, y: FRAME.y + 43, class: "map-frame-sub" }, svg);
-    sub.textContent = "Pick one; the layout it finds goes on the workbench";
-
-    const lit = new Set();
-    const wb = workbench;
-    if (wb.tree?.edges?.length) lit.add("tree-frame");
-    if (wb.layout) lit.add("frame-close");
-    if (wb.polygonsValid()) lit.add("close-creases");
-    if (wb.creases?.result?.built) lit.add("creases-fold");
+    sub.textContent = "Pick one to solve the tree";
 
     // The pipeline: tree → solvers → close → creases → fold.
     const flows = [
@@ -124,23 +90,16 @@ const appMap = (() => {
       ["close-creases", port("close", "right"), port("creases", "left")],
       ["creases-fold", port("creases", "right"), port("fold", "left")],
     ];
-    for (const [key, a, b] of flows) {
-      const on = lit.has(key);
-      svgEl("path", { d: `M${a[0]},${a[1]} L${b[0] - 2},${b[1]}`, class: "map-flow" + (on ? " lit" : ""), "marker-end": `url(#mk-${on ? "lit" : "flow"})` }, svg);
+    for (const [, a, b] of flows) {
+      svgEl("path", { d: `M${a[0]},${a[1]} L${b[0] - 2},${b[1]}`, class: "map-flow", "marker-end": "url(#mk-flow)" }, svg);
     }
     // The stubs detour: down from Strain the edges into Add stubs, and back up with the new layout.
     {
       const cx = BOX.close.x + SW / 2, top = BOX.stubs.y, bottom = BOX.close.y + H;
-      const on = !!wb.layout?.stubs?.length;
-      svgEl("path", { d: `M${cx - 22},${bottom} L${cx - 22},${top - 2}`, class: "map-flow side" + (on ? " lit" : ""), "marker-end": `url(#mk-${on ? "lit" : "flow"})` }, svg);
-      svgEl("path", { d: `M${cx + 22},${top} L${cx + 22},${bottom + 2}`, class: "map-flow side" + (on ? " lit" : ""), "marker-end": `url(#mk-${on ? "lit" : "flow"})` }, svg);
+      svgEl("path", { d: `M${cx - 22},${bottom} L${cx - 22},${top - 2}`, class: "map-flow side", "marker-end": "url(#mk-flow)" }, svg);
+      svgEl("path", { d: `M${cx + 22},${top} L${cx + 22},${bottom + 2}`, class: "map-flow side", "marker-end": "url(#mk-flow)" }, svg);
       const t = svgEl("text", { x: cx + 32, y: (top + bottom) / 2 + 4, class: "map-frame-sub" }, svg);
-      t.textContent = "then close again";
-    }
-    // Inside the frame: from the frame's left edge into the base spec, and the solver that holds the layout out to the right.
-    if (wb.layout && BOX[wb.layout.node]) {
-      const [x, y] = port(wb.layout.node, "right");
-      svgEl("path", { d: curve([x, y], [FRAME.x + FRAME.w, BOX.close.y + H / 2]), class: "map-flow lit inner" }, svg);
+      t.textContent = "then strain again";
     }
 
     // References between the specs, as in the document graph.
@@ -163,12 +122,14 @@ const appMap = (() => {
       }
     }
 
-    const leaves = wb.tree?.edges?.length ? treeInfo(wb.tree.edges).leaves.length : 0;
+    const tree = workflowDoc.steps[0]?.output?.problem ?? workbench.tree;
+    const leaves = tree?.edges?.length ? treeInfo(tree.edges).leaves.length : 0;
+    const live = liveStep();
     for (const [id, b] of Object.entries(BOX)) {
       const node = NODES[id];
-      const badge = badgeFor(id);
-      const fit = suitability(id, leaves);
-      const g = svgEl("g", { class: `map-node ${node.kind}${b.base ? " base" : ""}${badge?.cls === "held" ? " holding" : ""}${badge?.cls === "need" ? " waiting" : ""}` }, svg);
+      const isLive = live?.node === id;
+      const status = isLive ? { cls: "held", text: `Live step ${live.n}` } : warning(id, leaves);
+      const g = svgEl("g", { class: `map-node ${node.kind}${b.base ? " base" : ""}${isLive ? " holding" : ""}` }, svg);
       const a = svgEl("a", { href: "#/" + id, class: "map-node-link" }, g);
       const label = svgEl("title", {}, a);
       label.textContent = `Open ${node.title}: ${node.blurb}`;
@@ -181,7 +142,6 @@ const appMap = (() => {
         const s = svgEl("text", { x: b.x + 12, y: b.y + 54 + k * 14, class: "map-blurb" }, a);
         s.textContent = line;
       });
-      const status = badge ?? fit;
       if (status) {
         const s = svgEl("text", { x: b.x + 12, y: b.y + H - 11, class: "map-badge " + status.cls }, a);
         s.textContent = (status.cls === "held" ? "● " : status.cls === "need" ? "○ " : "") + status.text;
@@ -200,57 +160,16 @@ const appMap = (() => {
         tx.textContent = "Spec ↗";
       }
     }
-    renderBench();
+    renderContinue();
   }
 
-  // ───── Workbench cards ─────
-
-  function card(title, lines, actions, empty) {
-    const c = document.createElement("article");
-    c.className = "bench-card" + (empty ? " vacant" : "");
-    const h = document.createElement("h3");
-    h.textContent = title;
-    c.append(h);
-    for (const line of lines) {
-      const p = document.createElement("p");
-      p.textContent = line;
-      c.append(p);
-    }
-    const row = document.createElement("div");
-    row.className = "bench-actions";
-    for (const [text, fn, kind] of actions) {
-      const b = document.createElement(typeof fn === "string" ? "a" : "button");
-      b.className = kind === "primary" ? "bench-go" : typeof fn === "string" ? "quiet-link" : "quiet small";
-      b.textContent = text;
-      if (typeof fn === "string") b.href = fn; else { b.type = "button"; b.addEventListener("click", fn); }
-      row.append(b);
-    }
-    c.append(row);
-    return c;
-  }
-
-  const when = (iso) => {
-    try { return new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); } catch { return ""; }
-  };
-
-  /** The session in short: one line per step, and the way back into it. */
-  function renderBench() {
-    const steps = workflowDoc.steps;
-    const live = steps.at(-1);
-    const list = document.createElement("ol");
-    list.className = "bench-steps";
-    for (const [k, step] of steps.entries()) {
-      const li = document.createElement("li");
-      li.textContent = `${k + 1}. ${step.kind === "solve" ? `Solve with ${NODES[step.node]?.title ?? step.node}` : { tree: "Tree", close: "Strain the edges", stub: `Add stubs: ${(step.params?.stubs ?? (step.params?.name ? [step.params] : [])).map((t) => t.name).join(", ")}`, creases: "Crease pattern" }[step.kind]}`
-        + (k === steps.length - 1 ? (step.output ? " (live)" : " (not run yet)") : "");
-      list.append(li);
-    }
-    const c = card(steps.length ? `${steps.length} step${steps.length === 1 ? "" : "s"}` : "No steps yet", [],
-      [[steps.length ? "Continue the session" : "Start with a tree", "#/" + (live?.node ?? "tree"), "primary"],
-       ["Open a session…", () => q("fileInput").click()],
-       ["New session", () => workflowDoc.startOver()]]);
-    c.insertBefore(list, c.querySelector(".bench-actions"));
-    q("benchCards").replaceChildren(c);
+  /** The one way back into the session from here: its live step. */
+  function renderContinue() {
+    const live = workflowDoc.steps.at(-1);
+    const go = q("mapContinue");
+    const has = workflowDoc.steps.length > 1 || !!live?.output;
+    go.href = "#/" + (live?.node ?? "tree");
+    go.textContent = has ? `Continue the session: step ${workflowDoc.steps.length} →` : "Start with a tree →";
   }
 
   function init() {

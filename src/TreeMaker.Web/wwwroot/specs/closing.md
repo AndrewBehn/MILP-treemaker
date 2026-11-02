@@ -23,7 +23,7 @@ The input is a solved layout: integer leaf points on an N × N grid, a scale m�
 
 *Tight*, *active path* and *valid polygon* follow Lang's tree method: a tight pair's leaf circles touch along its tree path, and the universal-molecule construction (in the crease pattern spec) needs the tight pairs to tile the hull with convex, empty polygons.
 
-What is fixed throughout: the leaf points, the scale m₀ and the tree's shape. What changes: only the edge lengths, through one strain σₑ per edge, so that a flap or river may come out longer or shorter than asked.
+What is fixed throughout: the leaf points, the scale m₀ and the tree's shape. What changes: only the edge lengths, through one strain σₑ per edge, so that a flap or river may come out longer or shorter than asked. Each edge may be given its own room, none to lock it, and a cost for straining it (P:8).
 
 **Guarantees in brief.**
 
@@ -52,13 +52,19 @@ u_i \in \{0, \dots, N\}^2 \ (i \in L), \qquad D_{ij} = \lVert u_i - u_j \rVert
 
 **P:5 Scale.** The fixed scale m₀ > 0 at which every pair fits with the starting lengths.
 
-**P:6 Strain bounds.** The range each edge's strain may take.
+**P:6 Strain bounds.** The range each edge's strain may take, before its room scales it (P:8, D:7).
 
 ```math
 -1 < \sigma_{\min} \le 0 \le \sigma_{\max}
 ```
 
 **P:7 Target pairs.** Optionally, the set T ⊆ 𝒫 of pairs to make tight. When it is not given, A:2 chooses it.
+
+**P:8 Edge room and cost.** Optionally, a room rₑ ≥ 0 and a cost cₑ ≥ 0 for each edge, both 1 by default. The room scales the strain bounds on that edge, and rₑ = 0 locks the edge at its length (D:7). The cost weighs the edge's strain in the least-strain objectives, so an edge with a high cost is strained last.
+
+```math
+r_e \ge 0, \quad c_e \ge 0 \qquad (e \in E), \qquad r_e = c_e = 1 \text{ by default}
+```
 
 **Algorithm parameters.**
 
@@ -67,7 +73,7 @@ u_i \in \{0, \dots, N\}^2 \ (i \in L), \qquad D_{ij} = \lVert u_i - u_j \rVert
 | τ | relative tolerance of the tightness test (D:2) | 10⁻⁶ |
 | ε | precision of the strain-needed search (A:4) | 0.01 |
 | γ | rounding step for strain bounds, upward (A:4) | 0.001 |
-| σ\_floor | lowest strain the bound LPs allow, so every length stays positive (M:7) | −0.99 |
+| σ\_floor | lowest strain any edge may take, so every length stays positive (D:7, Section 6.1) | −0.99 |
 | λ | tie-break weight on total strain in LP(K) (Section 6) | 10⁻⁴ / max(1, #E) |
 | t\_cap | time cap of each MILP solve | 60 s |
 | σ\_min, σ\_max for A:2 | default strain bounds | −0.3, 0.3 |
@@ -122,6 +128,14 @@ w_k = \begin{cases} \#T + 1 & k \in B \\ 1 & \text{otherwise} \end{cases}
 
 Used in: A:2 and Lemma 3.
 
+**D:7 Edge bounds.** Each edge strains within the bounds times its room (P:8), and never below σ\_floor, so every length stays positive. A locked edge (rₑ = 0) keeps its length. A trial bound ±s (Sections 6 and 7) gives edge e the range ±rₑs in the same way, so s is the bound on an edge whose room is 1.
+
+```math
+\underline{\sigma}_e = \max(r_e\,\sigma_{\min},\ \sigma_{\text{floor}}), \qquad \overline{\sigma}_e = r_e\,\sigma_{\max} \qquad (e \in E)
+```
+
+Used in: the variables of CL(T, w) (Section 5.1), M:7, A:4, Lemma 4 and Lemma 6.
+
 ## 4. Stage 1: the polygon test
 
 The test reads a layout and a set of tight pairs and reports whether they form a valid subdivision (D:4), and if not, every reason why. It solves no model.
@@ -152,7 +166,7 @@ The closing MILP CL(T, w) changes edge lengths so that as many target pairs as p
 **Variables.** A strain per edge, its absolute value, and a switch per target pair.
 
 ```math
-\sigma_e \in [\sigma_{\min}, \sigma_{\max}], \quad a_e \ge 0 \ (e \in E), \qquad t_k \in \{0, 1\} \ (k \in T)
+\sigma_e \in [\underline{\sigma}_e, \overline{\sigma}_e] \ (\text{D:7}), \quad a_e \ge 0 \ (e \in E), \qquad t_k \in \{0, 1\} \ (k \in T)
 ```
 
 **M:1 Every pair fits.** No pair may end up closer than its new minimum distance.
@@ -179,13 +193,13 @@ a_e \ge \sigma_e, \quad a_e \ge -\sigma_e \qquad \forall e \in E
 \textstyle\sum_{k \in T} w_k t_k \ge W^* - \tfrac12
 ```
 
-**Objectives.** The first solve maximizes Σ wₖtₖ; the second, with M:4, minimizes Σ aₑ.
+**Objectives.** The first solve maximizes Σ wₖtₖ; the second, with M:4, minimizes Σ cₑaₑ, each edge's strain weighed by its cost (P:8).
 
 **Switching and big-M.** M:2 is the only switching row, and its big-M constant is Dₖ itself. With tₖ = 0 it reads m₀ℓₖ(σ) ≥ 0, which always holds because every σₑ > −1 keeps every length positive, so the switch off removes nothing. M:4 uses W\* − ½ because the weights are integers.
 
 ### 5.2 The algorithm
 
-**A:2 Close.** Input: P:1 to P:6, and optionally T (P:7). Each solve is capped at t\_cap.
+**A:2 Close.** Input: P:1 to P:6, optionally T (P:7), and the edge rooms and costs (P:8). Each solve is capped at t\_cap.
 
 1. Run A:1 at the starting lengths; let S be the tight pairs.
 2. If T is not given, set T = Δ(S) (D:5), so every face left after closing is a triangle or a convex union of triangles.
@@ -224,10 +238,10 @@ m_0\,\ell_k(\sigma) = D_k \qquad \forall k \in K
 m_0\,\ell_{ij}(\sigma) \le D_{ij} \qquad \forall (i,j) \in \mathcal{P} \setminus K
 ```
 
-**M:7 Symmetric bound.** Every strain lies within ±s.
+**M:7 Symmetric bound.** Every strain lies within ±rₑs, its room times the bound (D:7). A locked edge stays at 0.
 
 ```math
--s \le \sigma_e \le s \qquad \forall e \in E
+-r_e\, s \le \sigma_e \le r_e\, s \qquad \forall e \in E
 ```
 
 **M:8 Absolute strain.** As M:3, for the tie-break.
@@ -236,17 +250,17 @@ m_0\,\ell_{ij}(\sigma) \le D_{ij} \qquad \forall (i,j) \in \mathcal{P} \setminus
 a_e \ge \sigma_e, \quad a_e \ge -\sigma_e \qquad \forall e \in E
 ```
 
-**Objective.** The largest strain first; among equal bounds, the least total strain. The weight λ is small enough that it never trades against s.
+**Objective.** The largest strain first; among equal bounds, the least total strain, each edge weighed by its cost cₑ. The weight λ is small enough that it never trades against s.
 
 ```math
-\min \; s + \lambda \textstyle\sum_{e} a_e
+\min \; s + \lambda \textstyle\sum_{e} c_e\, a_e
 ```
 
 LP(K) has no switching rows and no big-M constants. It is infeasible exactly when no strains above σ\_floor make K tight while every other pair fits.
 
 ### 6.2 The algorithm
 
-**A:3 StrainBounds.** Input: P:1 to P:5.
+**A:3 StrainBounds.** Input: P:1 to P:5, and the edge rooms and costs (P:8).
 
 1. Run A:1 at the starting lengths. If the subdivision is already valid, return s = 0.
 2. Let S be the tight pairs, Δ = Δ(S) (D:5), and BΔ the boundary pieces in Δ (D:3).
@@ -256,7 +270,7 @@ LP(K) has no switching rows and no big-M constants. It is infeasible exactly whe
 
 A:3 solves at most two LPs.
 
-**Lemma 4.** Any strains with every σₑ ≥ σ\_floor that make the subdivision valid with these leaves at m₀ have max |σₑ| ≥ s\_b; if LP(BΔ) is infeasible, no such strains exist. *Proof.* A valid subdivision has no missing boundary pieces (D:4), so every pair in BΔ ⊆ B is tight, and every pair fits. Those strains are therefore feasible in LP(BΔ) with s = max |σₑ|, so its optimum is at most that; with none feasible, none close.
+**Lemma 4.** Any strains within the edge bounds of D:7 at some s that make the subdivision valid with these leaves at m₀ have max |σₑ|/rₑ ≥ s\_b, over the edges with rₑ > 0; if LP(BΔ) is infeasible, no such strains exist. *Proof.* A valid subdivision has no missing boundary pieces (D:4), so every pair in BΔ ⊆ B is tight, and every pair fits. Those strains are therefore feasible in LP(BΔ) with s = max |σₑ|/rₑ, so its optimum is at most that; with none feasible, none close.
 
 **Lemma 5.** If LP(Δ) is feasible, every face of Δ is a triangle bounded by tight pairs with no leaf inside, at strains within ±s\_t. *Proof.* Δ is maximal non-crossing (D:5), so its bounded faces are empty triangles that cover H, and M:5 makes all their sides tight. The subdivision is valid unless some pair outside Δ also becomes tight across a triangle, which A:1 reports; Section 8 lists this case.
 
@@ -264,9 +278,9 @@ A:3 solves at most two LPs.
 
 The search returns the smallest symmetric bound ±s it finds that closes every polygon, and the closing at that bound. It brackets s with A:3, then bisects with A:2, because the closing MILP may close the polygons with fewer tight pairs than a full triangulation.
 
-Two bounds enter A:2 for each trial s: σ\_min = −min(s, |σ\_floor|) and σ\_max = s. Every bound is rounded up to the step γ, written ⌈s⌉\_γ, so the bound returned is never below the one proved.
+Two bounds enter A:2 for each trial s: σ\_min = −min(s, |σ\_floor|) and σ\_max = s. Every bound is rounded up to the step γ, written ⌈s⌉\_γ, so the bound returned is never below the one proved. Each edge then strains within its room times these bounds (D:7).
 
-**A:4 StrainNeeded.** Input: P:1 to P:5.
+**A:4 StrainNeeded.** Input: P:1 to P:5, and the edge rooms and costs (P:8).
 
 1. Run A:3.
    1. Already valid: return s = 0.
@@ -281,7 +295,7 @@ Two bounds enter A:2 for each trial s: σ\_min = −min(s, |σ\_floor|) and σ\_
 
 **Stopping.** Step 5 halves hi − lo each pass and stops below ε or when the rounded midpoint reaches hi, so it runs at most ⌈log₂((hi − lo)/ε)⌉ passes. With every A:2 capped at four solves of t\_cap, A:4 makes at most 2 LPs and 4(2 + ⌈log₂((hi − lo)/ε)⌉) MILP solves.
 
-**Lemma 6.** A bound returned in Step 6 closes every polygon, and every bound A:4 returns is at least the true strain needed s\* (the least max |σₑ| over strains with every σₑ ≥ σ\_floor that give a valid subdivision). *Proof.* Step 6 returns a bound only with an A:2 closing whose A:1 verdict is valid (Step 4 or Step 5.2). Lemma 4 gives s\_b ≤ s\*, every returned bound is at least ⌈s\_b⌉\_γ ≥ s\_b, and rounding only raises bounds.
+**Lemma 6.** A bound returned in Step 6 closes every polygon, and every bound A:4 returns is at least the true strain needed s\* (the least max |σₑ|/rₑ over strains within the edge bounds of D:7 that give a valid subdivision). *Proof.* Step 6 returns a bound only with an A:2 closing whose A:1 verdict is valid (Step 4 or Step 5.2). Lemma 4 gives s\_b ≤ s\*, every returned bound is at least ⌈s\_b⌉\_γ ≥ s\_b, and rounding only raises bounds.
 
 The bound returned is within ε of the smallest closing bound only if a bound that closes implies every larger bound closes; Section 8 marks this as **Not** guaranteed.
 

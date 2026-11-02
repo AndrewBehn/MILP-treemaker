@@ -27,8 +27,8 @@
     "closing": {
       "title": "Polygon Closing TreeMaker",
       "url": "https://claude.ai/artifact/FtbYLxEKTVszvyrLtcniK4",
-      "rev": 14,
-      "exportedAt": "2026-10-31T17:31:02.547Z",
+      "rev": 28,
+      "exportedAt": "2026-11-02T02:46:54.301Z",
       "file": "closing.md"
     },
     "crease": {
@@ -55,5 +55,5 @@
       "figureCount": 6
     }
   },
-  "packagedAt": "2026-11-01T22:03:08Z"
+  "packagedAt": "2026-11-02T02:47:00Z"
 }

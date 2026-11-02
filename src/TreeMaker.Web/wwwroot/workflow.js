@@ -428,8 +428,9 @@ const workflowDoc = (() => {
         if (p.options?.stage) rows.push(["Model", p.options.stage]);
         return rows;
       }
-      case "close": return p.auto ? [["Strain", "the smallest that closes the polygons (A:4)"], ["Found", `±${fmt(p.strainMax, 3)}`]]
-        : [["σ_min", fmt(p.strainMin, 3)], ["σ_max", fmt(p.strainMax, 3)]];
+      case "close": return (p.auto ? [["Strain", "the smallest that closes the polygons (A:4)"], ["Found", `±${fmt(p.strainMax, 3)}`]]
+        : [["σ_min", fmt(p.strainMin, 3)], ["σ_max", fmt(p.strainMax, 3)]])
+        .concat((p.edges ?? []).map((e) => [`Edge ${e.label}`, edgeSettingText(e)]));
       case "stub": return stubsOf(p).map((t) => [t.name, `from ${t.attach}, ℓ = ${fmt(t.len, 4)}, at (${t.x}, ${t.y}), tight to ${(t.tight ?? []).join(", ")}`]);
       case "creases": return [["Pleats", p.pleatHeight ? `to height ${p.pleatHeight}` : "none"]];
       default: return [];
@@ -849,6 +850,8 @@ const workflowDoc = (() => {
     const s = f.input;
     const min = Number(q("docStrainMin").value), max = Number(q("docStrainMax").value);
     const limit = Math.max(1, Number(q("docStrainLimit").value) || 20);
+    const edges = edgeStrainSettings();
+    const keep = edges.length ? { edges } : {};
     const started = performance.now();
     const say = (t) => { q("strainProgress").textContent = `${t} · ${((performance.now() - started) / 1000).toFixed(0)} s`; };
     const ticker = setInterval(() => { if (strainLast) say(strainLast); }, 1000);
@@ -861,17 +864,17 @@ const workflowDoc = (() => {
     });
     const done = run("close", auto ? "Finding the smallest strain" : `Straining within ±${fmt(max, 3)}`, async (progress) => {
       const tell = (t) => { strainLast = t; say(t); progress(t); };
-      const req = { ...base(s), problem: { ...s.problem, timeLimitSeconds: limit } };
+      const req = { ...base(s), problem: { ...s.problem, timeLimitSeconds: limit }, ...edgeStrainRequest(edges, s.problem.edges.length) };
       let result, bounds, text;
       if (auto) {
         let found;
         try {
           found = await creaseReadiness.searchStrain(req, tell, () => strainStop);
         } catch (e) {
-          return stuck(strainStop ? "Cancelled: the search for the smallest strain was stopped." : `The search failed: ${e.message}`, { auto });
+          return stuck(strainStop ? "Cancelled: the search for the smallest strain was stopped." : `The search failed: ${e.message}`, { auto, ...keep });
         }
-        if (found.already) return { params: { auto, already: true }, output: { ...s }, notes: ["No strain needed: " + found.text] };
-        if (!found.result) return stuck(found.text, { auto });
+        if (found.already) return { params: { auto, already: true, ...keep }, output: { ...s }, notes: ["No strain needed: " + found.text] };
+        if (!found.result) return stuck(found.text, { auto, ...keep });
         result = found.result;
         bounds = { strainMin: -Math.min(found.bound, 0.99), strainMax: found.bound };
         text = found.text;
@@ -883,7 +886,7 @@ const workflowDoc = (() => {
       }
       const changed = (result.edgeLengths ?? []).filter((e) => Math.abs(e.strain) > 1e-9).length;
       return {
-        params: { auto, ...bounds },
+        params: { auto, ...bounds, ...keep },
         output: { ...s, closure: { ...bounds, completion: result }, creases: null, report: slim(result.after) ?? s.report },
         notes: [text, `${result.madeTight ?? 0} of ${result.targets?.length ?? 0} target pairs made tight; ${changed} edge length${changed === 1 ? "" : "s"} changed, largest strain ${fmt(result.largestStrain, 3)}.`].filter(Boolean),
       };
@@ -973,6 +976,62 @@ const workflowDoc = (() => {
     });
   }
 
+  /**
+   * Per-edge room and cost for the strain step (D:7 of the closing spec). The step keeps only the edges that differ
+   * from the default (room 1, cost 1), as params.edges = [{ edge, label, room, cost }]; the request sends one value per
+   * edge, or nothing when every edge is alike.
+   */
+  const edgeSettingText = (e) => (e.room === 0 ? "locked" : `room ×${fmt(e.room, 3)}`) + (e.cost !== 1 ? `, cost ${fmt(e.cost, 3)}` : "");
+  function renderEdgeStrain(s, saved) {
+    const rows = q("edgeStrainRows");
+    const edges = s?.problem?.edges ?? [];
+    const lengths = s?.layout?.edgeLengths ?? edges.map((e) => Number(e.length));
+    const by = new Map((saved ?? []).map((e) => [e.edge, e]));
+    rows.replaceChildren(...edges.map((e, k) => {
+      const set = by.get(k) ?? { room: 1, cost: 1 };
+      const tr = h("tr");
+      tr.dataset.edge = k;
+      tr.dataset.label = `${e.from}–${e.to}`;
+      const lock = h("input"); lock.type = "checkbox"; lock.className = "es-lock"; lock.checked = set.room === 0;
+      lock.title = "Keep this edge's length";
+      const room = h("input"); room.type = "number"; room.min = "0"; room.step = "0.25"; room.className = "es-room";
+      room.value = set.room === 0 ? 1 : set.room; room.disabled = lock.checked;
+      const cost = h("input"); cost.type = "number"; cost.min = "0"; cost.step = "0.5"; cost.className = "es-cost"; cost.value = set.cost;
+      const td = (...c) => { const d = h("td"); d.append(...c); return d; };
+      tr.append(td(tr.dataset.label), td(fmt(Number(lengths[k] ?? e.length), 4)), td(lock), td(room), td(cost));
+      lock.addEventListener("change", () => { room.disabled = lock.checked; summarizeEdgeStrain(); });
+      for (const el of [room, cost]) el.addEventListener("input", summarizeEdgeStrain);
+      return tr;
+    }));
+    q("edgeStrainBox").open = by.size > 0;
+    summarizeEdgeStrain();
+  }
+  /** The edges whose room or cost differs from 1, from the table. */
+  function edgeStrainSettings() {
+    const out = [];
+    for (const tr of q("edgeStrainRows").children) {
+      const locked = tr.querySelector(".es-lock").checked;
+      const num = (el) => { const v = Number(el.value); return Number.isFinite(v) && v >= 0 ? v : 1; };
+      const room = locked ? 0 : num(tr.querySelector(".es-room")), cost = num(tr.querySelector(".es-cost"));
+      if (room !== 1 || cost !== 1) out.push({ edge: Number(tr.dataset.edge), label: tr.dataset.label, room, cost });
+    }
+    return out;
+  }
+  /** The request fields for those settings: one room and one cost per edge, or none when every edge is alike. */
+  function edgeStrainRequest(settings, count) {
+    if (!settings?.length) return {};
+    const room = Array(count).fill(1), cost = Array(count).fill(1);
+    for (const e of settings) { room[e.edge] = e.room; cost[e.edge] = e.cost; }
+    return { edgeRoom: room, edgeCost: cost };
+  }
+  function summarizeEdgeStrain() {
+    const set = edgeStrainSettings();
+    const locked = set.filter((e) => e.room === 0).length, roomy = set.filter((e) => e.room !== 0 && e.room !== 1).length;
+    const costly = set.filter((e) => e.cost !== 1).length;
+    const parts = [locked && `${locked} locked`, roomy && `${roomy} with other room`, costly && `${costly} with other cost`].filter(Boolean);
+    q("edgeStrainSummary").textContent = parts.length ? parts.join(", ") : "every edge alike";
+  }
+
   /** The live step's controls for close, stub and creases, from its input. */
   function prepareLive() {
     const f = last();
@@ -981,6 +1040,7 @@ const workflowDoc = (() => {
     if (f.kind === "close") {
       q("closeValidNote").hidden = !s?.report?.valid;
       if (f.params?.strainMax != null && !f.params.auto) { q("docStrainMin").value = f.params.strainMin; q("docStrainMax").value = f.params.strainMax; }
+      renderEdgeStrain(s, f.params?.edges);
     }
     if (f.kind === "creases") {
       q("docBuild").disabled = !s?.report?.valid;
@@ -1085,6 +1145,7 @@ const workflowDoc = (() => {
     });
     q("docAuto").addEventListener("click", () => runClose(true));
     q("docBounds").addEventListener("click", () => runClose(false));
+    q("edgeStrainReset").addEventListener("click", () => renderEdgeStrain(last().input, []));
     q("docBuild").addEventListener("click", runCreases);
     q("strainCancel").addEventListener("click", () => { strainStop = true; q("strainProgress").textContent = "Stopping after the closing solve now running…"; });
     q("removeStub").addEventListener("click", removeStub);

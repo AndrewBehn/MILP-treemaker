@@ -35,8 +35,10 @@ const base = 'http://127.0.0.1:5099/';
 
   // Straining and the crease pattern from the map boxes.
   await p.click('#backToMap'); await p.waitForTimeout(800);
+  // The map marks only the live step's box, and offers one way back into the session.
   log.mapBadges = await p.evaluate(() => [...document.querySelectorAll('.map-badge')].map((t) => t.textContent));
-  log.mapSession = await p.evaluate(() => document.getElementById('benchCards').innerText.replace(/\n/g, ' | '));
+  log.mapContinue = await p.evaluate(() => ({ text: document.getElementById('mapContinue').textContent, href: document.getElementById('mapContinue').getAttribute('href') }));
+  check('mapMarksLiveStep', log.mapBadges.join() === '● Live step 2' && log.mapContinue.href === '#/pure');
   await box('close'); await p.waitForTimeout(1400);   // straining runs at once: the smallest strain
   await p.waitForFunction(() => !workflowDoc.running && workflowDoc.last().output, null, { timeout: 20000 }); await p.waitForTimeout(1200);
   await p.screenshot({ path: `${out}/close.png`, fullPage: true });

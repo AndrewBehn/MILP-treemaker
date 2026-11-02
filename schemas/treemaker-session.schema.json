@@ -57,7 +57,7 @@
         },
         "params": {
           "type": "object",
-          "description": "The step's settings. solve: which (\"all\" or \"stubs\"), timeLimit, options (the solver's own), or opened (a layout file's name). close: auto, strainMin, strainMax. stub: name, attach, len, x, y, tight. creases: pleatHeight."
+          "description": "The step's settings. solve: which (\"all\" or \"stubs\"), timeLimit, options (the solver's own), or opened (a layout file's name). close: auto, strainMin, strainMax, and edges ([{edge, label, room, cost}] for the edges whose room or cost is not 1; closing spec P:8). stub: name, attach, len, x, y, tight. creases: pleatHeight."
         },
         "input": {
           "oneOf": [
