@@ -107,6 +107,13 @@ The work view is one document, **the session** (`workflow.js`). It runs from a t
   - **Solve just the stubs** holds every other leaf where it is, as a Fixed condition.
 
   A running solve can be cancelled.
+- **Progress.** Every step says what it actually changed, for example "polygon 1–2–3 now valid; hull side 1–4 now tight; open area 2.4 → 0.4 square grid units" or "scale m 0.8 → 0.63; moved 2, 3". From that, each step is marked:
+  - **▲ made progress**: a polygon closed, a hull side tightened, open area shrank, or the scale grew;
+  - **● changed** without closing anything, as stubs often do;
+  - **▼ worse**: you can still go on from it, with a warning;
+  - **■ no progress**: nothing was feasible (strain bounds too tight) or nothing changed.
+
+  A live step with no progress, or one that made things worse, is framed in amber with a pulsing glow. A step with no progress offers no next move: change its settings and run it again, or go back. The sidebar outline carries the same marks.
 - **Go back to this step**, on any frozen step, makes it the live step again and drops the steps after it. It asks once to confirm.
 - **The sidebar outlines the session**, one line per step. From there, **Save the session** writes it whole (every step with its settings, input and output) as a `treemaker-session` file, version 2 ([docs/FILE-FORMATS.md](docs/FILE-FORMATS.md)). **Open…** reads a session, layout or tree file, and **New session** starts again from step 1's tree.
 - **Opening a layout file** starts a new session: its tree as step 1 and the layout as step 2.

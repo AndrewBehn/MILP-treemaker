@@ -56,8 +56,17 @@ const base = 'http://127.0.0.1:5099/';
   log.afterStubSolve = await steps();
 
   await next('Strain the edges');
+  // Bounds too tight: no progress, so the step lights up as a warning and offers no next step.
+  await p.fill('#docStrainMax', '0.1'); await p.fill('#docStrainMin', '-0.1');
+  await p.click('#docBounds'); await p.waitForFunction(() => !workflowDoc.running && workflowDoc.last().output, null, { timeout: 20000 }); await p.waitForTimeout(1500);
+  log.stuck = await p.evaluate(() => ({ progress: document.getElementById('finalStep').dataset.progress, moves: document.querySelectorAll('#nextMoves .next-move').length, intro: document.getElementById('nextIntro').textContent }));
+  check('no progress blocks the next step', log.stuck.progress === 'none' && log.stuck.moves === 0);
+  await p.evaluate(() => document.getElementById('finalNotes').scrollIntoView({ block: 'center' })); await p.waitForTimeout(600);
+  await p.screenshot({ path: `${out}/session-stuck.png`, fullPage: false });
   await p.click('#docAuto'); await p.waitForFunction(() => !workflowDoc.running && workflowDoc.last().output, null, { timeout: 20000 }); await p.waitForTimeout(1500);
   log.afterClose = await steps();
+  log.closed = await p.evaluate(() => document.getElementById('finalStep').dataset.progress);
+  check('straining made progress', log.closed === 'progress');
 
   await next('Build the crease pattern');
   await p.click('#docBuild'); await p.waitForFunction(() => !workflowDoc.running && workflowDoc.last().output, null, { timeout: 20000 }); await p.waitForTimeout(1500);

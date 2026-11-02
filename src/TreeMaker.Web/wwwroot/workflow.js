@@ -138,8 +138,91 @@ const workflowDoc = (() => {
     const parts = [];
     if (sides) parts.push(`${sides} hull side${sides === 1 ? "" : "s"} loose`);
     if (bad.length) parts.push(`${bad.length} polygon${bad.length === 1 ? "" : "s"} not valid`);
-    if (r.hullArea > 0 && r.coveredArea < r.hullArea * (1 - 1e-6)) parts.push(`${Math.round((1 - r.coveredArea / r.hullArea) * 100)}% of the outline uncovered`);
+    const open = Math.max(0, (r.hullArea ?? 0) - (r.coveredArea ?? 0));
+    if (open > 1e-6) parts.push(`${area(open)} of the outline not yet in a polygon`);
     return { open: parts.join(", ") + ".", ok: false, inside: bad.find((p) => p.leavesInside?.length) };
+  }
+
+  /** How far a state is toward valid polygons (for ranking only; never shown as a number). */
+  function standing(s) {
+    const r = s?.report;
+    if (!s?.layout || !r) return null;
+    const polys = r.polygons ?? [];
+    const valid = polys.filter((p) => p.valid).length;
+    const loose = r.missingBoundary?.length ?? 0;
+    const open = Math.max(0, (r.hullArea ?? 0) - (r.coveredArea ?? 0));
+    return { score: (r.valid ? 1e6 : 0) + valid * 1000 - open - loose * 10 + (r.tightPairs?.length ?? 0) * 0.01 };
+  }
+
+  const pairName = (p) => [p.a, p.b].sort(naturalCompare).join("–");
+  const polyName = (p) => p.leaves.join("–");
+  const area = (v) => `${fmt(v, 2)} square grid unit${Math.abs(v - 1) < 1e-9 ? "" : "s"}`;
+  const listOf = (xs, max = 4) => xs.length <= max ? xs.join(", ") : `${xs.slice(0, max).join(", ")} and ${xs.length - max} more`;
+
+  /** What changed between two states, in words: polygons, hull sides, tight paths, open area, scale, leaves. */
+  function differences(a, b) {
+    const ra = a?.report, rb = b?.report;
+    const out = [];
+    if (a?.layout && b?.layout && Math.abs(a.layout.scale - b.layout.scale) > 1e-9) out.push(`scale m ${fmt(a.layout.scale, 4)} → ${fmt(b.layout.scale, 4)}`);
+    if (a?.layout && b?.layout) {
+      const was = new Map(a.layout.points.map((p) => [p.leaf, p]));
+      const moved = b.layout.points.filter((p) => was.has(p.leaf) && (was.get(p.leaf).x !== p.x || was.get(p.leaf).y !== p.y)).map((p) => p.leaf);
+      const added = b.layout.points.filter((p) => !was.has(p.leaf)).map((p) => `${p.leaf} at (${p.x}, ${p.y})`);
+      if (added.length) out.push(`added ${listOf(added)}`);
+      if (moved.length) out.push(`moved ${listOf(moved)}`);
+    }
+    const lengthsA = a?.layout ? lengthsOf(a) : null, lengthsB = b?.layout ? lengthsOf(b) : null;
+    if (lengthsA && lengthsB) {
+      const changed = b.problem.edges.map((e, k) => k < lengthsA.length && Math.abs(lengthsA[k] - lengthsB[k]) > 1e-9 ? `${e.from}–${e.to} ${fmt(lengthsA[k], 3)} → ${fmt(lengthsB[k], 3)}` : null).filter(Boolean);
+      if (changed.length) out.push(`edge lengths ${listOf(changed, 3)}`);
+    }
+    if (!ra || !rb) return out;
+    const validA = new Set((ra.polygons ?? []).filter((p) => p.valid).map(polyName));
+    const validB = new Set((rb.polygons ?? []).filter((p) => p.valid).map(polyName));
+    const closed = [...validB].filter((x) => !validA.has(x)), reopened = [...validA].filter((x) => !validB.has(x));
+    if (closed.length) out.push(`polygon${closed.length === 1 ? "" : "s"} ${listOf(closed)} now valid`);
+    if (reopened.length) out.push(`polygon${reopened.length === 1 ? "" : "s"} ${listOf(reopened)} no longer valid`);
+    const looseA = new Set((ra.missingBoundary ?? []).map(pairName)), looseB = new Set((rb.missingBoundary ?? []).map(pairName));
+    const tightened = [...looseA].filter((x) => !looseB.has(x)), loosened = [...looseB].filter((x) => !looseA.has(x));
+    if (tightened.length) out.push(`hull side${tightened.length === 1 ? "" : "s"} ${listOf(tightened)} now tight`);
+    if (loosened.length) out.push(`hull side${loosened.length === 1 ? "" : "s"} ${listOf(loosened)} now loose`);
+    const tightA = new Set((ra.tightPairs ?? []).map(pairName)), tightB = new Set((rb.tightPairs ?? []).map(pairName));
+    const newTight = [...tightB].filter((x) => !tightA.has(x)), lostTight = [...tightA].filter((x) => !tightB.has(x));
+    if (newTight.length) out.push(`new tight path${newTight.length === 1 ? "" : "s"} ${listOf(newTight)}`);
+    if (lostTight.length) out.push(`tight path${lostTight.length === 1 ? "" : "s"} ${listOf(lostTight)} lost`);
+    const openA = Math.max(0, (ra.hullArea ?? 0) - (ra.coveredArea ?? 0)), openB = Math.max(0, (rb.hullArea ?? 0) - (rb.coveredArea ?? 0));
+    if (Math.abs(openA - openB) > 1e-6) out.push(openB < 1e-6 ? `no open area left (was ${area(openA)})` : `open area ${area(openA)} → ${area(openB)}`);
+    return out;
+  }
+
+  const sentence = (parts) => parts.length ? parts[0][0].toUpperCase() + parts[0].slice(1) + (parts.length > 1 ? "; " + parts.slice(1).join("; ") : "") + "." : "";
+
+  /**
+   * Whether a step got anywhere: { kind: progress | neutral | none | worse | pending, text }, the text listing what
+   * actually changed. A step that made no progress (nothing feasible, or nothing changed) cannot be built on: change
+   * its settings and run it again, or go back. A step that made things worse can be built on, with a warning.
+   */
+  function progressOf(step) {
+    if (!step?.output) return { kind: "pending", text: "Not run yet." };
+    if (step.kind === "tree") return { kind: "progress", text: "The tree is ready to solve." };
+    if (step.kind === "creases") return step.output.creases?.result?.built ? { kind: "progress", text: `Crease pattern built: ${step.output.creases.result.creases.length} creases.` } : { kind: "none", text: "No crease pattern was built." };
+    if (step.kind === "close" && !step.output.closure?.completion?.after) {
+      return { kind: "none", text: "No strain within these bounds keeps every pair feasible, so nothing changed. Widen the bounds or find the smallest strain, add stubs instead, or go back." };
+    }
+    if (step.kind === "solve" && !step.input?.layout) {
+      const r = step.output.report;
+      return { kind: "progress", text: `A first layout at scale m = ${fmt(step.output.layout.scale, 4)}` + (r ? `: ${(r.polygons ?? []).filter((p) => p.valid).length} of ${(r.polygons ?? []).length} polygons valid.` : ".") };
+    }
+    const a = standing(step.input), b = standing(step.output);
+    if (!a || !b) return { kind: "neutral", text: "Not checked yet." };
+    const diff = differences(step.input, step.output);
+    const better = b.score > a.score + 1e-6 || (step.kind === "solve" && step.output.layout.scale > step.input.layout.scale + 1e-9);
+    const worse = b.score < a.score - 1e-6 || (step.kind === "solve" && step.output.layout.scale < step.input.layout.scale - 1e-9);
+    if (better && !worse) return { kind: "progress", text: sentence(diff) || "Progress." };
+    if (worse && !better) return { kind: "worse", text: `${sentence(diff)} Worse than its input: you can go on from it, or go back.` };
+    if (better && worse) return { kind: "neutral", text: `${sentence(diff)} Some better, some worse.` };
+    if (step.kind === "stub") return { kind: "neutral", text: `${sentence(diff) || "Stubs added."} The polygons are not closed yet: straining usually closes them now.` };
+    return { kind: "none", text: `No progress${diff.length ? ": " + diff.join("; ") + ", but no polygon closed and no open area shrank" : ": nothing changed"}. Change the settings and run it again, or go back.` };
   }
 
   /**
@@ -148,7 +231,7 @@ const workflowDoc = (() => {
    */
   function movesAfter(step) {
     const s = step?.output;
-    if (!s) return [];
+    if (!s || progressOf(step).kind === "none") return [];
     if (step.kind === "tree") return [{ kind: "solve", label: "Solve", note: "Place the leaves on the grid with a layout solver." }];
     if (step.kind === "creases") return [];
     const o = outlook(s);
@@ -354,6 +437,8 @@ const workflowDoc = (() => {
 
   function frozenItem(step, k) {
     const li = h("li", "doc-step frozen" + (step.output?.report?.valid || step.kind === "creases" ? " valid" : ""));
+    const pr = progressOf(step);
+    li.dataset.progress = pr.kind;
     li.id = "doc-step-" + k;
     const head = h("header", "doc-step-head");
     head.append(h("span", "doc-no", String(k + 1)), h("h3", "", stepTitle(step)));
@@ -386,6 +471,7 @@ const workflowDoc = (() => {
     io.append(widget(step.output, step.input, "Output"));
     li.append(dl, io);
     for (const n of step.notes ?? []) li.append(h("p", "doc-note", n));
+    if (step.kind !== "tree") li.append(h("p", "doc-progress " + pr.kind, pr.text));
     const o = outlook(step.output);
     if (o.open) li.append(h("p", "doc-open " + (o.ok ? "ok" : "no"), o.open));
     return li;
@@ -409,6 +495,7 @@ const workflowDoc = (() => {
     const f = last();
     q("finalNo").textContent = String(n);
     q("finalStep").dataset.kind = f.kind;
+    q("finalStep").dataset.progress = running ? "pending" : progressOf(f).kind;
     q("finalInput").replaceChildren(...(f.input ? [widget(f.input, null, "Input")] : []));
     renderFinalNotes();
     renderWhich();
@@ -424,6 +511,8 @@ const workflowDoc = (() => {
     if (running) { box.append(h("p", "doc-note running", running.progress ?? "Running…")); return; }
     for (const t of f.notes ?? []) box.append(h("p", "doc-note", t));
     if (f.output && f.kind !== "tree") {
+      const pr = progressOf(f);
+      box.append(h("p", "doc-progress " + pr.kind, pr.text));
       const o = outlook(f.output);
       box.append(h("p", "doc-open " + (o.ok ? "ok" : "no"), o.open));
     }
@@ -433,8 +522,12 @@ const workflowDoc = (() => {
     const ol = q("docOutline");
     ol.replaceChildren(...doc.steps.map((step, k) => {
       const live = k === doc.steps.length - 1;
+      const pr = progressOf(step);
       const li = h("li", (live ? "current " : "") + (step.output?.report?.valid || step.kind === "creases" ? "valid" : step.output ? "open" : "pending"));
-      const a = h("a", "", `${k + 1}. ${stepTitle(step)}${live ? (step.output ? " (live)" : " (not run yet)") : ""}`);
+      li.dataset.progress = pr.kind;
+      const mark = { progress: "▲", worse: "▼", none: "■", neutral: "●", pending: "○" }[pr.kind];
+      const a = h("a", "", `${mark} ${k + 1}. ${stepTitle(step)}${live ? (step.output ? " (live)" : " (not run yet)") : ""}`);
+      a.title = pr.text;
       a.href = "#" + (live ? "finalStep" : "doc-step-" + k);
       a.addEventListener("click", (e) => { e.preventDefault(); q(live ? "finalStep" : "doc-step-" + k)?.scrollIntoView({ behavior: "smooth", block: "start" }); });
       li.append(a);
@@ -453,6 +546,7 @@ const workflowDoc = (() => {
     box.replaceChildren();
     if (running) { q("nextIntro").textContent = "Wait for this step to finish, or cancel it."; return; }
     if (!f.output) { q("nextIntro").textContent = `Run step ${doc.steps.length} first: its output is what the next step starts from.`; return; }
+    if (progressOf(f).kind === "none") { q("nextIntro").textContent = `Step ${doc.steps.length} made no progress, so there is nothing new to build on. Change its settings and run it again, or go back to an earlier step.`; return; }
     if (f.kind === "creases") {
       q("nextIntro").textContent = "The crease pattern is built: the end of this path. Go back to an earlier step to try another.";
       return;
