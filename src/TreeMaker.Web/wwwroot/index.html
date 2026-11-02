@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=20261102l">
+  <link rel="stylesheet" href="styles.css?v=20261102o">
 </head>
 <body data-view="map">
   <!-- ───────────── Top bar: the way back to the map, and where you are ───────────── -->
@@ -77,7 +77,7 @@
           <button id="docNew" type="button" class="quiet small" title="Start a new session from the tree of step 1">New session</button>
         </div>
         <ol id="docOutline" class="outline-list"></ol>
-        <p class="hint">Only the last step can be changed. To change an earlier one, go back to it: the steps after it are dropped.</p>
+        <p class="hint">Only the last step can be changed. To change an earlier one, delete the steps below it (“Delete this and below”).</p>
       </div>
     </aside>
 
@@ -99,6 +99,7 @@
           <details class="about"><summary>About this step</summary><p id="nodeLede"></p></details>
           <p id="nodeSpec" class="node-spec"></p>
         </div>
+        <span id="finalDelete" class="final-delete"></span>
       </header>
         <div id="finalInput" class="final-input"></div>
         <div class="final-config">
@@ -569,18 +570,18 @@
 
   <input id="fileInput" type="file" accept=".json,application/json" hidden>
 
-  <script src="nodes.js?v=20261102l"></script>
-  <script src="workbench.js?v=20261102l"></script>
-  <script src="tree-editor.js?v=20261102l"></script>
-  <script src="polygons.js?v=20261102l"></script>
-  <script src="stubs.js?v=20261102l"></script>
-  <script src="workflow.js?v=20261102l"></script>
-  <script src="linked.js?v=20261102l"></script>
-  <script src="folded.js?v=20261102l"></script>
-  <script src="files.js?v=20261102l"></script>
-  <script src="solvers.js?v=20261102l"></script>
-  <script src="map.js?v=20261102l"></script>
-  <script src="specs.js?v=20261102l"></script>
-  <script src="app.js?v=20261102l"></script>
+  <script src="nodes.js?v=20261102o"></script>
+  <script src="workbench.js?v=20261102o"></script>
+  <script src="tree-editor.js?v=20261102o"></script>
+  <script src="polygons.js?v=20261102o"></script>
+  <script src="stubs.js?v=20261102o"></script>
+  <script src="workflow.js?v=20261102o"></script>
+  <script src="linked.js?v=20261102o"></script>
+  <script src="folded.js?v=20261102o"></script>
+  <script src="files.js?v=20261102o"></script>
+  <script src="solvers.js?v=20261102o"></script>
+  <script src="map.js?v=20261102o"></script>
+  <script src="specs.js?v=20261102o"></script>
+  <script src="app.js?v=20261102o"></script>
 </body>
 </html>

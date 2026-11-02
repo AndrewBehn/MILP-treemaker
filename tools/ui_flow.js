@@ -49,7 +49,8 @@ const base = 'http://127.0.0.1:5099/';
   log.afterCreases = await steps();
 
   // Back to step 2, then each other solver from the map: a new solve step that starts from that layout.
-  const backTo2 = async () => { await p.click('#doc-step-1 .go-back'); await p.click('#doc-step-1 .go-back'); await p.waitForTimeout(1500); };
+  // Delete step 3 and below (no confirmation): step 2 is live again.
+  const backTo2 = async () => { await p.click((await p.$('#doc-step-2 .delete-below')) ? '#doc-step-2 .delete-below' : '#finalDelete .delete-below'); await p.waitForTimeout(1500); };
   await backTo2();
   check('backToStep2', (await steps()).length === 2);
   await p.goto(`${base}#/optimized`); await p.waitForTimeout(1400);

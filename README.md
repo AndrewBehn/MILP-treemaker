@@ -118,7 +118,7 @@ The work view is one document, **the session** (`workflow.js`). It runs from a t
   - **▼ worse**: you can still go on from it, with a warning;
   - **■ no progress**: nothing was feasible (strain bounds too tight) or nothing changed.
 
-  A live step with no progress, or one that made things worse, is framed in amber with a pulsing glow. A step with no progress offers no next move: change its settings and run it again, or go back. The sidebar outline carries the same marks.
+  A live step with no progress, or one that made things worse, is framed in red with a pulsing glow. A step with no progress offers no next move: change its settings and run it again, or delete it. The step cards beside the document carry each step's status in the same colours (green progress, red no progress or worse, dashed not run yet or running, with the running step's progress), and the card of the step on screen is outlined.
 - **What each step shows.** One result line says what the step changed and what is still open. Everything else is folded away under small toggles:
   - the step's notes, including the solver's full settings;
   - the sheet's key;
@@ -128,7 +128,8 @@ The work view is one document, **the session** (`workflow.js`). It runs from a t
   - **Details**: the solver's metrics, leaf pairs, traces and edge lengths.
 
   Toggles are the same rounded pills on the tree and on the sheet. The main action of each step is the one red button.
-- **Go back to this step**, on any frozen step, makes it the live step again and drops the steps after it. It asks once to confirm.
+- **Go back to this result**, on any frozen step, deletes the steps after it, with no confirmation, so that step's result is live again, and scrolls to the moves offered after it, to choose another next step.
+- **Delete this and below**, on any step, deletes that step and every step after it, with no confirmation. The step before it becomes the live step again. On the live step the button reads **Delete this step**. Deleting step 1 starts an empty session.
 - **Step cards** run down the side of the document, one per step. Each card has the step's number, title, progress mark, a line on what it did and a small sheet. They stay in view as you scroll, the card of the step on screen is outlined, and a click goes to that step. Above the cards, **Save the session** writes the whole session (every step with its settings, input and output) as a `treemaker-session` file, version 2 ([docs/FILE-FORMATS.md](docs/FILE-FORMATS.md)). **Open…** reads a session, layout or tree file, and **New session** starts an empty one.
 - **Opening a layout file** starts a new session: its tree as step 1 and the layout as step 2.
 - **Only the session is kept.** The session document is the only thing the app keeps in the browser between visits, and it survives a reload. A new session starts empty, with default settings: it takes nothing from the previous one. An opened file starts afresh the same way. The map shows the session in short, with **Continue the session**.
@@ -161,7 +162,7 @@ Every part of the app shows the tree and the sheet side by side, as one widget: 
 
 A row of toggles above the sheet chooses what it shows: leaf circles, every pair and, once they exist, the polygons and the creases.
 
-The tree can be edited only while the tree is the session's live step. In every later step it is locked: go back to step 1 to change it.
+The tree can be edited only while the tree is the session's live step. In every later step it is locked: delete the steps below step 1 (“Delete this and below” on step 2) to change it.
 
 The editor works the same everywhere it can edit.
 
