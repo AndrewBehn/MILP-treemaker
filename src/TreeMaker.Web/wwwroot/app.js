@@ -1110,6 +1110,7 @@ function enterNode(id) {
     spec.append("Spec: ");
     // The doc, and every label and section the node cites, open in the docs tab.
     spec.append(specLinks.link(doc.title, node.doc, null), " · ", specLinks.linkify(node.section, node.doc));
+    for (const c of nodeDocs(node).slice(1)) spec.append(document.createElement("br"), "Uses: ", specLinks.link(DOCS[c.doc].title.replace(/^TreeMaker foundations: /, ""), c.doc, null), " ", specLinks.linkify(c.section, c.doc));
   } else {
     spec.textContent = "Spec: none yet.";
   }

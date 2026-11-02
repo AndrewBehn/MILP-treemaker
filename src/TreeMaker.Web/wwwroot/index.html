@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=20261102w">
+  <link rel="stylesheet" href="styles.css?v=20261102x">
 </head>
 <body data-view="map">
   <!-- ───────────── Top bar: the way back to the map, and where you are ───────────── -->
@@ -36,24 +36,20 @@
   <main id="mapView" class="map-view">
     <div class="map-head">
       <div>
-        <h1>The specs, and the session that runs them</h1>
-        <p>Each box is a spec and the part of the app that implements it: click it to open the session there. <b>Spec ↗</b> opens the document.</p>
+        <h1>From a tree to a crease pattern</h1>
+        <p>Each box is a step of the session: click it to open the session there. <b>Spec ↗</b> opens the documents it implements; the docs page shows them as a tree.</p>
       </div>
       <div class="map-tools">
         <a id="mapContinue" class="bench-go" href="#/tree">Start with a tree</a>
         <a id="mapCp" class="on-mat button-like map-side" href="cp.html" target="treemaker-cp" title="A side tool, apart from the session: open a crease pattern (SVG, FOLD or an image) and see it folded flat">Fold a crease pattern ↗</a>
         <button id="mapNew" type="button" class="on-mat" title="Start an empty session: the current one is replaced (save it first to keep it)">New session</button>
-        <label class="check on-mat-check"><input id="showRefs" type="checkbox" checked> Spec references</label>
       </div>
     </div>
     <div class="map-frame">
       <svg id="mapSvg" class="map-svg" viewBox="0 0 1360 560" role="group" aria-label="Map of the specs and steps"></svg>
     </div>
     <div class="map-legend">
-      <span><i class="lg flow"></i>Data flows to</span>
-      <span><i class="lg build"></i>Spec builds on</span>
-      <span><i class="lg hand"></i>Spec hands off to</span>
-      <span><i class="lg cite"></i>Spec cites</span>
+      <span><i class="lg flow"></i>The session goes on to</span>
       <span><i class="lg held"></i>The session's live step</span>
     </div>
   </main>
@@ -589,18 +585,18 @@
 
   <input id="fileInput" type="file" accept=".json,application/json" hidden>
 
-  <script src="nodes.js?v=20261102w"></script>
-  <script src="workbench.js?v=20261102w"></script>
-  <script src="tree-editor.js?v=20261102w"></script>
-  <script src="polygons.js?v=20261102w"></script>
-  <script src="stubs.js?v=20261102w"></script>
-  <script src="workflow.js?v=20261102w"></script>
-  <script src="linked.js?v=20261102w"></script>
-  <script src="folded.js?v=20261102w"></script>
-  <script src="files.js?v=20261102w"></script>
-  <script src="solvers.js?v=20261102w"></script>
-  <script src="map.js?v=20261102w"></script>
-  <script src="specs.js?v=20261102w"></script>
-  <script src="app.js?v=20261102w"></script>
+  <script src="nodes.js?v=20261102x"></script>
+  <script src="workbench.js?v=20261102x"></script>
+  <script src="tree-editor.js?v=20261102x"></script>
+  <script src="polygons.js?v=20261102x"></script>
+  <script src="stubs.js?v=20261102x"></script>
+  <script src="workflow.js?v=20261102x"></script>
+  <script src="linked.js?v=20261102x"></script>
+  <script src="folded.js?v=20261102x"></script>
+  <script src="files.js?v=20261102x"></script>
+  <script src="solvers.js?v=20261102x"></script>
+  <script src="map.js?v=20261102x"></script>
+  <script src="specs.js?v=20261102x"></script>
+  <script src="app.js?v=20261102x"></script>
 </body>
 </html>

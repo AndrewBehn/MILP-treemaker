@@ -504,12 +504,24 @@ const workflowDoc = (() => {
     return d;
   }
 
-  /** "Spec: <doc> · <sections>", linked into the docs tab, for the map node a step uses. */
+  /**
+   * "Spec: <doc> · <sections>", linked into the docs tab, for the map node a step uses; then "Uses:" and every
+   * foundation the step depends on, each with the labels it uses.
+   */
   function specLine(nodeId) {
     const node = NODES[nodeId];
-    if (!node?.doc || !DOCS[node.doc]) return null;
+    const all = nodeDocs(node);
+    if (!all.length) return null;
     const p = h("p", "doc-spec");
-    p.append("Spec: ", specLinks.link(DOCS[node.doc].title, node.doc, null), " · ", specLinks.linkify(node.section, node.doc));
+    const [own, ...cites] = all;
+    p.append("Spec: ", specLinks.link(DOCS[own.doc].title, own.doc, null), " · ", specLinks.linkify(own.section, own.doc));
+    if (cites.length) {
+      p.append(h("br"), "Uses: ");
+      cites.forEach((c, k) => {
+        if (k) p.append("; ");
+        p.append(specLinks.link(DOCS[c.doc].title.replace(/^TreeMaker foundations: /, ""), c.doc, null), " ", specLinks.linkify(c.section, c.doc));
+      });
+    }
     return p;
   }
 

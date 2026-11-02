@@ -76,7 +76,9 @@ const base = 'http://127.0.0.1:5099/';
     if (log.docs[key].missing || log.docs[key].len < 5000) errs.push('FAIL doc ' + key);
   }
   await docs.goto(`${base}docs.html#/`); await docs.waitForTimeout(800);
-  check('specList', await docs.evaluate(() => document.querySelectorAll('.spec-card').length === 7));
+  // The list is the document tree: one card per doc, children indented under their parent.
+  check('specList', await docs.evaluate(() => document.querySelectorAll('.spec-card').length === Object.keys(DOCS).length
+    && document.querySelectorAll('.spec-card.child').length === Object.values(DOCS).filter((d) => d.parent).length));
   await docs.screenshot({ path: `${out}/docs-list.png` });
 
   // A link from before the split opens the passage in the docs tab and keeps the node in the app.

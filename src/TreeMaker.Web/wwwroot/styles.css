@@ -1564,3 +1564,11 @@ body[data-page="cp"] { background: var(--mat); color: var(--mat-ink); min-height
 
 /* The map's side tool link. */
 .map-side { display: inline-flex; align-items: center; gap: 6px; }
+
+/* The docs page: the documents as a tree. */
+.spec-tree { display: flex; flex-direction: column; gap: 10px; }
+.spec-tree .spec-card.child { margin-left: calc(var(--depth, 1) * 28px); border-left: 3px solid #cfd8d2; }
+.spec-card-parent { margin: 2px 0 0; font-size: 12px; color: var(--ink-soft); }
+.spec-group-note { margin: -4px 0 10px; }
+.spec-nav .nav-group { margin-top: 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); list-style: none; }
+.spec-nav .nav-child { padding-left: calc(var(--depth, 1) * 14px); }

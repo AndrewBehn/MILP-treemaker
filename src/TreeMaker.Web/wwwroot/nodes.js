@@ -3,15 +3,36 @@
 // docs and the code correspond one to one. See README.md, "The map".
 "use strict";
 
+/**
+ * The specification documents, as a directed tree (docs/DOC-TREE.md): each has at most one parent, the document it
+ * builds on. The foundations hold what several documents share; any document may cite them, but they are never
+ * parents. The docs page draws this tree; the map draws the workflow instead.
+ */
 const DOCS = {
-  pure: { title: "Pure MILP TreeMaker", url: "https://claude.ai/artifact/1L1y2Ey5CzUT8AzfJ2sev4" },
-  sym: { title: "Symmetry-Breaking MILP TreeMaker", url: "https://claude.ai/artifact/4bhD37EK1NQy66fV4zhTaN" },
-  hull: { title: "Lattice-Hull MILP TreeMaker", url: "https://claude.ai/artifact/NwmqiYzpRCSneZiobahka6" },
-  optimized: { title: "Optimized MILP TreeMaker", url: "https://claude.ai/artifact/LxhWqnKYWWuTrdmJ3hrKdq" },
-  scalable: { title: "Scalable MILP TreeMaker", url: "https://claude.ai/artifact/Qz1WL7RZDpnMwKYdVT2G29" },
-  closing: { title: "Polygon Closing TreeMaker", url: "https://claude.ai/artifact/FtbYLxEKTVszvyrLtcniK4" },
-  crease: { title: "Crease Pattern TreeMaker", url: "https://claude.ai/artifact/1B22HTcwzUwAjaMqyfdTXp" },
+  sheet: { title: "TreeMaker foundations: the tree, the sheet and spacing", short: "sheet", group: "foundations", url: "" },
+  offsets: { title: "TreeMaker foundations: grid offsets", short: "offsets", group: "foundations", url: "" },
+  conditions: { title: "TreeMaker foundations: leaf conditions and symmetry", short: "conditions", group: "foundations", url: "" },
+  hulls: { title: "TreeMaker foundations: lattice hulls and leaf windows", short: "hulls", group: "foundations", url: "" },
+  strain: { title: "TreeMaker foundations: strain", short: "strain", group: "foundations", url: "" },
+  polygons: { title: "TreeMaker foundations: tight pairs and polygons", short: "polygons", group: "foundations", url: "" },
+  pure: { title: "Pure MILP TreeMaker", short: "base", group: "solvers", url: "https://claude.ai/artifact/1L1y2Ey5CzUT8AzfJ2sev4" },
+  sym: { title: "Symmetry-Breaking MILP TreeMaker", short: "symmetry-breaking", group: "solvers", parent: "pure", url: "https://claude.ai/artifact/4bhD37EK1NQy66fV4zhTaN" },
+  hull: { title: "Lattice-Hull MILP TreeMaker", short: "lattice-hull", group: "solvers", url: "https://claude.ai/artifact/NwmqiYzpRCSneZiobahka6" },
+  optimized: { title: "Optimized MILP TreeMaker", short: "optimized", group: "solvers", parent: "hull", url: "https://claude.ai/artifact/LxhWqnKYWWuTrdmJ3hrKdq" },
+  scalable: { title: "Scalable MILP TreeMaker", short: "scalable", group: "solvers", url: "https://claude.ai/artifact/Qz1WL7RZDpnMwKYdVT2G29" },
+  closing: { title: "Polygon Closing TreeMaker", short: "closing", group: "after", url: "https://claude.ai/artifact/FtbYLxEKTVszvyrLtcniK4" },
+  crease: { title: "Crease Pattern TreeMaker", short: "crease", group: "after", parent: "closing", url: "https://claude.ai/artifact/1B22HTcwzUwAjaMqyfdTXp" },
 };
+
+/** The tree's top level, in the order the docs page shows it. */
+const DOC_GROUPS = [
+  { id: "foundations", title: "Foundations", note: "What the specifications share: cited by any of them, never built on." },
+  { id: "solvers", title: "Layout solvers", note: "Each places the leaves on the grid; a child builds on its parent." },
+  { id: "after", title: "After the layout", note: "Closing the polygons, then the crease pattern and the folded base." },
+];
+
+/** A doc's children in the tree. */
+const docChildren = (key) => Object.keys(DOCS).filter((k) => DOCS[k].parent === key);
 
 /** Presets each solver can solve in reasonable time (README, "Presets"). */
 const PRESETS_BASE = ["example", "star4", "centipede2"];
@@ -98,16 +119,12 @@ const SOLVER_IDS = ["pure", "sym", "hull", "optimized", "scalable"];
  * frame. The step specs' references (closing builds on base and cites scalable; crease builds on closing and base;
  * closing hands off to crease) run along the pipeline arrows, so they are not drawn again.
  */
-const SPEC_EDGES = [
-  { from: "sym", to: "pure", kind: "build" },
-  { from: "hull", to: "pure", kind: "build" },
-  { from: "optimized", to: "pure", kind: "build" },
-  { from: "scalable", to: "pure", kind: "build" },
-  { from: "pure", to: "optimized", kind: "hand" },
-  { from: "hull", to: "sym", kind: "cite" },
-  { from: "scalable", to: "optimized", kind: "cite" },
-];
-
 function nodeDoc(node) {
   return node.doc ? DOCS[node.doc] : null;
+}
+
+/** Every doc a node's step depends on: its own spec first, then the foundations it cites ({ doc, section }). */
+function nodeDocs(node) {
+  if (!node?.doc) return [];
+  return [{ doc: node.doc, section: node.section }, ...(node.cites ?? [])].filter((d) => DOCS[d.doc]);
 }

@@ -102,26 +102,6 @@ const appMap = (() => {
       t.textContent = "then strain again";
     }
 
-    // References between the specs, as in the document graph.
-    if (q("showRefs").checked) {
-      const into = { sym: -30, hull: -12, optimized: 12, scalable: 30 };
-      for (const e of SPEC_EDGES) {
-        let d;
-        if (e.to === "pure") {
-          d = curve(port(e.from, "left"), port("pure", "right", into[e.from]));
-        } else if (e.from === "pure") {
-          d = curve(port("pure", "right", 44), port(e.to, "left", 22));
-        } else {
-          // Same column: an arc out to the right of the boxes.
-          const [x1, y1] = port(e.from, "right", -14), [x2, y2] = port(e.to, "right", 14);
-          d = `M${x1},${y1} C${x1 + 26},${y1} ${x2 + 26},${y2} ${x2},${y2}`;
-        }
-        const path = svgEl("path", { d, class: "map-ref " + e.kind, "marker-end": `url(#mk-${e.kind})` }, svg);
-        const t = svgEl("title", {}, path);
-        t.textContent = `${DOCS[e.from].title} ${{ build: "builds on", hand: "hands off to", cite: "cites" }[e.kind]} ${DOCS[e.to].title}`;
-      }
-    }
-
     const tree = workflowDoc.steps[0]?.output?.problem ?? workbench.tree;
     const leaves = tree?.edges?.length ? treeInfo(tree.edges).leaves.length : 0;
     const live = liveStep();
@@ -154,7 +134,7 @@ const appMap = (() => {
         const t = specLinks.firstTarget(node.section, node.doc);
         const pill = svgEl("a", { href: specLinks.href(t.doc, t.at), target: SPEC_TAB, class: "map-spec" }, g);
         const pt = svgEl("title", {}, pill);
-        pt.textContent = `Read the spec: ${doc.title} (${node.section})`;
+        pt.textContent = "Read the spec: " + nodeDocs(node).map((d) => `${DOCS[d.doc].title} (${d.section})`).join("; ");
         svgEl("rect", { x: b.x + b.w - 56, y: b.y + 8, width: 46, height: 18, rx: 9 }, pill);
         const tx = svgEl("text", { x: b.x + b.w - 33, y: b.y + 21, "text-anchor": "middle" }, pill);
         tx.textContent = "Spec ↗";
@@ -174,7 +154,6 @@ const appMap = (() => {
   }
 
   function init() {
-    q("showRefs").addEventListener("change", render);
     q("mapNew").addEventListener("click", () => workflowDoc.startOver());
     workbench.onChange(() => { if (document.body.dataset.view === "map") render(); });
   }
