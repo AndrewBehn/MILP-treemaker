@@ -8,7 +8,7 @@ const cp = (() => {
   const NS = "http://www.w3.org/2000/svg";
   const $ = (id) => document.getElementById(id);
   const KINDS = ["M", "V", "U", "F"];   // the click cycle; after F a line is removed
-  let lines = [], image = null, imageBox = null, fromImage = false, snapGrid = 0;
+  let lastFound = null, lines = [], image = null, imageBox = null, fromImage = false, snapGrid = 0, lastFile = null, swapped = false;
 
   function svgEl(tag, attrs, parent) {
     const el = document.createElementNS(NS, tag);
@@ -21,6 +21,7 @@ const cp = (() => {
 
   async function readFile(file) {
     const name = file.name.toLowerCase();
+    lastFile = file;
     fromImage = false;
     image = null;
     try {
@@ -38,8 +39,12 @@ const cp = (() => {
       return;
     }
     $("cpImageOptions").hidden = !fromImage;
+    $("cpReadOptions").hidden = false;
+    if (swapped) lines = swapKinds(lines);
     const count = (k) => lines.filter((l) => l.kind === k).length;
+    const styled = lines.filter((l) => l.style).length;
     note(`${file.name}: ${lines.length} lines — ${count("M")} mountain, ${count("V")} valley, ${count("U")} unassigned, ${count("F")} flat, ${count("B")} border.`
+      + (styled ? ` ${styled} assigned by line style (solid ${swapped ? "valley" : "mountain"}, dashed ${swapped ? "mountain" : "valley"}).` : "")
       + (fromImage ? ` Traced from the image${snapGrid ? `, ends snapped to a ${snapGrid} × ${snapGrid} grid` : ""}: check them, click to fix, then Fold.` : ""));
     draw();
     clearFolded();
@@ -74,8 +79,9 @@ const cp = (() => {
       for (const el of shapes) {
         const style = getComputedStyle(el);
         if (style.display === "none" || style.stroke === "none" || !style.stroke) continue;
-        const kind = kindOf(el, style.stroke);
-        const add = (p, q, k = kind) => out.push({ a: map(el, p[0], p[1]), b: map(el, q[0], q[1]), kind: k });
+        const dashed = !!style.strokeDasharray && style.strokeDasharray !== "none" && !/^0(px)?$/.test(style.strokeDasharray);
+        const kind = kindOf(el, style.stroke, dashed);
+        const add = (p, q, k = kind) => out.push({ a: map(el, p[0], p[1]), b: map(el, q[0], q[1]), kind: k, dashed });
         const tag = el.tagName.toLowerCase();
         const num = (n) => Number(el.getAttribute(n) ?? 0);
         if (tag === "line") add([num("x1"), num("y1")], [num("x2"), num("y2")]);
@@ -124,16 +130,25 @@ const cp = (() => {
   }
 
   /** A stroke's kind from its colour (red mountain, blue valley, anything else a crease), or a title saying so. */
-  function kindOf(el, stroke) {
+  function kindOf(el, stroke, dashed) {
     const t = (el.querySelector("title")?.textContent ?? el.getAttribute("class") ?? "").toLowerCase();
     if (/mountain/.test(t)) return "M";
     if (/valley/.test(t)) return "V";
     if (/border|boundary|edge of/.test(t)) return "B";
     if (/\bflat\b|aux/.test(t)) return "F";
     const m = stroke.match(/\d+(\.\d+)?/g)?.map(Number);
-    if (!m || m.length < 3) return "U";
-    return colourKind(m[0], m[1], m[2]) ?? "U";
+    const byColour = m && m.length >= 3 ? colourKind(m[0], m[1], m[2]) : null;
+    if (byColour) return byColour;
+    // A line with no colour of its own: its style says which fold it is, when that is asked for.
+    if (useStyle()) return dashed ? "V" : "SOLID";
+    return "U";
   }
+
+  /** Whether line style assigns folds: solid lines mountains, dashed lines valleys (before any swap). */
+  const useStyle = () => $("cpStyle").checked;
+
+  /** Mountains become valleys and valleys mountains: the same pattern folded from the paper's other side. */
+  const swapKinds = (ls) => ls.map((l) => ({ ...l, kind: l.kind === "M" ? "V" : l.kind === "V" ? "M" : l.kind }));
 
   function colourKind(r, g, b) {
     if (r > 140 && r > g * 1.6 && r > b * 1.6) return "M";
@@ -143,15 +158,21 @@ const cp = (() => {
 
   /** Lines that lie along the outline (the bounding box) are the border, unless already a fold. */
   function markBorder(ls) {
-    if (ls.some((l) => l.kind === "B")) return ls;
+    if (ls.some((l) => l.kind === "B")) {
+      for (const l of ls) if (l.kind === "SOLID") { l.kind = "M"; l.style = "solid"; }
+      return ls;
+    }
     const xs = ls.flatMap((l) => [l.a.x, l.b.x]), ys = ls.flatMap((l) => [l.a.y, l.b.y]);
     const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
     const tol = 0.004 * Math.max(x1 - x0, y1 - y0);
     const along = (v, w, c) => Math.abs(v - c) < tol && Math.abs(w - c) < tol;
     for (const l of ls) {
-      if (l.kind !== "U") continue;
+      if (l.kind !== "U" && l.kind !== "SOLID") continue;
       if (along(l.a.x, l.b.x, x0) || along(l.a.x, l.b.x, x1) || along(l.a.y, l.b.y, y0) || along(l.a.y, l.b.y, y1)) l.kind = "B";
     }
+    // A solid line that is not the outline is a mountain.
+    for (const l of ls) if (l.kind === "SOLID") { l.kind = "M"; l.style = "solid"; }
+    for (const l of ls) if (l.kind === "V" && l.dashed) l.style = "dashed";
     return ls;
   }
 
@@ -201,9 +222,11 @@ const cp = (() => {
     const minLen = Math.max(12, 0.03 * Math.max(W, H));
     const found = [];
     for (const [c, pts] of Object.entries(classes)) {
-      for (const s of houghSegments(pts, W, H, minLen)) found.push({ ...s, kind: c === "D" ? "U" : c });
+      // Dark lines take their fold from their style when asked: dashed valleys, solid mountains (or the outline).
+      for (const s of houghSegments(pts, W, H, minLen)) found.push({ ...s, kind: c !== "D" ? c : !useStyle() ? "U" : s.dashed ? "V" : "SOLID" });
     }
     imageBox = { w: W, h: H, scale: 1 / k };
+    lastFound = found;
     const snapped = snap(found, W, H);
     return markBorder(snapped);
   }
@@ -230,7 +253,7 @@ const cp = (() => {
       const t = Math.floor(bi / R), rho = (bi % R) - diag;
       const c = cos[t], s = sin[t];
       // The pixels within 2 px of the line, by position along it.
-      const near = [];
+      const near = [], wide = [];
       const x0 = c * rho, y0 = s * rho, dx = -s, dy = c;
       const steps = Math.ceil(diag * 2 / cell) + 2;
       const seen = new Set();
@@ -245,23 +268,60 @@ const cp = (() => {
           for (const i of buckets[key]) {
             if (!alive[i]) continue;
             const x = pts[2 * i], y = pts[2 * i + 1];
-            if (Math.abs(x * c + y * s - rho) <= 2) near.push([(x - x0) * dx + (y - y0) * dy, i]);
+            const off = Math.abs(x * c + y * s - rho);
+            if (off <= 2) near.push([(x - x0) * dx + (y - y0) * dy, i]);
+            else if (off <= 5) wide.push(i);
           }
         }
       }
       near.sort((p, q) => p[0] - q[0]);
-      let start = 0, any = false;
-      const gap = Math.max(4, minLen / 3);
-      const flush = (from, to) => {
-        const len = near[to][0] - near[from][0];
-        if (len < minLen || to - from + 1 < minLen * 0.5) return;
-        any = true;
-        out.push({ a: { x: x0 + dx * near[from][0], y: y0 + dy * near[from][0] }, b: { x: x0 + dx * near[to][0], y: y0 + dy * near[to][0] } });
-        for (let j = from; j <= to; j++) { const i = near[j][1]; if (alive[i]) { alive[i] = 0; vote(i, -1); } }
-      };
-      for (let j = 1; j <= near.length; j++) {
-        if (j === near.length || near[j][0] - near[j - 1][0] > gap) { if (j - 1 >= start) flush(start, j - 1); start = j; }
+      // (any: whether this peak gave a line)
+      // The ink along the line, as strokes: stretches whose pixels follow each other with gaps of at most a few
+      // pixels (a crossing line leaves such a gap). A stroke at least solidMin long is solid; a shorter one is a
+      // dash. Consecutive strokes of one kind, with gaps up to a dash's gap, make one line, so a dashed line is read
+      // as one line and a line that changes from solid to dashed is read as two.
+      const small = 5, gapMax = Math.max(8, 0.035 * Math.max(W, H)), solidMin = Math.max(30, 0.045 * Math.max(W, H));
+      const strokes = [];
+      for (let j = 0, from = 0; j < near.length; j++) {
+        if (j === near.length - 1 || near[j + 1][0] - near[j][0] > small) {
+          strokes.push({ from, to: j, t0: near[from][0], t1: near[j][0] });
+          from = j + 1;
+        }
       }
+      for (const st of strokes) st.solid = st.t1 - st.t0 >= solidMin;
+      // Where lines cross, the ink of the others fills a dashed line's gaps for a short way and looks solid: a
+      // short solid stroke whose neighbours (within a dash's gap) are all dashes is a dash too.
+      for (let changed = true; changed;) {
+        changed = false;
+        strokes.forEach((st, k) => {
+          if (!st.solid || st.t1 - st.t0 >= 2.5 * solidMin) return;
+          const nb = [strokes[k - 1], strokes[k + 1]].filter((o) => o && Math.min(Math.abs(o.t0 - st.t1), Math.abs(st.t0 - o.t1)) <= gapMax);
+          if (nb.length && nb.every((o) => !o.solid)) { st.solid = false; changed = true; }
+        });
+      }
+      let any = false;
+      const emit = (group) => {
+        const first = group[0], lastS = group.at(-1);
+        const len = lastS.t1 - first.t0;
+        const dashed = !first.solid;
+        if (len < minLen || (dashed && group.length < 2)) return;
+        any = true;
+        out.push({ a: { x: x0 + dx * first.t0, y: y0 + dy * first.t0 }, b: { x: x0 + dx * lastS.t1, y: y0 + dy * lastS.t1 }, dashed });
+        for (const st of group) for (let j = st.from; j <= st.to; j++) { const i = near[j][1]; if (alive[i]) { alive[i] = 0; vote(i, -1); } }
+        // A thick line's far edge would be found again as a second line: take all ink within a line's width too.
+        for (const i of wide) {
+          if (!alive[i]) continue;
+          const x = pts[2 * i], y = pts[2 * i + 1], t = (x - x0) * dx + (y - y0) * dy;
+          if (t >= first.t0 - 2 && t <= lastS.t1 + 2) { alive[i] = 0; vote(i, -1); }
+        }
+      };
+      let group = [];
+      for (const st of strokes) {
+        const prev = group.at(-1);
+        if (prev && (st.solid !== prev.solid || st.t0 - prev.t1 > gapMax)) { emit(group); group = []; }
+        group.push(st);
+      }
+      if (group.length) emit(group);
       if (!any) acc[bi] = 0;   // a peak with no long run: forget it
     }
     return out;
@@ -275,7 +335,7 @@ const cp = (() => {
     const size = Math.max(box.x1 - box.x0, box.y1 - box.y0);
     const tol = (Number($("cpJoin").value) || 1.5) / 100 * size;
     const N = Math.max(0, Math.round(Number($("cpGrid").value) || 0));   // empty or "auto": found below
-    let ls = found.map((l) => ({ a: { ...l.a }, b: { ...l.b }, kind: l.kind }));
+    let ls = found.map((l) => ({ a: { ...l.a }, b: { ...l.b }, kind: l.kind, dashed: !!l.dashed }));
     if ($("cpAngles").checked) {
       for (const l of ls) {
         const mx = (l.a.x + l.b.x) / 2, my = (l.a.y + l.b.y) / 2, len = Math.hypot(l.b.x - l.a.x, l.b.y - l.a.y) / 2;
@@ -291,6 +351,34 @@ const cp = (() => {
       if (Math.abs(p.x - box.x0) < tol) p.x = box.x0; if (Math.abs(p.x - box.x1) < tol) p.x = box.x1;
       if (Math.abs(p.y - box.y0) < tol) p.y = box.y0; if (Math.abs(p.y - box.y1) < tol) p.y = box.y1;
     };
+    // Tracing stops a line short where another crosses or meets it (the other's ink is taken first): an end
+    // within reach of another line is carried along its own line to the crossing.
+    {
+      const meet = (l, m) => {
+        const d1x = l.b.x - l.a.x, d1y = l.b.y - l.a.y, d2x = m.b.x - m.a.x, d2y = m.b.y - m.a.y;
+        const den = d1x * d2y - d1y * d2x;
+        if (Math.abs(den) < 0.05 * Math.hypot(d1x, d1y) * Math.hypot(d2x, d2y)) return null;   // nearly parallel
+        const t = ((m.a.x - l.a.x) * d2y - (m.a.y - l.a.y) * d2x) / den, u = ((m.a.x - l.a.x) * d1y - (m.a.y - l.a.y) * d1x) / den;
+        const lenM = Math.hypot(d2x, d2y);
+        if (u < -tol / lenM || u > 1 + tol / lenM) return null;   // the crossing must lie on the other line
+        return { t, p: { x: l.a.x + t * d1x, y: l.a.y + t * d1y } };
+      };
+      const reach = 2.5 * tol;
+      for (const l of ls) {
+        const len = Math.hypot(l.b.x - l.a.x, l.b.y - l.a.y);
+        for (const [end, sign] of [[l.a, 0], [l.b, 1]]) {
+          let best = null;
+          for (const m of ls) {
+            if (m === l) continue;
+            const r = meet(l, m);
+            if (!r) continue;
+            const along = (sign ? r.t - 1 : -r.t) * len;   // how far beyond this end (negative: inside)
+            if (along > -tol && along < reach && (!best || Math.abs(along) < Math.abs(best.along))) best = { along, p: r.p };
+          }
+          if (best) { end.x = best.p.x; end.y = best.p.y; }
+        }
+      }
+    }
     for (const l of ls) for (const p of [l.a, l.b]) toBox(p);
     // Ends that are close together become one point (their centre).
     const ends = ls.flatMap((l) => [l.a, l.b]);
@@ -346,8 +434,20 @@ const cp = (() => {
     }
     snapGrid = grid;
     ls = ls.filter((l) => Math.hypot(l.b.x - l.a.x, l.b.y - l.a.y) > tol);
-    // Collinear overlapping pieces of the same kind become one line.
-    return mergeCollinear(ls, tol / 3);
+    // Collinear overlapping pieces of the same kind become one line, and a line lying along a longer one of the
+    // same kind (a thick line traced twice) is dropped.
+    return dropShadows(mergeCollinear(ls, tol / 3), 1.5 * tol);
+  }
+
+  function dropShadows(ls, tol) {
+    const len = (l) => Math.hypot(l.b.x - l.a.x, l.b.y - l.a.y);
+    const dist = (p, m) => {
+      const dx = m.b.x - m.a.x, dy = m.b.y - m.a.y, l2 = dx * dx + dy * dy;
+      const t = Math.max(0, Math.min(1, ((p.x - m.a.x) * dx + (p.y - m.a.y) * dy) / l2));
+      return Math.hypot(m.a.x + t * dx - p.x, m.a.y + t * dy - p.y);
+    };
+    return ls.filter((l) => !ls.some((m) => m !== l && m.kind === l.kind && len(m) >= len(l) && (len(m) > len(l) || m !== ls.find((x) => x.kind === l.kind && len(x) === len(l)))
+      && dist(l.a, m) < tol && dist(l.b, m) < tol && dist({ x: (l.a.x + l.b.x) / 2, y: (l.a.y + l.b.y) / 2 }, m) < tol));
   }
 
   function nearSeg(q, m, tol) {
@@ -373,7 +473,7 @@ const cp = (() => {
         if (Math.max(ta, tb) < lo - tol || Math.min(ta, tb) > hi + tol) continue;
         lo = Math.min(lo, ta, tb); hi = Math.max(hi, ta, tb); used[j] = true;
       }
-      out.push({ a: { x: l.a.x + ux * lo, y: l.a.y + uy * lo }, b: { x: l.a.x + ux * hi, y: l.a.y + uy * hi }, kind: l.kind });
+      out.push({ a: { x: l.a.x + ux * lo, y: l.a.y + uy * lo }, b: { x: l.a.x + ux * hi, y: l.a.y + uy * hi }, kind: l.kind, dashed: l.dashed });
     }
     return out;
   }
@@ -455,12 +555,15 @@ const cp = (() => {
       const x0 = Math.min(...xs), y0 = Math.min(...ys), w = Math.max(...xs) - x0, h = Math.max(...ys) - y0, pad = 0.06 * Math.max(w, h, 1e-6);
       svg.setAttribute("viewBox", `${x0 - pad} ${y0 - pad} ${w + 2 * pad} ${h + 2 * pad}`);
       const sw = 0.004 * Math.max(w, h);
+      // Swapped mountains and valleys fold the same shape from the paper's other side: the base is seen mirrored,
+      // with the paper's front and back exchanged.
+      const g = svgEl("g", swapped ? { transform: `translate(${2 * x0 + w} 0) scale(-1 1)` } : {}, svg);
       for (const f of r.faces) {
         if (!f.folded) continue;
-        svgEl("polygon", { points: f.folded.map((p) => `${p.x},${p.y}`).join(" "), class: "cp-face" + (f.flipped ? " back" : ""), "stroke-width": sw }, svg);
+        svgEl("polygon", { points: f.folded.map((p) => `${p.x},${p.y}`).join(" "), class: "cp-face" + (f.flipped !== swapped ? " back" : ""), "stroke-width": sw }, g);
       }
     }
-    $("cpVerdict").textContent = r.foldable ? "Folds flat." : "Does not fold flat as drawn.";
+    $("cpVerdict").textContent = (r.foldable ? "Folds flat." : "Does not fold flat as drawn.") + (swapped ? " Mountains and valleys swapped: seen from the other side." : "");
     $("cpVerdict").className = "cp-verdict " + (r.foldable ? "good" : "bad");
     $("cpMessages").replaceChildren(...(r.messages ?? []).map((m) => { const li = document.createElement("li"); li.textContent = m; return li; }));
   }
@@ -478,11 +581,18 @@ const cp = (() => {
     drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); const f = e.dataTransfer.files?.[0]; if (f) readFile(f); });
     $("cpFold").addEventListener("click", fold);
     $("cpShowImage").addEventListener("change", draw);
-    $("cpRetrace").addEventListener("click", () => { if (image) { lines = trace(image); note(`Traced again: ${lines.length} lines.`); draw(); clearFolded(); } });
+    $("cpRetrace").addEventListener("click", () => { if (lastFile) readFile(lastFile); });
+    $("cpStyle").addEventListener("change", () => { if (lastFile) readFile(lastFile); });
+    $("cpSwap").addEventListener("change", () => {
+      swapped = $("cpSwap").checked;
+      lines = swapKinds(lines);
+      draw();
+      if (lastResult) fold(); else clearFolded();
+    });
     draw();
   }
 
-  return { init, readFile, get lines() { return lines; }, fold, debugTrace: (img) => trace(img) };
+  return { init, readFile, get lines() { return lines; }, fold, debugTrace: (img) => trace(img), debugSnap: (f, W, H) => snap(f, W, H), get debugFound() { return lastFound; } };
 })();
 
 cp.init();

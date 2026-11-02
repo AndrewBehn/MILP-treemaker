@@ -20,6 +20,9 @@ const OFF = (() => {
 })();
 const BAD = [[[.5, .5], [0, 0], 'V'], [[.5, .5], [1, 0], 'V'], [[.5, .5], [.5, 1], 'M']];
 const col = { M: '#d0202a', V: '#1f4ed0' };
+// Black and white: mountains solid, valleys dashed (the dashes 8 long with gaps of 5, in a 200-unit sheet).
+const monoOf = (ls, w = 2) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 220 220"><g transform="translate(5,5)"><rect x="0" y="0" width="200" height="200" fill="#fff" stroke="#000" stroke-width="${w}"/>`
+  + ls.map(([a, b, k]) => `<line x1="${a[0] * 200}" y1="${a[1] * 200}" x2="${b[0] * 200}" y2="${b[1] * 200}" stroke="#222" stroke-width="${w}"${k === 'V' ? ' stroke-dasharray="8 5"' : ''}/>`).join('') + '</g></svg>';
 const svgOf = (ls, w = 2) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 220 220"><g transform="translate(5,5)"><rect x="0" y="0" width="200" height="200" fill="#fff" stroke="#000" stroke-width="${w}"/>`
   + ls.map(([a, b, k]) => `<line x1="${a[0] * 200}" y1="${a[1] * 200}" x2="${b[0] * 200}" y2="${b[1] * 200}" stroke="${col[k]}" stroke-width="${w}"/>`).join('') + '</g></svg>';
 function foldOf(ls) {
@@ -91,6 +94,51 @@ function foldOf(ls) {
   const before = await p.evaluate(() => cp.lines.map((l) => l.kind).join(''));
   await p.evaluate(() => { const hit = [...document.querySelectorAll('#cpLines .cp-hit')].find((h, i) => cp.lines[i]?.kind !== 'B'); hit.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
   check('clickChangesKind', before !== (await p.evaluate(() => cp.lines.map((l) => l.kind).join(''))));
+
+  // Black and white, by line style: as an SVG (stroke-dasharray), then as a traced image.
+  const kindsOf = (ls) => ls.map(([, , k]) => k).concat(['B', 'B', 'B', 'B']).sort().join('');
+  await open('mono.svg', 'image/svg+xml', Buffer.from(monoOf(L)));
+  log.monoSvg = await state();
+  check('monoSvgByStyle', log.monoSvg.kinds === kindsOf(L) && log.monoSvg.verdict === 'Folds flat.');
+  const monoPng = await p.evaluate(async (svg) => {
+    const img = new Image(); img.src = 'data:image/svg+xml;base64,' + btoa(svg); await img.decode();
+    const c = document.createElement('canvas'); c.width = 660; c.height = 660;
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 660, 660); g.drawImage(img, 0, 0, 660, 660);
+    return c.toDataURL('image/png').split(',')[1];
+  }, monoOf(L, 1.3));
+  await open('mono.png', 'image/png', Buffer.from(monoPng, 'base64'));
+  log.monoPng = await state();
+  check('monoPngByStyle', log.monoPng.kinds === kindsOf(L));
+  await p.click('#cpFold'); await p.waitForTimeout(900);
+  log.monoPngFolded = await state();
+  check('monoPngFolds', log.monoPngFolded.verdict === 'Folds flat.' && log.monoPngFolded.faces === 8);
+  await p.screenshot({ path: '/tmp/claude-0/cp-mono.png' });
+
+  // An accordion of seven pleats, alternating solid and dashed, at one eighth of the sheet apart.
+  const ACC = [1, 2, 3, 4, 5, 6, 7].map((k) => [[k / 8, 0], [k / 8, 1], k % 2 ? 'M' : 'V']);
+  const accPng = await p.evaluate(async (svg) => {
+    const img = new Image(); img.src = 'data:image/svg+xml;base64,' + btoa(svg); await img.decode();
+    const c = document.createElement('canvas'); c.width = 660; c.height = 660;
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 660, 660); g.drawImage(img, 0, 0, 660, 660);
+    return c.toDataURL('image/png').split(',')[1];
+  }, monoOf(ACC, 1.3));
+  await open('accordion.png', 'image/png', Buffer.from(accPng, 'base64'));
+  await p.click('#cpFold'); await p.waitForTimeout(900);
+  log.accordion = await state();
+  check('accordionByStyle', log.accordion.kinds === kindsOf(ACC) && log.accordion.verdict === 'Folds flat.' && log.accordion.faces === 8);
+
+  // Swapping mountains and valleys: every assignment exchanged, the base seen from the other side (mirrored).
+  const beforeSwap = (await state()).kinds;
+  await p.check('#cpSwap'); await p.waitForTimeout(900);
+  log.swapped = await state();
+  const swapKinds = (k) => k.split('').map((c) => (c === 'M' ? 'V' : c === 'V' ? 'M' : c)).sort().join('');
+  check('swapExchangesKinds', log.swapped.kinds === swapKinds(beforeSwap) && log.swapped.verdict.startsWith('Folds flat.') && /swapped/.test(log.swapped.verdict)
+    && await p.evaluate(() => !!document.querySelector('#cpFolded g[transform*="scale(-1"]')));
+  await p.uncheck('#cpSwap'); await p.waitForTimeout(900);
+  check('swapBack', (await state()).kinds === beforeSwap);
+  // With the style rule off, black lines are plain creases.
+  await p.uncheck('#cpStyle'); await p.waitForTimeout(1200);
+  check('styleOff', !/[MV]/.test((await state()).kinds));
 
   log.errs = errs;
   console.log(JSON.stringify(log, null, 1));
