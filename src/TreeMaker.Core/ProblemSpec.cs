@@ -3,17 +3,17 @@ namespace TreeMaker.Core;
 /// <summary>Which model of the Pure MILP doc to solve.</summary>
 public enum Stage
 {
-    /// <summary>Scale optimization: C:1–C:4, maximize m (Sections 6–8).</summary>
+    /// <summary>Scale optimization: C:1–C:4, maximize m (Sections 3–5).</summary>
     Scale,
 
-    /// <summary>Edge optimization: C:1–C:3 and C:5 at fixed scale m₀, maximize the common stretch σ (Section 11.2).</summary>
+    /// <summary>Edge optimization: C:1–C:3 and C:5 at fixed scale m₀, maximize the common stretch σ (Section 8.2).</summary>
     Edge,
 
-    /// <summary>Strain optimization: C:1–C:3, C:6, and C:7 at a target scale m₀, minimize strain (Section 11.3).</summary>
+    /// <summary>Strain optimization: C:1–C:3, C:6, and C:7 at a target scale m₀, minimize strain (Section 8.3).</summary>
     Strain,
 }
 
-/// <summary>How strain optimization measures distortion (Section 11.3).</summary>
+/// <summary>How strain optimization measures distortion (Section 8.3).</summary>
 public enum StrainObjective
 {
     /// <summary>Minimize Σ aₑ, the total absolute strain (the doc's objective).</summary>
@@ -23,7 +23,7 @@ public enum StrainObjective
     LargestAbsolute,
 }
 
-/// <summary>Optional TreeMaker position conditions for a single leaf (Section 7, "Optional TreeMaker conditions").</summary>
+/// <summary>Optional TreeMaker position conditions for a single leaf (conditions P:1, C:1–C:5).</summary>
 public enum LeafConditionKind
 {
     LeftEdge,
@@ -71,10 +71,10 @@ public sealed record SolverSettings
 /// <summary>Everything needed to build and solve one model of the Pure MILP doc.</summary>
 public sealed record ProblemSpec
 {
-    /// <summary>The tree T with its edge lengths (P:1, P:2).</summary>
+    /// <summary>The tree T with its edge lengths (sheet P:1, P:2).</summary>
     public required Tree Tree { get; init; }
 
-    /// <summary>The grid size N (P:3).</summary>
+    /// <summary>The grid size N (sheet P:3).</summary>
     public required int GridSize { get; init; }
 
     /// <summary>Which model to solve.</summary>
@@ -86,25 +86,25 @@ public sealed record ProblemSpec
     /// <summary>Optional mirrored pairs under book symmetry.</summary>
     public IReadOnlyList<MirrorPair> MirrorPairs { get; init; } = Array.Empty<MirrorPair>();
 
-    /// <summary>The stretch set S, as edge indices (P:5, edge optimization).</summary>
+    /// <summary>The stretch set S, as edge indices (P:2, edge optimization).</summary>
     public IReadOnlyCollection<int> StretchSet { get; init; } = Array.Empty<int>();
 
     /// <summary>
-    /// The fixed scale m₀ for edge optimization (P:4). When null, the scale stage is solved first and its
+    /// The fixed scale m₀ for edge optimization (P:1). When null, the scale stage is solved first and its
     /// optimum m* is used, with its layout as the starting solution.
     /// </summary>
     public double? FixedScale { get; init; }
 
-    /// <summary>The target scale m₀ for strain optimization (P:4).</summary>
+    /// <summary>The target scale m₀ for strain optimization (P:1).</summary>
     public double TargetScale { get; init; }
 
-    /// <summary>Lower strain bound σ_min, with −1 &lt; σ_min ≤ 0 (P:6).</summary>
+    /// <summary>Lower strain bound σ_min, with −1 &lt; σ_min ≤ 0 (strain P:1).</summary>
     public double StrainMin { get; init; } = -0.5;
 
-    /// <summary>Upper strain bound σ_max ≥ 0 (P:6).</summary>
+    /// <summary>Upper strain bound σ_max ≥ 0 (strain P:1).</summary>
     public double StrainMax { get; init; } = 0.5;
 
-    /// <summary>The strain objective (Section 11.3).</summary>
+    /// <summary>The strain objective (Section 8.3).</summary>
     public StrainObjective StrainObjective { get; init; } = StrainObjective.TotalAbsolute;
 
     /// <summary>Solver controls.</summary>
@@ -118,7 +118,7 @@ public sealed record ProblemSpec
 
     /// <summary>
     /// Adds the symmetry breaking of the Symmetry-Breaking MILP doc to the base model: the anchor leaf in the
-    /// fundamental domain (C:5) and interchangeable siblings in order (C:6). The optimum m* does not change.
+    /// fundamental domain (conditions C:6) and interchangeable siblings in order (conditions C:7). The optimum m* does not change.
     /// </summary>
     public bool SymmetryBreaking { get; init; }
 
@@ -128,7 +128,7 @@ public sealed record ProblemSpec
         ArgumentNullException.ThrowIfNull(Tree);
         if (GridSize < 1)
         {
-            throw new ArgumentException("The grid size N must be at least 1 (P:3).");
+            throw new ArgumentException("The grid size N must be at least 1 (sheet P:3).");
         }
 
         var conditioned = new HashSet<string>(StringComparer.Ordinal);
@@ -167,7 +167,7 @@ public sealed record ProblemSpec
             case Stage.Edge:
                 if (StretchSet.Count == 0)
                 {
-                    throw new ArgumentException("Edge optimization needs a non-empty stretch set S (P:5).");
+                    throw new ArgumentException("Edge optimization needs a non-empty stretch set S (P:2).");
                 }
                 foreach (int e in StretchSet)
                 {
@@ -178,18 +178,18 @@ public sealed record ProblemSpec
                 }
                 if (FixedScale is double m0 && !(m0 > 0))
                 {
-                    throw new ArgumentException("The fixed scale m₀ must be positive (P:4).");
+                    throw new ArgumentException("The fixed scale m₀ must be positive (P:1).");
                 }
                 break;
 
             case Stage.Strain:
                 if (!(TargetScale > 0) || double.IsInfinity(TargetScale))
                 {
-                    throw new ArgumentException("Strain optimization needs a positive target scale m₀ (P:4).");
+                    throw new ArgumentException("Strain optimization needs a positive target scale m₀ (P:1).");
                 }
                 if (!(StrainMin > -1) || StrainMin > 0 || StrainMax < 0)
                 {
-                    throw new ArgumentException("Strain bounds must satisfy −1 < σ_min ≤ 0 ≤ σ_max (P:6).");
+                    throw new ArgumentException("Strain bounds must satisfy −1 < σ_min ≤ 0 ≤ σ_max (strain P:1).");
                 }
                 break;
         }

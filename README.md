@@ -9,7 +9,7 @@ Every part of the app implements one of these model and algorithm specifications
 | Spec | What it specifies | In the app (map node) | Code | Read it |
 |---|---|---|---|---|
 | [Pure MILP TreeMaker](src/TreeMaker.Web/wwwroot/specs/pure.md) | The base model: TreeMaker's scale optimization as one exact MILP on an N × N grid, with edge and strain stages. | Tree, Pure MILP | `src/TreeMaker.Pure`, `src/TreeMaker.Core` | [in the repo](src/TreeMaker.Web/wwwroot/specs/pure.md) · [live doc](https://claude.ai/artifact/1L1y2Ey5CzUT8AzfJ2sev4) |
-| [Symmetry-Breaking MILP TreeMaker](src/TreeMaker.Web/wwwroot/specs/sym.md) | The base model plus an anchor leaf in the fundamental domain (C:5) and siblings in order (C:6). | Symmetry-Breaking MILP | `src/TreeMaker.Pure`, `src/TreeMaker.Core/SymmetryBreaking.cs` | [in the repo](src/TreeMaker.Web/wwwroot/specs/sym.md) · [live doc](https://claude.ai/artifact/4bhD37EK1NQy66fV4zhTaN) |
+| [Symmetry-Breaking MILP TreeMaker](src/TreeMaker.Web/wwwroot/specs/sym.md) | The base model plus an anchor leaf in the fundamental domain (conditions C:6) and siblings in order (conditions C:7). | Symmetry-Breaking MILP | `src/TreeMaker.Pure`, `src/TreeMaker.Core/SymmetryBreaking.cs` | [in the repo](src/TreeMaker.Web/wwwroot/specs/sym.md) · [live doc](https://claude.ai/artifact/4bhD37EK1NQy66fV4zhTaN) |
 | [Lattice-Hull MILP TreeMaker](src/TreeMaker.Web/wwwroot/specs/hull.md) | Lattice hulls at a fixed scale, bisection over candidate scales and incremental generation, without symmetry breaking. | Lattice-Hull MILP | `src/TreeMaker.Optimized` | [in the repo](src/TreeMaker.Web/wwwroot/specs/hull.md) · [live doc](https://claude.ai/artifact/NwmqiYzpRCSneZiobahka6) |
 | [Optimized MILP TreeMaker](src/TreeMaker.Web/wwwroot/specs/optimized.md) | The exact model made fast: lattice hulls, symmetry breaking, scale search and incremental solving together. | Optimized MILP | `src/TreeMaker.Optimized` | [in the repo](src/TreeMaker.Web/wwwroot/specs/optimized.md) · [live doc](https://claude.ai/artifact/LxhWqnKYWWuTrdmJ3hrKdq) |
 | [Scalable MILP TreeMaker](src/TreeMaker.Web/wwwroot/specs/scalable.md) | Good layouts for 25 to 100 leaves without an optimality proof: continuous LPs, CP-SAT repair, neighbourhood search and a closing finish. | Scalable MILP | `src/TreeMaker.Scalable` | [in the repo](src/TreeMaker.Web/wwwroot/specs/scalable.md) · [live doc](https://claude.ai/artifact/Qz1WL7RZDpnMwKYdVT2G29) |
@@ -45,13 +45,13 @@ The first screen is a map of the specs and the steps after them, drawn like the 
 
 | Map node | Route | Spec, and where in it | What runs | API |
 |---|---|---|---|---|
-| Tree | `#/tree` | [Pure MILP](src/TreeMaker.Web/wwwroot/specs/pure.md), parameters P:1–P:3; conditions, Sections 7.1–7.5 | The tree editor, grid size, leaf conditions and mirror pairs | none |
-| Pure MILP | `#/pure` | [Pure MILP](src/TreeMaker.Web/wwwroot/specs/pure.md), Sections 3–8 and 11 | The base model as one MILP (SCIP); scale, edge and strain stages | `/api/pure/*` |
-| Symmetry-Breaking MILP | `#/sym` | [Symmetry-Breaking MILP](src/TreeMaker.Web/wwwroot/specs/sym.md), C:5 and C:6 | The base model with the anchor leaf in the fundamental domain and siblings in order | `/api/pure/*` with `symmetryBreaking: true` |
-| Lattice-Hull MILP | `#/hull` | [Lattice-Hull MILP](src/TreeMaker.Web/wwwroot/specs/hull.md), Sections 8 and 10 | Lattice-hull feasibility tests and bisection over candidate scales, without symmetry breaking | `/api/optimized/*` with `options.symmetryBreaking: false` |
-| Optimized MILP | `#/optimized` | [Optimized MILP](src/TreeMaker.Web/wwwroot/specs/optimized.md), Section 7 | Lattice hulls, symmetry breaking, pair and facet generation, leaf windows, border seed | `/api/optimized/*` |
+| Tree | `#/tree` | [Pure MILP](src/TreeMaker.Web/wwwroot/specs/pure.md), Section 1; sheet P:1–P:3; conditions P:1, C:1–C:5 | The tree editor, grid size, leaf conditions and mirror pairs | none |
+| Pure MILP | `#/pure` | [Pure MILP](src/TreeMaker.Web/wwwroot/specs/pure.md), Sections 3–5 and 8 | The base model as one MILP (SCIP); scale, edge and strain stages | `/api/pure/*` |
+| Symmetry-Breaking MILP | `#/sym` | [Symmetry-Breaking MILP](src/TreeMaker.Web/wwwroot/specs/sym.md), Section 3; conditions C:6 and C:7 | The base model with the anchor leaf in the fundamental domain and siblings in order | `/api/pure/*` with `symmetryBreaking: true` |
+| Lattice-Hull MILP | `#/hull` | [Lattice-Hull MILP](src/TreeMaker.Web/wwwroot/specs/hull.md), Sections 6 and 8 | Lattice-hull feasibility tests and bisection over candidate scales, without symmetry breaking | `/api/optimized/*` with `options.symmetryBreaking: false` |
+| Optimized MILP | `#/optimized` | [Optimized MILP](src/TreeMaker.Web/wwwroot/specs/optimized.md), Section 4 | Lattice hulls, symmetry breaking, pair and facet generation, leaf windows, border seed | `/api/optimized/*` |
 | Scalable MILP | `#/scalable` | [Scalable MILP](src/TreeMaker.Web/wwwroot/specs/scalable.md), Section 9 | Continuous LP, CP-SAT repair, neighbourhood search, foldability finish | `/api/scalable/*` |
-| Strain the edges | `#/close` | [Polygon Closing](src/TreeMaker.Web/wwwroot/specs/closing.md), A:1 to A:4 (Sections 4–7) | Check the polygons; change edge lengths (strain) until they close; find the smallest strain | `/api/polygons`, `/api/complete`, `/api/strain-needed` |
+| Strain the edges | `#/close` | [Polygon Closing](src/TreeMaker.Web/wwwroot/specs/closing.md), polygon test (Section 4, polygons A:1), A:1 to A:3 (Sections 5–7) | Check the polygons; change edge lengths (strain) until they close; find the smallest strain | `/api/polygons`, `/api/complete`, `/api/strain-needed` |
 | Add stubs (optional) | `#/stubs` | [Polygon Closing](src/TreeMaker.Web/wwwroot/specs/closing.md), open problem 1 (Section 10) | Hang a short new leaf edge inside an open polygon; then close again | none: computed in the browser (`stubs.js`), checked by `/api/polygons` |
 | Crease pattern | `#/creases` | [Crease Pattern](src/TreeMaker.Web/wwwroot/specs/crease.md), A:1 and A:3 (Sections 4, 5, 7 and 8) | Universal molecules, pleats, .fold and .svg | `/api/creases` |
 | Folded base | `#/fold` | [Crease Pattern](src/TreeMaker.Web/wwwroot/specs/crease.md), A:2 (Section 6) | The base in 3D | (from the crease pattern) |
@@ -201,7 +201,7 @@ After a solve, the session's next steps close the polygons (by straining the edg
 
    The leaves and the scale stay fixed. The edge lengths change (strain σₑ within your bounds) so the pairs of a triangulation that keeps the existing tight pairs become exactly tight, and every other pair still fits. Boundary pairs come first, since the polygons cannot cover the hull without them. A second solve then uses the least total strain.
 
-   Each edge gets its own strain, but by default every edge shares the same bounds and costs the same. Under **Per-edge room and cost** you can change that for single edges, and both ways of straining honour it (closing spec P:8 and D:7):
+   Each edge gets its own strain, but by default every edge shares the same bounds and costs the same. Under **Per-edge room and cost** you can change that for single edges, and both ways of straining honour it (strain P:2 and D:3):
    - **Lock** keeps an edge's length (room 0).
    - **Room ×** multiplies the bounds for that edge: 2 lets it strain twice as far as the others, 0.5 half as far. In **Find the smallest strain**, the bound found is the one for an edge with room 1.
    - **Cost** weighs the edge's strain in the least-strain solves, so an edge with cost 3 is strained only where a cheaper one can't do the job.
@@ -252,7 +252,7 @@ Whether a layout can be closed with small strains depends on which optimal layou
 **Load a preset** lists the same trees in every solver.
 
 - **Grid size.** Each preset sets its own grid size N: the largest tested N at which every solver that offers the preset solves it within the 60 s limit.
-- **Symmetry.** Every bilateral preset loads the conditions it would be folded with (Pure MILP spec, Sections 7.3 and 7.4): left–right mirror pairs for its paired flaps, and the symmetry axis for its unpaired ones. They show in **Leaf conditions** and can be removed there.
+- **Symmetry.** Every bilateral preset loads the conditions it would be folded with (conditions C:3 and C:4): left–right mirror pairs for its paired flaps, and the symmetry axis for its unpaired ones. They show in **Leaf conditions** and can be removed there.
 
   | Preset | Mirror pairs | On the symmetry axis |
   |---|---|---|

@@ -79,7 +79,7 @@ const PRESETS = {
 };
 
 /**
- * The symmetry each bilateral preset is folded with (Pure MILP spec, Sections 7.3 and 7.4): its left–right mirror
+ * The symmetry each bilateral preset is folded with (conditions C:3 and C:4): its left–right mirror
  * pairs, and the unpaired flaps (head, tail, stinger) that lie on the mirror line. Every pair has equal edge lengths
  * in the preset, and every preset with axis leaves has an even grid size, as the axis condition needs.
  */
@@ -373,8 +373,8 @@ function renderConditionSummary(info = treeInfo(state.edges)) {
     box.append(hint);
     const ref = document.createElement("span");
     ref.className = "ref";
-    ref.dataset.doc = "pure";
-    ref.textContent = "Sections 7.1–7.5";
+    ref.dataset.doc = "conditions";
+    ref.textContent = "C:1–C:5";
     box.append(" ", ref);
   }
 }
@@ -1136,12 +1136,12 @@ function enterNode(id) {
     $("optSymmetry").disabled = true;
     $("optSymmetryRow").classList.add("locked");
     $("optSymmetryRef").textContent = "Off: the Lattice-Hull spec has none; the Optimized MILP adds it";
-    $("searchRef").textContent = "Lattice-Hull spec, Sections 8 and 10";
+    $("searchRef").textContent = "Lattice-Hull spec, Sections 6 and 8";
   } else {
     $("optSymmetry").disabled = false;
     $("optSymmetryRow").classList.remove("locked");
-    $("optSymmetryRef").textContent = "§4";
-    $("searchRef").textContent = "Optimized spec, Sections 3 and 5";
+    $("optSymmetryRef").textContent = "§3";
+    $("searchRef").textContent = "Optimized spec, Sections 3 and 4";
     if (id === "optimized" && $("optSymmetry").dataset.touched !== "1") $("optSymmetry").checked = true;
   }
   s?.updateParams();

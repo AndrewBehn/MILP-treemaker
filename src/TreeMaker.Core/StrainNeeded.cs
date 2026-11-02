@@ -22,7 +22,7 @@ public sealed record StrainNeededResult
     public IReadOnlyList<LeafPairName> TightTargets { get; init; } = Array.Empty<LeafPairName>();
 
     /// <summary>The boundary LP's strain on each edge, by edge index (empty when it is infeasible): which edges the
-    /// boundary needs changed, and by how much. The page uses it to suggest per-edge room (P:8).</summary>
+    /// boundary needs changed, and by how much. The page uses it to suggest per-edge room (strain P:2).</summary>
     public IReadOnlyList<double> BoundaryStrains { get; init; } = Array.Empty<double>();
 
     /// <summary>The triangulation LP's strain on each edge, when it was solved and is feasible.</summary>
@@ -33,14 +33,14 @@ public sealed record StrainNeededResult
 }
 
 /// <summary>
-/// A:3 of the Polygon Closing TreeMaker spec (model LP(K), rows M:5–M:8); the search around it is that spec's A:4,
+/// A:2 of the Polygon Closing TreeMaker spec (model LP(K), rows M:5–M:8); the search around it is that spec's A:3,
 /// run by the page (polygons.js, findStrain).
 /// "Find the strain needed", as linear programs. With the leaves and the scale m₀ fixed, the smallest bound s that lets
 /// strains σₑ make a set T of pairs exactly tight, while every other pair still fits, is the LP
 ///     minimize s   subject to   m₀(ℓᵢⱼ + Σ ℓₑσₑ) = D   for (i, j) ∈ T,
 ///                               m₀(ℓᵢⱼ + Σ ℓₑσₑ) ≤ D   for every other pair,
 ///                               −rₑs ≤ σₑ ≤ rₑs,  σₑ ≥ −0.99,
-/// where rₑ is edge e's room (D:7; 1 for every edge by default, 0 for a locked edge), so s is the bound on an edge with
+/// where rₑ is edge e's room (strain D:3; 1 for every edge by default, 0 for a locked edge), so s is the bound on an edge with
 /// room 1.
 /// Valid polygons need every pair on the hull's boundary tight, so the first LP, with T = the boundary pairs, gives a
 /// lower bound on the strain needed, and proves at once that no strain helps when it is infeasible. If the polygons are

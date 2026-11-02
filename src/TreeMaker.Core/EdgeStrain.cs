@@ -1,7 +1,7 @@
 namespace TreeMaker.Core;
 
 /// <summary>
-/// Per-edge straining (P:8 and D:7 of the Polygon Closing TreeMaker spec): how much room each edge has, relative to the step's
+/// Per-edge straining (strain P:2 and D:3, TreeMaker foundations: strain): how much room each edge has, relative to the step's
 /// bounds, and what straining it costs. Edge e may take σₑ ∈ [max(rₑσ_min, −0.99), rₑσ_max] (rₑ = 0 locks it), and the
 /// least-strain objectives weigh |σₑ| by cₑ. With every rₑ = cₑ = 1 (the default) all edges share the bounds and cost
 /// alike, as before.

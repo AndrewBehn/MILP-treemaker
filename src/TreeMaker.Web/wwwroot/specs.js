@@ -21,7 +21,7 @@ const SpecText = (() => {
     return `${kind}-${number}`;
   }
 
-  /** How the docs name each other in running text: "base C:1", "closing D:4", "the scalable spec". */
+  /** How the docs name each other in running text: "base C:1", "polygons D:3", "the scalable spec". */
   const PREFIX = { base: "pure", closing: "closing", scalable: "scalable", optimized: "optimized", crease: "crease",
     "symmetry-breaking": "sym", "lattice-hull": "hull",
     sheet: "sheet", offsets: "offsets", conditions: "conditions", hulls: "hulls", strain: "strain", polygons: "polygons" };
@@ -97,7 +97,7 @@ const SpecText = (() => {
     return s.replace(/\u0000(\d+)\u0000/g, (_, n) => held[n]);
   }
 
-  /** The anchor a block defines when it starts with its label in bold: "**D:4 Inner polygon.**", "- **P:1** …". */
+  /** The anchor a block defines when it starts with its label in bold: "**D:3 Inner polygon.**", "- **P:1** …". */
   function definedLabel(raw) {
     const m = raw.match(/^\*\*(?:([PDCMA]):(\d+)\b|Lemma (\d+)\b)/);
     if (!m) return null;

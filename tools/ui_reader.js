@@ -37,7 +37,7 @@ const base = 'http://127.0.0.1:5099/';
     hit: document.querySelector('#readerBody .hit')?.textContent.slice(0, 40),
   }));
   check('docsTab', /docs\.html#\/pure/.test(log.docsUrl));
-  check('pureFigures', log.pure.figures === 20 && log.pure.undrawn === 0);
+  check('pureFigures', log.pure.figures === 17 && log.pure.undrawn === 0);   // 3 moved to the foundations
   check('pureMaths', log.pure.katex === log.pure.tex && log.pure.tex > 20);
   await docs.screenshot({ path: `${out}/docs-tab.png` });
 
@@ -65,15 +65,18 @@ const base = 'http://127.0.0.1:5099/';
   check('chipToAppTab', ctx.pages().length === tabs && await app.evaluate(() => document.body.dataset.node === 'optimized'));
 
   // Links between docs stay in the docs tab.
+  // Since the tree, a spec links its parent and the foundations it cites.
+  const fromDoc = docs.url().match(/#\/([a-z]+)/)?.[1];
   await docs.evaluate(() => document.querySelector('#readerBody a.xref.other')?.click()); await docs.waitForTimeout(1000);
-  check('crossDoc', /docs\.html#\/pure:/.test(docs.url()));
+  log.crossDoc = docs.url();
+  check('crossDoc', /docs\.html#\/[a-z]+:/.test(docs.url()) && !docs.url().includes(`#/${fromDoc}:`));
 
   // Every doc renders, with every figure drawn.
   log.docs = {};
-  for (const key of ['pure', 'sym', 'hull', 'optimized', 'scalable', 'closing', 'crease']) {
+  for (const key of await docs.evaluate(() => Object.keys(DOCS))) {
     await docs.goto(`${base}docs.html#/${key}`); await docs.waitForTimeout(900);
     log.docs[key] = await docs.evaluate(() => ({ figs: document.querySelectorAll('#readerBody figure.drawn').length, missing: document.querySelectorAll('#readerBody figure:not(.drawn)').length, len: document.getElementById('readerBody').innerText.length }));
-    if (log.docs[key].missing || log.docs[key].len < 5000) errs.push('FAIL doc ' + key);
+    if (log.docs[key].missing || log.docs[key].len < 2500) errs.push('FAIL doc ' + key);
   }
   await docs.goto(`${base}docs.html#/`); await docs.waitForTimeout(800);
   // The list is the document tree: one card per doc, children indented under their parent.

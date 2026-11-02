@@ -15,7 +15,7 @@ public static class LayoutAnalysis
     /// </summary>
     public const double ViolationTolerance = 1e-5;
 
-    /// <summary>The largest scale at which <paramref name="layout"/> satisfies every pair: min D(δᵢⱼ)/ℓᵢⱼ (Section 8).</summary>
+    /// <summary>The largest scale at which <paramref name="layout"/> satisfies every pair: min D(δᵢⱼ)/ℓᵢⱼ (base Section 5).</summary>
     public static double ExactScale(Definitions definitions, IReadOnlyList<LeafPlacement> layout,
         IReadOnlyList<double>? edgeLengths = null) =>
         ExactScale(definitions, Positions(layout), edgeLengths);

@@ -9,7 +9,7 @@ public readonly record struct Point(int X, int Y)
 }
 
 /// <summary>
-/// One side of a convex lattice polygon, the half-plane aᵀδ ≤ b with a ∈ ℤ², gcd(a₁, a₂) = 1, b ∈ ℤ (D:1).
+/// One side of a convex lattice polygon, the half-plane aᵀδ ≤ b with a ∈ ℤ², gcd(a₁, a₂) = 1, b ∈ ℤ (hulls D:1).
 /// </summary>
 public readonly record struct Facet(int A1, int A2, long B)
 {
@@ -26,7 +26,7 @@ public readonly record struct Facet(int A1, int A2, long B)
 }
 
 /// <summary>
-/// Forbidden offsets F(r) and their lattice hull P(r) = conv F(r) (Section 3, D:1).
+/// Forbidden offsets F(r) and their lattice hull P(r) = conv F(r) (hulls D:1).
 /// </summary>
 public static class LatticeHull
 {
@@ -107,7 +107,7 @@ public static class LatticeHull
         return facets;
     }
 
-    /// <summary>The crossable facets of P(r) on the N × N sheet, K(r) of D:1.</summary>
+    /// <summary>The crossable facets of P(r) on the N × N sheet, K(r) of hulls D:1.</summary>
     public static List<Facet> CrossableFacets(long limit, int gridSize) =>
         Facets(ForbiddenPoints(limit, gridSize)).Where(f => f.IsCrossable(gridSize)).ToList();
 
@@ -138,7 +138,7 @@ public static class LatticeHull
     }
 
     /// <summary>
-    /// The starting inner-polygon points of Section 6.7: the origin and the forbidden points farthest along the
+    /// The starting inner-polygon points of lattice-hull Section 8.5 (hulls P:2): the origin and the forbidden points farthest along the
     /// four axis and four diagonal directions, so the inner polygon has at most 8 facets.
     /// </summary>
     public static List<Point> StartingPoints(long limit, int gridSize)
@@ -188,7 +188,7 @@ public static class LatticeHull
     }
 }
 
-/// <summary>Caches K(r) by forbidden limit, since many pairs and trial scales share a hull (Section 3.7).</summary>
+/// <summary>Caches K(r) by forbidden limit, since many pairs and trial scales share a hull (lattice-hull Section 10).</summary>
 public sealed class HullCache
 {
     private readonly Dictionary<long, IReadOnlyList<Facet>> _facets = new();

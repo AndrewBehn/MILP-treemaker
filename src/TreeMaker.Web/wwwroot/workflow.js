@@ -437,7 +437,7 @@ const workflowDoc = (() => {
         if (p.options?.stage) rows.push(["Model", p.options.stage]);
         return rows;
       }
-      case "close": return (p.auto ? [["Strain", "the smallest that closes the polygons (A:4)"], ["Found", `±${fmt(p.strainMax, 3)}`]]
+      case "close": return (p.auto ? [["Strain", "the smallest that closes the polygons (A:3)"], ["Found", `±${fmt(p.strainMax, 3)}`]]
         : [["σ_min", fmt(p.strainMin, 3)], ["σ_max", fmt(p.strainMax, 3)]])
         .concat((p.edges ?? []).map((e) => [`Edge ${e.label}`, edgeSettingText(e)]));
       case "stub": return stubsOf(p).map((t) => [t.name, `from ${t.attach}, ℓ = ${fmt(t.len, 4)}, at (${t.x}, ${t.y}), tight to ${(t.tight ?? []).join(", ")}`]);
@@ -1017,13 +1017,13 @@ const workflowDoc = (() => {
   }
 
   /**
-   * Per-edge room and cost for the strain step (D:7 of the closing spec). The step keeps only the edges that differ
+   * Per-edge room and cost for the strain step (strain D:3). The step keeps only the edges that differ
    * from the default (room 1, cost 1), as params.edges = [{ edge, label, room, cost }]; the request sends one value per
    * edge, or nothing when every edge is alike.
    */
   const edgeSettingText = (e) => (e.room === 0 ? "locked" : `room ×${fmt(e.room, 3)}`) + (e.cost !== 1 ? `, cost ${fmt(e.cost, 3)}` : "");
   /**
-   * The table lists every edge; the strain LP (A:3, uniform settings) says which ones the hull's boundary needs
+   * The table lists every edge; the strain LP (closing A:2, uniform settings) says which ones the hull's boundary needs
    * changed, and by how much. Those come first and are the only ones shown until "Show all edges"; "Lock the others"
    * keeps every edge the LP leaves alone at its length. Nothing is applied without a click.
    */

@@ -13,7 +13,7 @@ public sealed record ProblemDto : ProblemDtoBase
     public StrainObjective StrainObjective { get; init; } = StrainObjective.TotalAbsolute;
     public double? RelativeGap { get; init; }
 
-    /// <summary>Adds C:5 and C:6 of the Symmetry-Breaking MILP doc (the map's Symmetry-Breaking node).</summary>
+    /// <summary>Adds conditions C:6 and C:7, as the Symmetry-Breaking MILP doc does (the map's Symmetry-Breaking node).</summary>
     public bool SymmetryBreaking { get; init; }
 
     public override ProblemSpec ToSpec()
@@ -44,7 +44,7 @@ public sealed record ProblemDto : ProblemDtoBase
     };
 }
 
-/// <summary>What the UI shows before solving: the definitions of Section 5 and the predicted model size.</summary>
+/// <summary>What the UI shows before solving: the definitions (sheet D:1, offsets D:2, sheet D:3, base D:1) and the predicted model size.</summary>
 public sealed record AnalysisDto(
     IReadOnlyList<string> Leaves,
     IReadOnlyList<string> InternalVertices,

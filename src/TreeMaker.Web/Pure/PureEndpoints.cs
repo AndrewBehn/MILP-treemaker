@@ -12,7 +12,7 @@ public static class PureEndpoints
 {
     public static void Map(RouteGroupBuilder api)
     {
-        // Definitions D:1–D:4 and the predicted model size, without solving.
+        // Definitions (sheet D:1, offsets D:2, sheet D:3, base D:1) and the predicted model size, without solving.
         api.MapPost("/analyze", (ProblemDto problem) => Solving.Checked(() =>
         {
             var spec = problem.ToSpec();

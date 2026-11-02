@@ -2,7 +2,7 @@
 
 Oct 31, 2026 · @Andrew Behn
 
-A layout whose tight paths form valid polygons becomes a crease pattern by filling every polygon with Lang's universal molecule, and that pattern folds into a uniaxial base whose flaps stand over the tree's edges. This specification computes both: the creases with their kinds, the facets of paper between them, where each facet lies in the folded base, and a check that the folding is consistent. It starts from the output of [Polygon Closing TreeMaker](https://claude.ai/artifact/FtbYLxEKTVszvyrLtcniK4) (the *closing spec*), whose valid subdivision (closing D:4) is its input, and uses the tree and scale of [Pure MILP TreeMaker](https://claude.ai/artifact/1L1y2Ey5CzUT8AzfJ2sev4) (the *base spec*). Every step is an explicit geometric construction; nothing is solved. It gives up the mountain and valley assignment of most creases and the layer order, which a folder still has to find.
+A layout whose tight paths form valid polygons becomes a crease pattern by filling every polygon with Lang's universal molecule, and that pattern folds into a uniaxial base whose flaps stand over the tree's edges. This specification computes both: the creases with their kinds, the facets of paper between them, where each facet lies in the folded base, and a check that the folding is consistent. It starts from the output of [Polygon Closing TreeMaker](https://claude.ai/artifact/FtbYLxEKTVszvyrLtcniK4) (the *closing spec*), whose valid subdivision is its input. It takes the tree, the edge lengths and the scale from the [sheet spec](https://claude.ai/artifact/Wkj6BjP3fGNPKLv3p3zW3C), the strained lengths from the [strain spec](https://claude.ai/artifact/Xr8Sus42zxf1wu68c1BMWt), and the tight pairs, the valid subdivision and the polygon test from the [polygons spec](https://claude.ai/artifact/TdJgMS7ZgBLRCvMBdGYGMY). Every step is an explicit geometric construction; nothing is solved. It gives up the mountain and valley assignment of most creases and the layer order, which a folder still has to find.
 
 **Overview.**
 
@@ -14,7 +14,7 @@ A layout whose tight paths form valid polygons becomes a crease pattern by filli
 
 Section 1 states the scope and guarantees, Section 2 the inputs, Section 3 the shared definitions, Sections 4 to 7 the stages and the crease kinds, Section 8 the output, Section 9 the correctness properties, Section 10 reference results, and Section 11 open problems.
 
-**Labels.** P:n, D:n and A:n label parameters, definitions and algorithms, each numbered in order of first appearance. Definitions used in more than one place are under Shared definitions; a definition used once sits at its point of use. Labels of other documents are written with their short name, as in closing D:4 or base P:2.
+**Labels.** P:n, D:n and A:n label parameters, definitions and algorithms, each numbered in order of first appearance. Definitions used in more than one place are under Shared definitions; a definition used once sits at its point of use. Labels of the closing spec and of the foundations are written with their short name, as in closing P:1, sheet P:2 or polygons D:3.
 
 ## 1. Purpose and scope
 
@@ -32,15 +32,15 @@ In the folded base every facet stands vertically over one tree edge. Its *along*
 
 ## 2. Inputs and parameters
 
-**P:1 Tree.** The tree T = (V, E) with leaves L, as in base P:1.
+**P:1 Tree.** The tree T = (V, E) with leaves L, as in sheet P:1.
 
-**P:2 Edge lengths.** The lengths ℓₑ > 0 under which the polygons are valid: the closed lengths of the closing spec, or the solved lengths when no closing was needed.
+**P:2 Edge lengths.** The lengths ℓₑ > 0 under which the polygons are valid: the closed lengths of the closing spec (strain D:1), or the tree's lengths of sheet P:2 when no closing was needed.
 
-**P:3 Layout.** The leaf points uᵢ ∈ {0, …, N}², as in closing P:4.
+**P:3 Layout.** The leaf points uᵢ ∈ {0, …, N}², as in closing P:1.
 
-**P:4 Scale.** The scale m > 0, in grid units per unit of tree length.
+**P:4 Scale.** The scale m > 0 of sheet D:2, in grid units per unit of tree length, at which every leaf pair fits: the fixed scale m₀ of closing P:2.
 
-**P:5 Polygons.** The faces of the valid subdivision (closing D:4), each a ring of leaves in counter-clockwise order whose every side is tight.
+**P:5 Polygons.** The faces of the valid subdivision (polygons D:3), each a ring of leaves in counter-clockwise order whose every side is tight.
 
 **P:6 Pleat height.** Optionally, a height H > 0 in grid units to pleat the flaps down to.
 
@@ -54,7 +54,7 @@ In the folded base every facet stands vertically over one tree edge. Its *along*
 
 ## 3. Shared definitions
 
-**D:1 Tree points and tree distance.** A *tree point* is a node of T, or a point inside edge e at offset x ∈ (0, ℓₑ) from its first node. The tree distance d(p, q) is the length of the tree path between two tree points, and walk(p, q, s) is the tree point at distance s from p toward q. Inset polygon corners map to tree points that need not be nodes.
+**D:1 Tree points and tree distance.** A *tree point* is a node of T, or a point inside edge e at offset x ∈ (0, ℓₑ) from its first node. The tree distance d(p, q) is the length of the tree path between two tree points, the tree metric of sheet D:1 extended to points inside edges, and walk(p, q, s) is the tree point at distance s from p toward q. Inset polygon corners map to tree points that need not be nodes.
 
 ```math
 d(p, q) = \text{length of the path from } p \text{ to } q, \qquad d(p, \operatorname{walk}(p, q, s)) = s \ \ (0 \le s \le d(p, q))
@@ -96,12 +96,12 @@ Each polygon shrinks, all sides moving inward together, until the first event: t
 (v \cdot v - w^2)\,h^2 + 2\,(u \cdot v + L w)\,h + (u \cdot u - L^2) = 0
 ```
 
-**Lemma 2.** For 0 ≤ h ≤ h\*, the first event, every side of the inset polygon is exactly its reduced path length (D:3), and every diagonal is at least its reduced length. *Proof.* A side's length and its reduced length both fall by h(cᵢ + cⱼ) from equal values at h = 0. A diagonal fits at h = 0 because every leaf pair fits; the difference is continuous in h, so it first reaches zero at a diagonal event, which is no earlier than h\* by its definition.
+**Lemma 2.** For 0 ≤ h ≤ h\*, the first event, every side of the inset polygon is exactly its reduced path length (D:3), and every diagonal is at least its reduced length. *Proof.* A side's length and its reduced length both fall by h(cᵢ + cⱼ) from equal values at h = 0. A diagonal fits at h = 0 because every leaf pair fits (sheet D:2); the difference is continuous in h, so it first reaches zero at a diagonal event, which is no earlier than h\* by its definition.
 
 **A:1 Molecule.** Input: a convex ring of corners q₁, …, qₖ with tree points τ₁, …, τₖ, a crease kind for each side, an elevation e and a depth. The top level calls it on every polygon of P:5 with tree points at the leaves, every side axial, e = 0 and depth 0.
 
 1. If depth > d\_max, report it and stop.
-2. Check that every side is tight: ‖qⱼ − qᵢ‖ = m d(τᵢ, τⱼ) within relative 10⁻⁶; report any that is not.
+2. Check that every side is tight (polygons D:1): ‖qⱼ − qᵢ‖ = m d(τᵢ, τⱼ) within relative 10⁻⁶; report any that is not.
 3. Compute rᵢ and cᵢ for every corner (D:2).
 4. **First event.** h\* is the smallest value of Lemma 1 over all adjacent and non-adjacent pairs, ignoring roots below 10⁻⁹·max(1, longest side). If there is none, report it and stop.
 5. **Inset.** pᵢ = qᵢ + h\* rᵢ. The inset corner's tree point is walk(τᵢ, τᵢ₊₁, h\* cᵢ / m); walking toward τᵢ₋₁ must give the same point, and a mismatch is reported.
@@ -172,7 +172,7 @@ A:3 visits each facet once and each level once per facet.
 
 ## 8. Output
 
-The result is either *not built*, with the closing spec's list of reasons when the input polygons are not valid, or a crease pattern with:
+The result is either *not built*, with the polygon test's list of reasons (polygons A:1) when the input polygons are not valid, or a crease pattern with:
 
 - the creases, each a segment with its kind (Section 5) and, for pleats, its assignment;
 - the facets, each with its paper corners, tree edge, along coordinates, elevations, pleated heights (equal to the elevations without pleating) and splitting depth;

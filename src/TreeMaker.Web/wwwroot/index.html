@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=20261102x">
+  <link rel="stylesheet" href="styles.css?v=20261102y">
 </head>
 <body data-view="map">
   <!-- ───────────── Top bar: the way back to the map, and where you are ───────────── -->
@@ -110,7 +110,7 @@
         <div class="toggles sym-only" data-nodes="sym">
           <div class="toggle locked">
             <input type="checkbox" checked disabled aria-labelledby="symLabel">
-            <span><b id="symLabel">Symmetry breaking</b> The anchor leaf in the triangle 0 ≤ y ≤ x ≤ N/2, and interchangeable siblings in order. Same m*, fewer equivalent layouts to search. <span class="ref">C:5, C:6</span></span>
+            <span><b id="symLabel">Symmetry breaking</b> The anchor leaf in the triangle 0 ≤ y ≤ x ≤ N/2, and interchangeable siblings in order. Same m*, fewer equivalent layouts to search. <span class="ref" data-doc="conditions">C:6, C:7</span></span>
           </div>
         </div>
 
@@ -143,32 +143,32 @@
       <!-- Bisection with lattice hulls: Optimized MILP and Lattice-Hull MILP. -->
       <section class="block" data-nodes="optimized hull">
         <h2>Search</h2>
-        <p class="stage-note">Finds the largest scale m* by bisection over the candidate scales, testing each with a small lattice-hull model. <span class="ref" id="searchRef">Sections 3 and 5</span></p>
+        <p class="stage-note">Finds the largest scale m* by bisection over the candidate scales, testing each with a small lattice-hull model. <span class="ref" id="searchRef">Sections 3 and 4</span></p>
         <h3>Optimizations</h3>
         <div class="toggles">
           <label class="toggle locked">
             <input type="checkbox" checked disabled>
-            <span><b>Lattice hulls</b> One binary per hull side instead of one per offset. Always on. <span class="ref">§3</span></span>
+            <span><b>Lattice hulls</b> One binary per hull side instead of one per offset. Always on. <span class="ref" data-doc="hulls">D:1</span></span>
           </label>
           <label class="toggle locked">
             <input type="checkbox" checked disabled>
-            <span><b>Scale search</b> Bisection over the candidate scales. Always on. <span class="ref">§5</span></span>
+            <span><b>Scale search</b> Bisection over the candidate scales. Always on. <span class="ref" data-doc="hull">Section 8.2</span></span>
           </label>
           <label class="toggle" id="optSymmetryRow">
             <input id="optSymmetry" type="checkbox" checked>
-            <span><b>Symmetry breaking</b> Keep one of the 8 rotations and reflections, and one order of identical siblings. <span class="ref" id="optSymmetryRef">§4</span></span>
+            <span><b>Symmetry breaking</b> Keep one of the 8 rotations and reflections, and one order of identical siblings. <span class="ref" id="optSymmetryRef">§3</span></span>
           </label>
           <label class="toggle">
             <input id="optPairs" type="checkbox" checked>
-            <span><b>Pair generation</b> Start with likely-tight pairs; add others only when a layout breaks them. <span class="ref">§6</span></span>
+            <span><b>Pair generation</b> Start with likely-tight pairs; add others only when a layout breaks them. <span class="ref" data-doc="hulls">P:1</span></span>
           </label>
           <label class="toggle">
             <input id="optFacets" type="checkbox" checked>
-            <span><b>Facet generation</b> Start each pair with an 8-sided inner polygon and grow it as needed. <span class="ref">§6</span></span>
+            <span><b>Facet generation</b> Start each pair with an 8-sided inner polygon and grow it as needed. <span class="ref" data-doc="hulls">P:2</span></span>
           </label>
           <div class="toggle">
             <input id="optWindows" type="checkbox" checked aria-labelledby="optWindowsLabel">
-            <span><b id="optWindowsLabel">Leaf windows</b> Try each test first with every leaf in a box around the last layout. <span class="ref">§6</span>
+            <span><b id="optWindowsLabel">Leaf windows</b> Try each test first with every leaf in a box around the last layout. <span class="ref" data-doc="hulls">P:3</span>
               <label class="inline-field">Half-width h <input id="optH" type="number" min="0" max="30" step="1" value="2"></label>
             </span>
           </div>
@@ -267,7 +267,7 @@
               <div class="close-way">
                 <h4>Automatic <span class="muted">(recommended)</span></h4>
                 <button id="docAuto" type="button" class="primary small-primary ">Find the smallest strain</button>
-                <p class="btn-note">Searches for the smallest strain bound ±s that closes every polygon, and strains the edges by it. The leaves and the scale stay; only edge lengths change. <span class="ref" data-doc="closing">A:4</span></p>
+                <p class="btn-note">Searches for the smallest strain bound ±s that closes every polygon, and strains the edges by it. The leaves and the scale stay; only edge lengths change. <span class="ref" data-doc="closing">A:3</span></p>
               </div>
               <div class="close-or" aria-hidden="true">or</div>
               <div class="close-way">
@@ -277,7 +277,7 @@
                   <label class="field">Highest σ_max <input id="docStrainMax" type="number" min="0" step="0.05" value="0.3"></label>
                 </div>
                 <button id="docBounds" type="button" class="quiet small ">Strain within these bounds</button>
-                <p class="btn-note">Makes as many pairs tight as these bounds allow, hull sides first. Some polygons may stay open. <span class="ref" data-doc="closing">A:2</span></p>
+                <p class="btn-note">Makes as many pairs tight as these bounds allow, hull sides first. Some polygons may stay open. <span class="ref" data-doc="closing">A:1</span></p>
               </div>
             </div>
             <div class="strain-run">
@@ -287,8 +287,8 @@
             </div>
             <details id="edgeStrainBox" class="edge-strain">
               <summary><b>Per-edge room and cost</b> <span id="edgeStrainSummary" class="muted">every edge alike</span></summary>
-              <p class="btn-note">Both ways above strain every edge within its <b>room</b> times the bounds: 0 (or Lock) keeps the edge's length, 2 lets it strain twice as far. <b>Cost</b> weighs an edge's strain when the least strain is chosen, so a costly edge strains last. <span class="ref" data-doc="closing">D:7</span></p>
-              <p class="btn-note"><b>Needs</b> is the strain the boundary LP puts on each edge to make the hull's sides tight, with every edge alike (A:3). The edges it strains come first; the others need none to close the boundary. <span class="ref" data-doc="closing">A:3</span></p>
+              <p class="btn-note">Both ways above strain every edge within its <b>room</b> times the bounds: 0 (or Lock) keeps the edge's length, 2 lets it strain twice as far. <b>Cost</b> weighs an edge's strain when the least strain is chosen, so a costly edge strains last. <span class="ref" data-doc="strain">D:3</span></p>
+              <p class="btn-note"><b>Needs</b> is the strain the boundary LP puts on each edge to make the hull's sides tight, with every edge alike (A:2). The edges it strains come first; the others need none to close the boundary. <span class="ref" data-doc="closing">A:2</span></p>
               <table class="edge-strain-table">
                 <thead><tr><th>Edge</th><th>Length</th><th>Needs</th><th>Lock</th><th>Room ×</th><th>Cost</th></tr></thead>
                 <tbody id="edgeStrainRows"></tbody>
@@ -585,18 +585,18 @@
 
   <input id="fileInput" type="file" accept=".json,application/json" hidden>
 
-  <script src="nodes.js?v=20261102x"></script>
-  <script src="workbench.js?v=20261102x"></script>
-  <script src="tree-editor.js?v=20261102x"></script>
-  <script src="polygons.js?v=20261102x"></script>
-  <script src="stubs.js?v=20261102x"></script>
-  <script src="workflow.js?v=20261102x"></script>
-  <script src="linked.js?v=20261102x"></script>
-  <script src="folded.js?v=20261102x"></script>
-  <script src="files.js?v=20261102x"></script>
-  <script src="solvers.js?v=20261102x"></script>
-  <script src="map.js?v=20261102x"></script>
-  <script src="specs.js?v=20261102x"></script>
-  <script src="app.js?v=20261102x"></script>
+  <script src="nodes.js?v=20261102y"></script>
+  <script src="workbench.js?v=20261102y"></script>
+  <script src="tree-editor.js?v=20261102y"></script>
+  <script src="polygons.js?v=20261102y"></script>
+  <script src="stubs.js?v=20261102y"></script>
+  <script src="workflow.js?v=20261102y"></script>
+  <script src="linked.js?v=20261102y"></script>
+  <script src="folded.js?v=20261102y"></script>
+  <script src="files.js?v=20261102y"></script>
+  <script src="solvers.js?v=20261102y"></script>
+  <script src="map.js?v=20261102y"></script>
+  <script src="specs.js?v=20261102y"></script>
+  <script src="app.js?v=20261102y"></script>
 </body>
 </html>

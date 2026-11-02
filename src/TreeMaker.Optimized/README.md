@@ -14,19 +14,19 @@ Then open <http://localhost:5080>. `dotnet test` at the root runs every test pro
 
 ## The optimizations
 
-| Section | Optimization | In this code |
+| Where | Optimization | In this code |
 |---|---|---|
-| 3 | **Lattice hulls at a fixed scale.** One binary per crossable hull facet replaces one per offset. | `LatticeHull`, `HullCache`, `FeasibilityModel` (C:1) |
-| 4 | **Symmetry breaking.** The anchor leaf stays in 0 ≤ y ≤ x ≤ N/2 (C:2), and interchangeable siblings stay in lexicographic order (C:3). | `SymmetryBreaking` |
-| 5 | **Scale search.** Bisection over the candidate scales D(δ)/ℓᵢⱼ ≤ m̄. | `CandidateScales`, `OptimizedSolver` |
-| 6 | **Incremental solving.** Pair generation, facet generation, and leaf windows. A windowed phase can only answer "yes"; the full-grid phase gives a final "no". | `OptimizedSolver.Loop`, `FeasibilityModel` (C:4, C:5, D:5) |
+| lattice-hull Sections 3–6; hulls D:1, D:2 | **Lattice hulls at a fixed scale.** One binary per crossable hull facet replaces one per offset. | `LatticeHull`, `HullCache`, `FeasibilityModel` (lattice-hull C:2) |
+| Section 3; conditions C:6, C:7 | **Symmetry breaking.** The anchor leaf stays in 0 ≤ y ≤ x ≤ N/2 (conditions C:6), and interchangeable siblings stay in lexicographic order (conditions C:7). | `SymmetryBreaking` |
+| lattice-hull Section 8.2; offsets D:3 | **Scale search.** Bisection over the candidate scales D(δ)/ℓᵢⱼ ≤ m̄. | `CandidateScales`, `OptimizedSolver` |
+| lattice-hull Sections 8.3–8.6; hulls P:1–P:3 | **Incremental solving.** Pair generation, facet generation, and leaf windows. A windowed phase can only answer "yes"; the full-grid phase gives a final "no". | `OptimizedSolver.Loop`, `FeasibilityModel` (lattice-hull C:1, C:2, hulls D:4) |
 
 Every optimization except hulls and scale search can be switched off, in the UI or through `OptimizedOptions`. The tests check that every combination finds the same m* as the base model.
 
 ### Where this differs from the doc
 
-- **Starting layout.** The doc starts from the rounded TreeMaker layout of base Section 9, which needs TreeMaker's continuous, nonlinear solve. This code uses a **border seed** in its place: the leaves are spread around the sheet's border in the tree's depth-first order, and the best of several rotations is kept. Like the doc's layout, it gives a known-feasible lower end for the bisection and centres the first leaf windows. It is skipped when there are position conditions or mirror pairs.
-- **Conditions.** The base model's position conditions and mirror pairs are supported. They fix the sheet's orientation, so the anchor constraint C:2 is switched off when any are present. Leaves with a condition are also left out of the sibling groups.
+- **Starting layout.** The doc starts from the rounded TreeMaker layout of base Section 6, which needs TreeMaker's continuous, nonlinear solve. This code uses a **border seed** in its place: the leaves are spread around the sheet's border in the tree's depth-first order, and the best of several rotations is kept. Like the doc's layout, it gives a known-feasible lower end for the bisection and centres the first leaf windows. It is skipped when there are position conditions or mirror pairs.
+- **Conditions.** The base model's position conditions and mirror pairs are supported. They fix the sheet's orientation, so the anchor constraint (conditions C:6) is switched off when any are present. Leaves with a condition are also left out of the sibling groups.
 - **Counts.** For the running example at N = 9, this code finds 192 distinct candidate scales and 80 crossable facets at m*. The doc gives 195 and 72. The worst-case facets per pair (20, 28 and 48 at N = 9, 16 and 32) match the doc exactly.
 
 ## Optimality settings

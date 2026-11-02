@@ -2,28 +2,28 @@ using TreeMaker.Core;
 
 namespace TreeMaker.Optimized;
 
-/// <summary>Which of the document's optimizations to use. Lattice hulls (Section 3) and scale search (Section 5) are always on.</summary>
+/// <summary>Which of the document's optimizations to use. Lattice hulls (lattice-hull Sections 3–6) and scale search (lattice-hull Section 8.2) are always on.</summary>
 public sealed record OptimizedOptions
 {
-    /// <summary>Section 4: anchor in the fundamental domain (C:2) and sibling order (C:3).</summary>
+    /// <summary>Section 3: anchor in the fundamental domain (conditions C:6) and sibling order (conditions C:7).</summary>
     public bool SymmetryBreaking { get; init; } = true;
 
-    /// <summary>Section 6: start with likely-tight pairs and add the others only when a layout breaks them.</summary>
+    /// <summary>Active pairs (hulls P:1, lattice-hull Section 8.4): start with likely-tight pairs and add the others only when a layout breaks them.</summary>
     public bool PairGeneration { get; init; } = true;
 
-    /// <summary>Section 6: start each pair with an inner polygon of at most 8 facets and grow it from violations.</summary>
+    /// <summary>Inner polygons (hulls P:2, D:3, lattice-hull Section 8.4): start each pair with an inner polygon of at most 8 facets and grow it from violations.</summary>
     public bool FacetGeneration { get; init; } = true;
 
-    /// <summary>Section 6: first try each test with every leaf confined to a box around the last layout.</summary>
+    /// <summary>Leaf windows (hulls P:3, lattice-hull Section 8.3): first try each test with every leaf confined to a box around the last layout.</summary>
     public bool LeafWindows { get; init; } = true;
 
-    /// <summary>Half-width h of each leaf window (Section 6.7).</summary>
+    /// <summary>Half-width h of each leaf window (lattice-hull Section 8.5).</summary>
     public int WindowHalfWidth { get; init; } = 2;
 
-    /// <summary>A pair starts active when its distance is within this fraction of its minimum (Section 6.7).</summary>
+    /// <summary>A pair starts active when its distance is within this fraction of its minimum (lattice-hull Section 8.5).</summary>
     public double NearlyTight { get; init; } = 0.15;
 
-    /// <summary>Start from the border seed layout (in place of the rounded TreeMaker layout of base Section 9).</summary>
+    /// <summary>Start from the border seed layout (in place of the rounded TreeMaker layout of base Section 6).</summary>
     public bool UseSeed { get; init; } = true;
 
     /// <summary>
@@ -55,7 +55,7 @@ public sealed record RoundTrace
     public long Nodes { get; init; }
 }
 
-/// <summary>One phase of a bisection test (Section 6.9).</summary>
+/// <summary>One phase of a bisection test (lattice-hull Section 8.3).</summary>
 public sealed record PhaseTrace
 {
     public bool Windowed { get; init; }
@@ -80,11 +80,11 @@ public sealed record TestTrace
     public int MaxBinaries => Phases.SelectMany(p => p.Rounds).Select(r => r.Size.Binaries).DefaultIfEmpty(0).Max();
 }
 
-/// <summary>A pair's lattice hull at the optimum, for display (Section 3, D:1).</summary>
+/// <summary>A pair's lattice hull at the optimum, for display (hulls D:1).</summary>
 public sealed record PairHull(
     string A, string B, double Radius, long Limit, IReadOnlyList<Point> Vertices, int CrossableFacets, int Dx, int Dy, bool Tight);
 
-/// <summary>The interchangeable siblings and anchor found for Section 4.</summary>
+/// <summary>The interchangeable siblings and anchor found for Section 3 (conditions D:1 and P:2).</summary>
 public sealed record SymmetryReport(string? Anchor, IReadOnlyList<IReadOnlyList<string>> SiblingGroups, string? Note);
 
 /// <summary>Size of the full Feas(m) at one scale, computed without solving.</summary>

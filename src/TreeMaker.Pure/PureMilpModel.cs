@@ -5,7 +5,7 @@ namespace TreeMaker.Pure;
 
 /// <summary>
 /// One MILP of the Pure MILP doc, built on SCIP through OR-Tools' linear-solver API.
-/// Variables follow Section 6 (and 11.2/11.3); constraints follow Section 7 (and 11.2/11.3).
+/// Variables follow Section 3 (and 8.2/8.3); constraints follow Section 4 (and 8.2/8.3).
 /// </summary>
 public sealed class PureMilpModel : IDisposable
 {
@@ -136,7 +136,7 @@ public sealed class PureMilpModel : IDisposable
         var tree = Spec.Tree;
         int n = Spec.GridSize;
 
-        // Leaf coordinates (Section 6); C:1 is their integrality and bounds.
+        // Leaf coordinates (Section 3); C:1 is their integrality and bounds.
         X = new Variable[tree.Leaves.Count];
         Y = new Variable[tree.Leaves.Count];
         for (int k = 0; k < tree.Leaves.Count; k++)
@@ -146,7 +146,7 @@ public sealed class PureMilpModel : IDisposable
             Y[k] = IntVar(0, n, $"y[{name}]");
         }
 
-        // Offset selectors w_ijδ (Section 6).
+        // Offset selectors w_ijδ (Section 3).
         var offsets = Definitions.CandidateOffsets;
         W = new Variable[tree.Pairs.Count][];
         for (int p = 0; p < tree.Pairs.Count; p++)
@@ -186,7 +186,7 @@ public sealed class PureMilpModel : IDisposable
         }
     }
 
-    // C:2 offset selection and C:3 offset linking (Section 7).
+    // C:2 offset selection and C:3 offset linking (Section 4).
     private void AddSelectionAndLinking()
     {
         var tree = Spec.Tree;
@@ -278,7 +278,7 @@ public sealed class PureMilpModel : IDisposable
         }
     }
 
-    // Optional TreeMaker conditions (Section 7), expressed as bounds or linear rows.
+    // Optional TreeMaker conditions (conditions P:1, C:1–C:5), expressed as bounds or linear rows.
     private void AddConditions()
     {
         var tree = Spec.Tree;
@@ -321,7 +321,7 @@ public sealed class PureMilpModel : IDisposable
         }
     }
 
-    // Symmetry-Breaking MILP doc, C:5 and C:6. Position conditions and mirror pairs switch the anchor off, and leaves
+    // Symmetry-Breaking MILP doc: conditions C:6 and C:7. Position conditions and mirror pairs switch the anchor off, and leaves
     // they name leave the sibling groups (SymmetryBreaking.Create), so every layout keeps an equivalent one here.
     private void AddSymmetryBreaking()
     {
@@ -330,7 +330,7 @@ public sealed class PureMilpModel : IDisposable
         var symmetry = global::TreeMaker.Core.SymmetryBreaking.Create(Spec);
         Symmetry = symmetry;
 
-        // C:5: the anchor leaf lies in the triangle 0 ≤ y ≤ x ≤ N/2.
+        // Conditions C:6: the anchor leaf lies in the triangle 0 ≤ y ≤ x ≤ N/2.
         if (symmetry.Anchor is int anchor)
         {
             int k = tree.LeafIndex(anchor);
@@ -341,7 +341,7 @@ public sealed class PureMilpModel : IDisposable
             Add(row, X[k], -1);
         }
 
-        // C:6: interchangeable siblings in lexicographic order of (N + 1)·x + y.
+        // Conditions C:7: interchangeable siblings in lexicographic order of (N + 1)·x + y.
         foreach (var (a, b) in symmetry.SiblingOrder)
         {
             int ka = tree.LeafIndex(a), kb = tree.LeafIndex(b);
@@ -356,7 +356,7 @@ public sealed class PureMilpModel : IDisposable
     /// <summary>The symmetry breaking in the model, when <see cref="ProblemSpec.SymmetryBreaking"/> is set.</summary>
     public SymmetryBreaking? Symmetry { get; private set; }
 
-    // Objective: max m (Section 8), max σ (11.2), or min Σ aₑ / min a_max (11.3).
+    // Objective: max m (Section 5), max σ (8.2), or min Σ aₑ / min a_max (8.3).
     private void SetObjective()
     {
         var objective = Solver.Objective();

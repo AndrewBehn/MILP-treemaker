@@ -1,6 +1,6 @@
 namespace TreeMaker.Core;
 
-/// <summary>An undirected edge of the tree with its positive length ℓₑ in tree units (P:2).</summary>
+/// <summary>An undirected edge of the tree with its positive length ℓₑ in tree units (sheet P:2).</summary>
 /// <param name="Index">Position of the edge in <see cref="Tree.Edges"/>.</param>
 /// <param name="U">One end vertex.</param>
 /// <param name="V">The other end vertex.</param>
@@ -13,8 +13,8 @@ public readonly record struct TreeEdge(int Index, int U, int V, double Length);
 public readonly record struct LeafPair(int I, int J);
 
 /// <summary>
-/// The input tree T = (V, E) of P:1 with the edge lengths of P:2. Vertices are numbered 0..|V|−1 in the
-/// order their names first appear. Leaves are the vertices of degree 1 (Section 3, "Leaves").
+/// The input tree T = (V, E) of sheet P:1 with the edge lengths of sheet P:2. Vertices are numbered 0..|V|−1 in the
+/// order their names first appear. Leaves are the vertices of degree 1 (sheet Section 3, "Leaves").
 /// </summary>
 public sealed class Tree
 {
@@ -98,7 +98,7 @@ public sealed class Tree
     /// <summary>The leaf pairs 𝒫, in lexicographic leaf order.</summary>
     public IReadOnlyList<LeafPair> Pairs { get; }
 
-    /// <summary>Builds a tree from named edges (P:1, P:2). Lengths must be positive and finite.</summary>
+    /// <summary>Builds a tree from named edges (sheet P:1, P:2). Lengths must be positive and finite.</summary>
     public static Tree FromEdges(IEnumerable<(string U, string V, double Length)> edges)
     {
         ArgumentNullException.ThrowIfNull(edges);
@@ -132,7 +132,7 @@ public sealed class Tree
             }
             if (!(length > 0) || double.IsInfinity(length))
             {
-                throw new ArgumentException($"Edge {a}–{b} has length {length}; lengths must be positive (P:2).");
+                throw new ArgumentException($"Edge {a}–{b} has length {length}; lengths must be positive (sheet P:2).");
             }
             list.Add(new TreeEdge(list.Count, IdOf(a), IdOf(b), length));
         }

@@ -45,7 +45,8 @@ SPECS = {
 def spec_for(name):
     stem = name[:-3] if name.endswith(".md") else name
     for title, (key, url) in SPECS.items():
-        if stem == title or stem.startswith(title + ":"):
+        # The export drops a colon from the file name ("TreeMaker foundations strain.md").
+        if stem == title or stem.startswith(title + ":") or stem == title.replace(":", ""):
             return title, key, url
     return None
 
@@ -179,7 +180,9 @@ def docs_reads(path):
                         except ValueError:
                             continue
                         order += 1
-                        yield order, ref.get("id"), obj
+                        # Order by time, so a read in a subagent's transcript does not override a later one in
+                        # the session's own transcript (the files are scanned one after another).
+                        yield (entry.get("timestamp") or "", order), ref.get("id"), obj
 
 
 def collect_figures(sources):
@@ -188,9 +191,11 @@ def collect_figures(sources):
     for src in sources:
         if not src.endswith(".jsonl"):
             continue
-        for _, ref, obj in docs_reads(src):
+        for _, ref, obj in sorted(docs_reads(src), key=lambda r: r[0]):
             xml = (obj.get("data") or {}).get("xml")
-            if xml and ref in TABS:
+            # A partial read (an outline or a search, with <gap/>s) may leave figures out: only a read that lists
+            # embeds, or a whole read, sets a doc's figure list.
+            if xml and ref in TABS and ("<embed" in xml or "<gap" not in xml):
                 lists[TABS[ref]] = [
                     (m.group(2), html_unescape(m.group(1)))
                     for m in re.finditer(r"<embed\b[^>]*?caption='([^']*)'[^>]*?ref='node/([^']+)'", xml)]

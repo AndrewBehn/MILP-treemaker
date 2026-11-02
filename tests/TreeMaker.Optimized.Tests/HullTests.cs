@@ -2,7 +2,7 @@ using TreeMaker.Core;
 
 namespace TreeMaker.Optimized.Tests;
 
-/// <summary>Section 3 and Section 5 building blocks. Expected values were computed independently in Python.</summary>
+/// <summary>Lattice hulls (hulls D:1) and candidate scales (offsets D:3): the building blocks. Expected values were computed independently in Python.</summary>
 public class HullTests
 {
     [Theory]

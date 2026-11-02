@@ -3,57 +3,102 @@
     "optimized": {
       "title": "Optimized MILP TreeMaker",
       "url": "https://claude.ai/artifact/LxhWqnKYWWuTrdmJ3hrKdq",
-      "rev": 44,
-      "exportedAt": "2026-10-31T17:28:49.378Z",
+      "rev": 48,
+      "exportedAt": "2026-11-02T16:42:23.756Z",
       "file": "optimized.md",
-      "figureCount": 8
+      "figureCount": 0
     },
     "pure": {
       "title": "Pure MILP TreeMaker",
       "url": "https://claude.ai/artifact/1L1y2Ey5CzUT8AzfJ2sev4",
-      "rev": 41,
-      "exportedAt": "2026-11-01T22:02:49.150Z",
+      "rev": 54,
+      "exportedAt": "2026-11-02T16:41:28.203Z",
       "file": "pure.md",
-      "figureCount": 20
+      "figureCount": 17
     },
     "scalable": {
       "title": "Scalable MILP TreeMaker",
       "url": "https://claude.ai/artifact/Qz1WL7RZDpnMwKYdVT2G29",
-      "rev": 48,
-      "exportedAt": "2026-11-01T15:57:32.633Z",
+      "rev": 80,
+      "exportedAt": "2026-11-02T16:39:50.987Z",
       "file": "scalable.md",
       "figureCount": 1
     },
     "closing": {
       "title": "Polygon Closing TreeMaker",
       "url": "https://claude.ai/artifact/FtbYLxEKTVszvyrLtcniK4",
-      "rev": 28,
-      "exportedAt": "2026-11-02T02:46:54.301Z",
+      "rev": 29,
+      "exportedAt": "2026-11-02T16:40:18.894Z",
       "file": "closing.md"
     },
     "crease": {
       "title": "Crease Pattern TreeMaker",
       "url": "https://claude.ai/artifact/1B22HTcwzUwAjaMqyfdTXp",
-      "rev": 12,
-      "exportedAt": "2026-10-31T17:31:03.536Z",
+      "rev": 23,
+      "exportedAt": "2026-11-02T16:40:19.702Z",
       "file": "crease.md"
     },
     "hull": {
       "title": "Lattice-Hull MILP TreeMaker",
       "url": "https://claude.ai/artifact/NwmqiYzpRCSneZiobahka6",
-      "rev": 27,
-      "exportedAt": "2026-10-31T17:31:05.277Z",
+      "rev": 53,
+      "exportedAt": "2026-11-02T17:03:18.479Z",
       "file": "hull.md",
-      "figureCount": 10
+      "figureCount": 3
     },
     "sym": {
       "title": "Symmetry-Breaking MILP TreeMaker",
       "url": "https://claude.ai/artifact/4bhD37EK1NQy66fV4zhTaN",
+      "rev": 17,
+      "exportedAt": "2026-11-02T16:43:00.349Z",
+      "file": "sym.md"
+    },
+    "conditions": {
+      "title": "TreeMaker foundations: leaf conditions and symmetry",
+      "url": "https://claude.ai/artifact/3WP1SahWDm9pb5hs8Mhwp7",
       "rev": 16,
-      "exportedAt": "2026-10-31T17:31:04.389Z",
-      "file": "sym.md",
-      "figureCount": 6
+      "exportedAt": "2026-11-02T16:49:52.999Z",
+      "file": "conditions.md",
+      "figureCount": 1
+    },
+    "hulls": {
+      "title": "TreeMaker foundations: lattice hulls and leaf windows",
+      "url": "https://claude.ai/artifact/FxaVEDwfoA6pXYs4aMUwLk",
+      "rev": 14,
+      "exportedAt": "2026-11-02T16:49:54.100Z",
+      "file": "hulls.md",
+      "figureCount": 4
+    },
+    "offsets": {
+      "title": "TreeMaker foundations: grid offsets",
+      "url": "https://claude.ai/artifact/DLXohGDzg22AYwjJeHyYem",
+      "rev": 7,
+      "exportedAt": "2026-11-02T16:49:51.941Z",
+      "file": "offsets.md",
+      "figureCount": 1
+    },
+    "polygons": {
+      "title": "TreeMaker foundations: tight pairs and polygons",
+      "url": "https://claude.ai/artifact/TdJgMS7ZgBLRCvMBdGYGMY",
+      "rev": 10,
+      "exportedAt": "2026-11-02T16:49:56.198Z",
+      "file": "polygons.md"
+    },
+    "sheet": {
+      "title": "TreeMaker foundations: the tree, the sheet and spacing",
+      "url": "https://claude.ai/artifact/Wkj6BjP3fGNPKLv3p3zW3C",
+      "rev": 11,
+      "exportedAt": "2026-11-02T16:49:50.858Z",
+      "file": "sheet.md",
+      "figureCount": 2
+    },
+    "strain": {
+      "title": "TreeMaker foundations: strain",
+      "url": "https://claude.ai/artifact/Xr8Sus42zxf1wu68c1BMWt",
+      "rev": 9,
+      "exportedAt": "2026-11-02T16:49:55.138Z",
+      "file": "strain.md"
     }
   },
-  "packagedAt": "2026-11-02T02:47:00Z"
+  "packagedAt": "2026-11-02T17:04:56Z"
 }

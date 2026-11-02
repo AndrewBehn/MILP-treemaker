@@ -2,7 +2,7 @@ using TreeMaker.Core;
 
 namespace TreeMaker.Pure;
 
-/// <summary>Model size predicted from the parameters alone, without building the MILP (Section 10's counts).</summary>
+/// <summary>Model size predicted from the parameters alone, without building the MILP (Section 7's counts).</summary>
 public static class ModelSize
 {
     /// <summary>The variable, row, and nonzero counts that <see cref="PureMilpModel.Build"/> will produce for <paramref name="spec"/>.</summary>
@@ -24,7 +24,7 @@ public static class ModelSize
         long nonzeros = pairs * (selectors + 2 * (2 + nonzeroComponent) + selectors) + 4L * spec.MirrorPairs.Count;
         if (spec.SymmetryBreaking)
         {
-            // Symmetry-Breaking doc: one C:5 row (y ≤ x) for the anchor, one C:6 row per ordered sibling pair.
+            // Symmetry-Breaking doc: one conditions C:6 row (y ≤ x) for the anchor, one conditions C:7 row per ordered sibling pair.
             var symmetry = SymmetryBreaking.Create(spec);
             if (symmetry.Anchor is not null) { rows += 1; nonzeros += 2; }
             rows += symmetry.SiblingOrder.Count;

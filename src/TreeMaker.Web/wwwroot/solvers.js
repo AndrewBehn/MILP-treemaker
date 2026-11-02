@@ -59,7 +59,7 @@ SOLVERS.pure = {
     let rowFormula = `4P = 4 × ${P}`;
     if (mirrors) rowFormula += ` + 2 × ${mirrors} mirror`;
     if (request.stage === "Strain") rowFormula += largest ? ` + 3|E| = + 3 × ${E}` : ` + 2|E| = + 2 × ${E}`;
-    if (request.symmetryBreaking) rowFormula += " + C:5, C:6";
+    if (request.symmetryBreaking) rowFormula += " + conditions C:6, C:7";
     const rows = [
       ["Offset choices w (binary)", `P × |Δ_N| = ${P} × ${S.toLocaleString()}`, m.binaryVariables],
       ["Leaf positions x, y (integer)", `2n = 2 × ${n}`, m.integerVariables],

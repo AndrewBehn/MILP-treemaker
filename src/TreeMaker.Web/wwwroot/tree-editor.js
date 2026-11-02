@@ -31,7 +31,7 @@ const stubbing = () => document.body.dataset.stubbing === "on";
 
 // ───────────────────────── Leaf conditions on the drawing ─────────────────────────
 // The same state as the sidebar's Leaf conditions table and Mirror pairs (state.conditions, state.mirrors), set by
-// clicking a leaf. Pure MILP spec, Sections 7.1–7.5.
+// clicking a leaf. conditions P:1, C:1–C:5.
 
 /** The places a leaf can be pinned on the sheet, as a 3 × 3 picture of it (top row = top of the sheet). */
 const SHEET_PINS = [

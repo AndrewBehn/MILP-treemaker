@@ -39,7 +39,7 @@ Since 31 October 2026 there is one app, `TreeMaker.Web` (port 5080), in place of
 | Map node | Project | What it does |
 |---|---|---|
 | Pure MILP | `src/TreeMaker.Pure/` | The base model as one MILP: one binary per pair and grid offset, solved with SCIP. It also has edge optimization (common stretch) and strain optimization. |
-| Symmetry-Breaking MILP | `src/TreeMaker.Pure/` (rows), `src/TreeMaker.Core/SymmetryBreaking.cs` | The base model with C:5 (anchor leaf in the fundamental domain) and C:6 (siblings in order), via `ProblemSpec.SymmetryBreaking`. `SymmetryBreaking.cs` is shared, so both families use it. |
+| Symmetry-Breaking MILP | `src/TreeMaker.Pure/` (rows), `src/TreeMaker.Core/SymmetryBreaking.cs` | The base model with conditions C:6 (anchor leaf in the fundamental domain) and C:7 (siblings in order), via `ProblemSpec.SymmetryBreaking`. `SymmetryBreaking.cs` is shared, so both families use it. |
 | Lattice-Hull MILP | `src/TreeMaker.Optimized/` | Lattice hulls (one binary per hull facet) and bisection over candidate scales √s/ℓ, with incremental solving, and symmetry breaking locked off. |
 | Optimized MILP | `src/TreeMaker.Optimized/` | The same, with symmetry breaking. |
 | Scalable MILP | `src/TreeMaker.Scalable/` | No optimality proof; meant for 25 to 100 leaves. Four stages, listed below. |
@@ -92,3 +92,7 @@ Shared library code in `src/TreeMaker.Core` (every solver uses it; on 1 November
 ## Testing the front end without .NET
 
 `tools/mock_api.py` serves `src/TreeMaker.Web/wwwroot` and answers every API route with real geometry (exact distances, the hull, tight pairs) and fake solves. `tools/ui_flow.js` drives Chrome through the map, a solve, the three steps, a second solver starting from the workbench layout, and a reload. `tools/ui_reader.js` checks the docs tab: opening it from the map and from a part of the app, reusing one tab, every doc with its figures and typeset maths, links within and between docs and back to the app's tab, and the app keeping a solve's results. On 1 November both passed with no page errors; the C# behind the same routes has not been compiled yet.
+
+## The document tree (2 November 2026)
+
+The specs became a directed tree with six foundation docs (sheet, offsets, conditions, hulls, strain, polygons) that hold what they used to repeat: `docs/DOC-TREE.md` lists them with their links, containers and labels, and `docs/LABEL-MOVES.md` maps every old label and section to its new home. Each spec has at most one parent (Symmetry-Breaking → Pure, Optimized → Lattice-Hull, Crease Pattern → Polygon Closing) and links only its parent and the foundations. The app's docs page draws the tree; the map shows only the workflow, and each step cites every doc it uses (`cites` in `nodes.js`). The document graph artifact shows the tree.

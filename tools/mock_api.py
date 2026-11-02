@@ -84,7 +84,7 @@ def solve(api, problem):
     m = exact_scale(problem, layout)
     ps = pairs_of(problem, layout, m)
     base = dict(binaryVariables=1234, constraints=500, nonzeros=9000, pairCount=len(ps), selectorsPerPair=80, leafCount=len(layout), variables=1300, integerVariables=10, continuousVariables=1, scaleUpperBound=m*1.2)
-    msgs = ["Mock solve."] + (["Symmetry breaking: anchor leaf 1 (C:5)."] if problem.get("symmetryBreaking") else []) + (["Started from the workbench layout."] if problem.get("startLayout") else [])
+    msgs = ["Mock solve."] + (["Symmetry breaking: anchor leaf 1 (conditions C:6)."] if problem.get("symmetryBreaking") else []) + (["Started from the workbench layout."] if problem.get("startLayout") else [])
     if api == "pure":
         r = dict(stage=problem.get("stage","Scale"), status="Optimal", solverName="SCIP (mock)", objective=m, scale=m, bestBound=m, relativeGap=0, treeMakerScale=m/problem["gridSize"], layout=layout, pairs=ps, edgeLengths=[], violations=[], messages=msgs, model=base, metrics=dict(nodes=12, iterations=300))
         return dict(result=r, buildMilliseconds=20, solveMilliseconds=600, totalMilliseconds=620)

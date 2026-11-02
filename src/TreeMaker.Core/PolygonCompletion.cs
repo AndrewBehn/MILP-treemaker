@@ -18,7 +18,7 @@ public sealed record CompletionOptions
     /// </summary>
     public IReadOnlyList<LeafPairName> Targets { get; init; } = Array.Empty<LeafPairName>();
 
-    /// <summary>Per-edge room and cost (P:8, D:7): edge e strains within rₑ times the bounds above, at cost cₑ.</summary>
+    /// <summary>Per-edge room and cost (strain P:2, D:3): edge e strains within rₑ times the bounds above, at cost cₑ.</summary>
     public EdgeStrain Edges { get; init; } = EdgeStrain.Uniform;
 
     public TimeSpan? TimeLimit { get; init; }
@@ -55,13 +55,13 @@ public sealed record CompletionResult
 }
 
 /// <summary>
-/// A:2 of the Polygon Closing TreeMaker spec (model CL(T, w), rows M:1–M:4, boundary-first weights D:6).
+/// A:1 of the Polygon Closing TreeMaker spec (model CL(T, w), rows M:1–M:4, boundary-first weights D:1).
 /// Step 2 toward a crease pattern: with the leaves held where they are and the scale fixed at m₀, change edge lengths
-/// (strain σₑ, as in Section 11.3) so that chosen pairs become exactly tight, which closes the network of tight paths into
+/// (strain σₑ, strain D:1, as in base Section 8.3) so that chosen pairs become exactly tight, which closes the network of tight paths into
 /// polygons. Every other pair must still fit. Two solves: first make as many targets tight as possible, counting each
 /// pair on the hull's boundary above all interior pairs together (the polygons cannot cover the hull without them);
 /// then, keeping that, use the least total strain, each edge's |σₑ| weighed by its cost cₑ. Each edge strains within
-/// its room rₑ times the bounds (D:7); an edge with no room keeps its length.
+/// its room rₑ times the bounds (strain D:3); an edge with no room keeps its length.
 /// </summary>
 public static class PolygonCompletion
 {
@@ -214,7 +214,7 @@ public static class PolygonCompletion
         using var solver = Solver.CreateSolver("SCIP")
             ?? throw new InvalidOperationException("The SCIP backend of OR-Tools is not available on this machine.");
         int edges = lengths.Length;
-        // σₑ within its room times the bounds (D:7); aₑ ≥ |σₑ| is bounded by the larger side.
+        // σₑ within its room times the bounds (strain D:3); aₑ ≥ |σₑ| is bounded by the larger side.
         var bounds = Enumerable.Range(0, edges).Select(e => options.Edges.Bounds(e, options.StrainMin, options.StrainMax)).ToArray();
         var sigma = Enumerable.Range(0, edges).Select(e => solver.MakeNumVar(bounds[e].Lo, bounds[e].Hi, $"sigma[{e}]")).ToArray();
         var abs = Enumerable.Range(0, edges).Select(e => solver.MakeNumVar(0, Math.Max(-bounds[e].Lo, bounds[e].Hi), $"a[{e}]")).ToArray();

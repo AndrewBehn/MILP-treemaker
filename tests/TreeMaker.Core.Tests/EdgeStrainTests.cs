@@ -1,6 +1,6 @@
 namespace TreeMaker.Core.Tests;
 
-/// <summary>Per-edge room and cost (D:7 of the Polygon Closing spec) in the closing MILP and the strain LPs.</summary>
+/// <summary>Per-edge room and cost (strain D:3, TreeMaker foundations: strain) in the closing MILP and the strain LPs.</summary>
 public class EdgeStrainTests
 {
     private static (ProblemSpec Spec, LeafPlacement[] Layout, double Scale) RunningExampleAtOptimum()
