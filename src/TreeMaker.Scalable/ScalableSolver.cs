@@ -103,7 +103,7 @@ public static class ScalableSolver
         {
             int mid = (lo + hi + 1) / 2;
             var outcome = WindowModel.Solve(spec, definitions, conditions, ladder[mid], centres, widths, null,
-                Min(Left(), TimeSpan.FromSeconds(20)), threads, token);
+                Min(Left(), Seconds(options.WindowSeconds, 20)), threads, token);
             rounds.Add(Round(2, "Repair window", ladder[mid], outcome));
             if (outcome.Layout is { } found)
             {
@@ -124,7 +124,7 @@ public static class ScalableSolver
             // Below the ladder: widen the windows once and take any layout at half the continuous scale.
             widths = tree.Leaves.ToDictionary(v => v, _ => h + 2);
             var outcome = WindowModel.Solve(spec, definitions, conditions, 0.5 * top * (1 - 1e-9), centres, widths, null,
-                Min(Left(), TimeSpan.FromSeconds(20)), threads, token);
+                Min(Left(), Seconds(options.WindowSeconds, 20)), threads, token);
             rounds.Add(Round(2, "Repair window", 0.5 * top, outcome));
             layout = outcome.Layout;
         }
@@ -191,7 +191,7 @@ public static class ScalableSolver
                     kind = "Collision window";
                 }
                 var outcome = WindowModel.Solve(spec, definitions, conditions, target, layout, free, null,
-                    Min(Left(), TimeSpan.FromSeconds(10)), threads, token);
+                    Min(Left(), Seconds(options.NeighbourhoodSeconds, 10)), threads, token);
                 rounds.Add(Round(3, kind, target, outcome));
                 if (outcome.Layout is { } better)
                 {
@@ -237,7 +237,7 @@ public static class ScalableSolver
                 return new WindowModel.Target(p.I, p.J, boundary ? triangulation.Count + 1 : 1);
             }).ToList();
             var outcome = WindowModel.Solve(spec, definitions, conditions, m * (1 - 1e-12), layout,
-                tree.Leaves.ToDictionary(v => v, _ => 1), targets, Min(Left(), TimeSpan.FromSeconds(20)), threads, token);
+                tree.Leaves.ToDictionary(v => v, _ => 1), targets, Min(Left(), Seconds(options.WindowSeconds, 20)), threads, token);
             rounds.Add(Round(4, "Most tight pairs", m, outcome));
             if (outcome.Layout is { } tighter && LayoutAnalysis.ExactScale(definitions, tighter) >= m * (1 - 1e-9))
             {
@@ -251,7 +251,7 @@ public static class ScalableSolver
         if (options.CloseWithMovingLeaves && !valid && !token.IsCancellationRequested && Left() > TimeSpan.FromSeconds(1))
         {
             var closed = MovingClosure.Close(spec, definitions, conditions, layout, m, 1, options.StrainMin, options.StrainMax,
-                3, Min(Left(), TimeSpan.FromSeconds(20)), rounds, token);
+                3, Min(Left(), Seconds(options.WindowSeconds, 20)), rounds, token);
             layout = closed.Layout;
             lengths = closed.Lengths;
             strains = closed.Strains;
@@ -354,6 +354,10 @@ public static class ScalableSolver
     private static double Sq(double v) => v * v;
 
     private static TimeSpan Min(TimeSpan a, TimeSpan b) => a < b ? (a < TimeSpan.Zero ? TimeSpan.Zero : a) : b;
+
+    /// <summary>A per-solve cap from the options, in seconds; the default when it is missing or not positive.</summary>
+    private static TimeSpan Seconds(double seconds, double fallback) =>
+        TimeSpan.FromSeconds(double.IsFinite(seconds) && seconds > 0 ? seconds : fallback);
 
     /// <summary>The leaf sets of every subtree hanging off an internal edge, with between 2 and half the leaves.</summary>
     internal static List<HashSet<int>> Subtrees(Tree tree)

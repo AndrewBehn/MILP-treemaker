@@ -607,26 +607,37 @@ const workflowDoc = (() => {
       return;
     }
     q("nextIntro").textContent = `Choosing a move freezes step ${doc.steps.length} as it is and adds step ${doc.steps.length + 1}.`;
-    const solver = h("select", "next-solver");
-    solver.setAttribute("aria-label", "Solver for the next solve");
-    for (const id of SOLVER_IDS) { const o = h("option", "", NODES[id].title); o.value = id; solver.append(o); }
     const lastSolve = [...doc.steps].reverse().find((st) => st.kind === "solve" && SOLVER_IDS.includes(st.node) && !st.params?.opened);
-    solver.value = lastSolve?.node ?? "scalable";
+    /** A solve move carries its own solver choice, inside its card. */
+    const solverSelect = () => {
+      const sel = h("select", "next-solver");
+      sel.setAttribute("aria-label", "Solver for this solve");
+      for (const id of SOLVER_IDS) { const o = h("option", "", NODES[id].title); o.value = id; sel.append(o); }
+      sel.value = lastSolve?.node ?? "scalable";
+      return sel;
+    };
     for (const m of moves) {
       const card = h("div", "next-move" + (m.suggested ? " suggested" : "") + (m.kind === "solve" ? " solve" : ""));
+      const solver = m.kind === "solve" ? solverSelect() : null;
       const b = h("button", m.suggested ? "primary small-primary" : "quiet", m.label);
       b.type = "button";
-      b.addEventListener("click", () => addStep(m.kind, m.kind === "solve" ? solver.value : KIND_NODE[m.kind], m.which ? { which: m.which } : {}));
+      b.addEventListener("click", () => addStep(m.kind, solver ? solver.value : KIND_NODE[m.kind], m.which ? { which: m.which } : {}));
       const note = h("p", "btn-note", m.note + " ");
-      const node = NODES[m.kind === "solve" ? solver.value : KIND_NODE[m.kind]];
-      if (node?.doc) note.append(specLinks.link("Spec", node.doc, specLinks.firstTarget(node.section, node.doc).at, "spec-mini"));
-      card.append(b, note);
+      const spec = () => {
+        note.querySelector(".spec-mini")?.remove();
+        const node = NODES[solver ? solver.value : KIND_NODE[m.kind]];
+        if (node?.doc) note.append(specLinks.link("Spec", node.doc, specLinks.firstTarget(node.section, node.doc).at, "spec-mini"));
+      };
+      spec();
+      card.append(b);
+      if (solver) {
+        const row = h("label", "next-solver-row", "with ");
+        row.append(solver);
+        solver.addEventListener("change", spec);
+        card.append(row);
+      }
+      card.append(note);
       box.append(card);
-    }
-    if (moves.some((m) => m.kind === "solve")) {
-      const row = h("label", "next-solver-row", "Solve with ");
-      row.append(solver);
-      box.prepend(row);
     }
   }
 

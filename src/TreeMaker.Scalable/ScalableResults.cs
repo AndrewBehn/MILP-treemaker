@@ -14,6 +14,12 @@ public sealed record ScalableOptions
     /// <summary>Stage 2: half-width of every leaf's window around its rounded continuous position.</summary>
     public int RepairHalfWidth { get; init; } = 1;
 
+    /// <summary>The most seconds any one window model (CP-SAT) may take in stages 2 and 4, within the overall time limit.</summary>
+    public double WindowSeconds { get; init; } = 20;
+
+    /// <summary>The most seconds any one neighbourhood re-solve may take in stage 3, within the overall time limit.</summary>
+    public double NeighbourhoodSeconds { get; init; } = 10;
+
     /// <summary>Stage 3: run large neighbourhood search after the repair.</summary>
     public bool NeighbourhoodSearch { get; init; } = true;
 

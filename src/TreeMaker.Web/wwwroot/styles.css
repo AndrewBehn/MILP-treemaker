@@ -1359,7 +1359,6 @@ body[data-kind="step"] #stageArea > #metricsCard { display: none; }
 .next-move.suggested { border-color: var(--beni); box-shadow: inset 3px 0 0 var(--beni); }
 .next-tag { position: absolute; top: 8px; right: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--beni); }
 .next-move .doc-spec { margin: 0; }
-.next-solver-row { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-size: 13px; }
 .next-menu #pickCard { margin: 0; box-shadow: none; padding: 0; background: none; }
 .next-menu #pickCard > h2 { font-size: 15px; }
 body:not([data-node="tree"]) .duo-tree .block-head .row, body:not([data-node="tree"]) .tree-tools .drag-chip, body:not([data-node="tree"]) .tree-tools .chip-label { display: none; }
@@ -1484,8 +1483,9 @@ details[open] > summary::before { transform: rotate(90deg); }
 .final-config > .move-block { grid-column: 1 / -1; }
 .close-ways { grid-template-columns: minmax(240px, 1fr) auto minmax(240px, 1fr); max-width: 760px; }
 .close-way button { white-space: nowrap; }
-.next-solver-row { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 650; }
-.next-solver-row select { width: auto; min-width: 200px; height: 30px; }
+/* A solve move's solver choice sits in its own card, beside its button. */
+.next-move .next-solver-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12.5px; color: var(--ink-soft); }
+.next-move .next-solver-row select { width: auto; min-width: 0; max-width: 100%; height: 28px; font-size: 12.5px; }
 .strain-run { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 10px; font-size: 12.5px; }
 .strain-run input { width: 64px; }
 .strain-progress { font-weight: 650; color: var(--beni); }
