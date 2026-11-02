@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=20261102h">
+  <link rel="stylesheet" href="styles.css?v=20261102k">
 </head>
 <body data-view="map">
   <!-- ───────────── Top bar: the way back to the map, and where you are ───────────── -->
@@ -96,7 +96,7 @@
         <div>
           <p id="nodeKicker" class="kicker"></p>
           <h1 id="nodeTitle"></h1>
-          <p id="nodeLede"></p>
+          <details class="about"><summary>About this step</summary><p id="nodeLede"></p></details>
           <p id="nodeSpec" class="node-spec"></p>
         </div>
       </header>
@@ -367,12 +367,12 @@
                 <button type="button" class="drag-chip" data-chip="joint" title="Drop on an edge to split it in two"><i class="dot"></i>Joint</button>
                 <label class="inline-field grid-n" title="The sheet is an N × N grid">Grid N <input id="gridSize" type="number" min="1" max="60" step="1" value="9"></label>
                 <span class="spacer"></span>
-                <label class="check small-check" title="A circle round each leaf, its radius in proportion to the leaf edge's length, as on the sheet"><input id="treeCircles" type="checkbox" checked> Leaf circles</label>
+                <label class="layer" title="A circle round each leaf, of the sheet's radius m·ℓ"><input id="treeCircles" type="checkbox" checked> Leaf circles</label>
                 <button id="tidyTree" type="button" class="quiet small" title="Lay the tree out again automatically">Tidy</button>
                 <button id="expandTree" type="button" class="quiet small" aria-expanded="false">Enlarge</button>
               </div>
               <svg id="treeView" class="tree-view" role="img" aria-label="Tree editor"></svg>
-              <p id="treeHelp" class="tree-help">Drag vertices to move them, or onto another vertex to re-attach. Click a leaf to pin it to an edge, a corner or the axis, or to mirror it with another leaf. Click a length to edit it, double-click a vertex to rename it.</p>
+              <details class="tree-help-box"><summary>How to edit the tree</summary><p id="treeHelp" class="tree-help">Drag vertices to move them, or onto another vertex to re-attach. Click a leaf to pin it to an edge, a corner or the axis, or to mirror it with another leaf. Click a length to edit it, double-click a vertex to rename it.</p></details>
               <div id="treeMessage" class="tree-message" role="status" hidden></div>
               <p id="treeConditions" class="tree-conditions"></p>
               <details class="edge-table">
@@ -388,10 +388,10 @@
                   <select id="leafParent" aria-label="Vertex the new leaf attaches to"></select>
                 </div>
               </details>
-              <section class="model-size" aria-live="polite" data-nodes="pure sym hull optimized scalable">
-                <h3>Model size <span id="sizeNote" class="muted">known before solving</span></h3>
+              <details class="model-size" aria-live="polite" data-nodes="pure sym hull optimized scalable">
+                <summary>Model size <span id="sizeNote" class="muted">known before solving</span></summary>
                 <div id="sizeBreakdown" class="size-breakdown"></div>
-              </section>
+              </details>
             </div>
             <div id="treeBackdrop" class="tree-backdrop"></div>
             <div id="treeError" class="error" hidden></div>
@@ -414,6 +414,8 @@
           <figcaption class="sheet-controls">
             <button id="saveLayout" type="button" class="on-mat small" disabled title="Save this layout, its scale and edge lengths as a .json layout file">Save layout</button>
             <label id="startRow" class="check" hidden><input id="useStart" type="checkbox" checked> Start the solve from the previous step's layout<span id="startNote" class="muted"></span></label>
+            <details class="sheet-key">
+              <summary>Key</summary>
             <span class="key"><i class="k-tight"></i>At minimum spacing</span>
             <span class="key"><i class="k-loose"></i>Has slack</span>
             <span id="polyKeys" class="poly-keys" hidden>
@@ -422,17 +424,48 @@
               <span class="key"><i class="k-missing"></i>Side to make tight</span>
               <span class="key"><i class="k-open"></i>Needs closing</span>
             </span>
+            </details>
             <p id="polyTodo" class="poly-todo" hidden></p>
           </figcaption>
         </figure>
         </div>
 
+      </div>
+
+      <details id="moreResults" class="more-results">
+        <summary>Details <span class="muted">the solver's metrics, leaf pairs, traces and edge lengths</span></summary>
+        <div class="more-grid">
         <section id="metricsCard" class="slip readout" hidden>
           <div id="metrics" class="metrics"></div>
           <div id="messages"></div>
         </section>
-      </div>
-
+        <section id="traceCard" class="slip wide" hidden>
+          <h2><span id="traceTitle"></span> <span id="traceSub" class="muted"></span></h2>
+          <svg id="ladder" class="ladder" role="img" aria-label="Trial scales"></svg>
+          <div id="ladderKey" class="ladder-key"></div>
+          <div class="table-wrap"><table id="traceTable" class="data"></table></div>
+          <details class="rounds" id="roundsBox">
+            <summary>Every solve <span id="roundCount" class="muted"></span></summary>
+            <div class="table-wrap"><table id="roundTable" class="data"></table></div>
+          </details>
+        </section>
+        <section id="pairsCard" class="slip" hidden>
+          <h2>Leaf pairs <span id="pairsNote" class="muted">tightest first</span></h2>
+          <div class="table-wrap"><table id="pairsTable" class="data"></table></div>
+        </section>
+        <section id="hullCard" class="slip" hidden>
+          <h2 id="hullTitle"></h2>
+          <label class="field hull-pick" id="hullPick">Leaf pair <select id="hullPair"></select></label>
+          <svg id="hullView" class="hull-view" role="img" aria-label="Hull or continuous layout view"></svg>
+          <div id="hullKey" class="hull-key"></div>
+          <p id="hullNote" class="hull-note"></p>
+        </section>
+        <section id="edgesCard" class="slip" hidden>
+          <h2>Edge lengths</h2>
+          <div class="table-wrap"><table id="edgesTable" class="data"></table></div>
+        </section>
+        </div>
+      </details>
       <div class="tables">
         <section id="creaseCard" class="slip wide crease" hidden>
           <div class="crease-head">
@@ -508,31 +541,6 @@
           <canvas id="foldCanvas" class="fold-canvas" aria-label="The folded base in 3D"></canvas>
           <p id="foldNote" class="hint"></p>
         </section>
-        <section id="traceCard" class="slip wide" hidden>
-          <h2><span id="traceTitle"></span> <span id="traceSub" class="muted"></span></h2>
-          <svg id="ladder" class="ladder" role="img" aria-label="Trial scales"></svg>
-          <div id="ladderKey" class="ladder-key"></div>
-          <div class="table-wrap"><table id="traceTable" class="data"></table></div>
-          <details class="rounds" id="roundsBox">
-            <summary>Every solve <span id="roundCount" class="muted"></span></summary>
-            <div class="table-wrap"><table id="roundTable" class="data"></table></div>
-          </details>
-        </section>
-        <section id="pairsCard" class="slip" hidden>
-          <h2>Leaf pairs <span id="pairsNote" class="muted">tightest first</span></h2>
-          <div class="table-wrap"><table id="pairsTable" class="data"></table></div>
-        </section>
-        <section id="hullCard" class="slip" hidden>
-          <h2 id="hullTitle"></h2>
-          <label class="field hull-pick" id="hullPick">Leaf pair <select id="hullPair"></select></label>
-          <svg id="hullView" class="hull-view" role="img" aria-label="Hull or continuous layout view"></svg>
-          <div id="hullKey" class="hull-key"></div>
-          <p id="hullNote" class="hull-note"></p>
-        </section>
-        <section id="edgesCard" class="slip" hidden>
-          <h2>Edge lengths</h2>
-          <div class="table-wrap"><table id="edgesTable" class="data"></table></div>
-        </section>
       </div>
         </div>
         <div id="finalNotes" class="final-notes"></div>
@@ -556,18 +564,18 @@
 
   <input id="fileInput" type="file" accept=".json,application/json" hidden>
 
-  <script src="nodes.js?v=20261102h"></script>
-  <script src="workbench.js?v=20261102h"></script>
-  <script src="tree-editor.js?v=20261102h"></script>
-  <script src="polygons.js?v=20261102h"></script>
-  <script src="stubs.js?v=20261102h"></script>
-  <script src="workflow.js?v=20261102h"></script>
-  <script src="linked.js?v=20261102h"></script>
-  <script src="folded.js?v=20261102h"></script>
-  <script src="files.js?v=20261102h"></script>
-  <script src="solvers.js?v=20261102h"></script>
-  <script src="map.js?v=20261102h"></script>
-  <script src="specs.js?v=20261102h"></script>
-  <script src="app.js?v=20261102h"></script>
+  <script src="nodes.js?v=20261102k"></script>
+  <script src="workbench.js?v=20261102k"></script>
+  <script src="tree-editor.js?v=20261102k"></script>
+  <script src="polygons.js?v=20261102k"></script>
+  <script src="stubs.js?v=20261102k"></script>
+  <script src="workflow.js?v=20261102k"></script>
+  <script src="linked.js?v=20261102k"></script>
+  <script src="folded.js?v=20261102k"></script>
+  <script src="files.js?v=20261102k"></script>
+  <script src="solvers.js?v=20261102k"></script>
+  <script src="map.js?v=20261102k"></script>
+  <script src="specs.js?v=20261102k"></script>
+  <script src="app.js?v=20261102k"></script>
 </body>
 </html>
