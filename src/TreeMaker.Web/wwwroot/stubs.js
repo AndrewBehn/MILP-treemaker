@@ -23,7 +23,8 @@ const stubTool = (() => {
     for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
     return node;
   };
-  const active = () => document.body.dataset.node === "stubs" && !!ui.held;
+  const active = () => document.body.dataset.stubbing === "on" && !!ui.held;
+  const hooks = { onAdd: null };   // the workflow document takes the stub as a step (workflow.js)
 
   // ───── Geometry and the tree ─────
 
@@ -270,26 +271,11 @@ const stubTool = (() => {
     return true;
   }
 
-  /** Puts the stub into the tree and its leaf into the workbench layout; the scale stays. */
+  /** Hands the stub to the workflow document, which adds it to the tree and the layout as a step. */
   function add() {
-    const c = ui.cand, held = ui.held;
+    const c = ui.cand;
     if (!c) return;
-    const name = newName();
-    const problem = { ...held.problem, edges: [...held.problem.edges, { from: c.attach, to: name, length: c.len, stretch: false }] };
-    const layout = {
-      ...held, problem,
-      points: [...held.points, { leaf: name, x: c.x, y: c.y }],
-      edgeLengths: held.edgeLengths ? [...held.edgeLengths, c.len] : null,
-      status: `${held.status ?? "Layout"} + stub ${name}`,
-      stubs: [...(held.stubs ?? []), name],
-      polygonsValid: undefined,
-      lid: undefined, parentLid: held.lid,
-      historyTitle: `Added stub ${name}: ℓ = ${fmt(c.len, 3)} from ${c.attach}, at (${c.x}, ${c.y}), tight to ${c.tight.join(", ")}`,
-    };
-    applyProblem(problem);
-    workbench.setLayout(layout);
-    enterNode("stubs");
-    setStatus(`Added the stub ${name} (ℓ = ${fmt(c.len, 4)}, from ${c.attach}) at (${c.x}, ${c.y}), tight to ${c.tight.join(", ")}. The polygons are checked again; close them next.`);
+    hooks.onAdd?.({ ...c, name: newName() });
   }
 
   function init() {
@@ -303,5 +289,5 @@ const stubTool = (() => {
     });
   }
 
-  return { init, show, hide, draw, jointClicked, _state: ui };
+  return { init, show, hide, draw, jointClicked, hooks, _state: ui };
 })();

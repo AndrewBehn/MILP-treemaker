@@ -1,4 +1,5 @@
-// End-to-end UI check against tools/mock_api.py on port 5099: map → Pure MILP → solve → close → creases → fold →
+// End-to-end UI check against tools/mock_api.py on port 5099: map → Pure MILP → solve → the workflow document's
+// close and crease steps → fold →
 // map → Optimized MILP (starts from the workbench layout) → Lattice-Hull and Symmetry-Breaking flags → reload.
 // Usage: node tools/ui_flow.js [screenshot dir] (needs Playwright with Chromium).
 const { chromium } = require('playwright');
@@ -22,15 +23,15 @@ const out = process.argv[2] ?? '.';   // where the screenshots go
   await p.screenshot({ path: `${out}/pure-after.png`, fullPage: true });
   // Step 1
   await p.click('#flowStrip a[href="#/close"]'); await p.waitForTimeout(1200);
-  log.close = await p.evaluate(() => ({ title: document.getElementById('nodeTitle').textContent, held: document.getElementById('heldSummary').innerText.replace(/\n/g, ' | '), crease: document.getElementById('creaseSummary').textContent, buildVisible: getComputedStyle(document.querySelector('.crease-build')).display }));
-  await p.click('#findStrain');
+  log.close = await p.evaluate(() => ({ title: document.getElementById('nodeTitle').textContent, held: document.getElementById('heldSummary').innerText.replace(/\n/g, ' | '), steps: workflowDoc.steps.length, move: document.querySelector('.move-tab[aria-selected="true"]')?.dataset.move }));
+  await p.click('#docAuto');
   await p.waitForFunction(() => workbench.closure?.completion?.after?.valid, null, { timeout: 10000 });
   await p.waitForTimeout(500);
   log.closed = await p.evaluate(() => ({ shelf: document.getElementById('shelf').innerText.replace(/\n/g, ' '), next: document.getElementById('flowStrip').innerText.replace(/\n/g, ' ') }));
   await p.screenshot({ path: `${out}/close.png`, fullPage: true });
   await p.click('#flowStrip a[href="#/creases"]'); await p.waitForTimeout(1200);
-  log.creases = await p.evaluate(() => ({ disabled: document.getElementById('buildCreases').disabled, closeVisible: getComputedStyle(document.querySelector('.crease-complete')).display, view: creaseReadiness._state.view }));
-  await p.click('#buildCreases'); await p.waitForFunction(() => workbench.creases?.result?.built, null, { timeout: 10000 });
+  log.creases = await p.evaluate(() => ({ disabled: document.getElementById('docBuild').disabled, move: document.querySelector('.move-tab[aria-selected="true"]')?.dataset.move, steps: workflowDoc.steps.length }));
+  await p.click('#docBuild'); await p.waitForFunction(() => workbench.creases?.result?.built, null, { timeout: 10000 });
   await p.waitForTimeout(400);
   await p.click('#flowStrip a[href="#/fold"]'); await p.waitForTimeout(1200);
   log.fold = await p.evaluate(() => ({ fold: !document.getElementById('foldCard').hidden, crease: getComputedStyle(document.getElementById('creaseCard')).display, need: !document.getElementById('needCard').hidden }));

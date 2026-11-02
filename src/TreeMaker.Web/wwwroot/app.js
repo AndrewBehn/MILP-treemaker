@@ -945,14 +945,10 @@ async function showStep(node) {
       [["Pick a solver on the map", "#/", true], ["Edit the tree", "#/tree"]]);
     return;
   }
-  if (node.id === "creases" && !workbench.polygonsValid()) {
-    showNeed("The polygons are not closed yet", "The crease pattern fills valid polygons. Close the workbench layout's polygons first.",
-      [["Close the polygons", "#/close", true]]);
-  }
   if (node.id === "fold" && !workbench.creases?.result?.built) {
-    showNeed("No crease pattern yet", "The folded base comes from a crease pattern. Build one first.",
-      [[workbench.polygonsValid() ? "Build the crease pattern" : "Close the polygons", workbench.polygonsValid() ? "#/creases" : "#/close", true]]);
+    showNeed("No crease pattern yet", "The folded base comes from a crease pattern. Add the step \u201cBuild the crease pattern\u201d below once every polygon is valid.", []);
   }
+  workflowDoc.render();
   const seq = state.viewSeq;
   try {
     const response = await evaluateLayout("pure", { ...held.problem, startLayout: null }, { ...held, edgeLengths: held.edgeLengths });
@@ -969,11 +965,11 @@ async function showStep(node) {
     renderPairs(v);
     const context = { problem: held.problem, gridSize: held.gridSize, layout: v.layout, scale: v.scale, edgeLengths: held.edgeLengths ?? null };
     if (node.id !== "fold" || workbench.creases?.result?.built) {
-      // Close, Crease pattern and Folded base are one page: the whole panel, scrolled to this node's part.
-      creaseReadiness.focus(node.id === "stubs" ? "stubs" : "all");
+      // The polygon panel is hidden here (the document does its work); it still draws the polygons and creases on
+      // the live sheet and shows the folded base.
+      creaseReadiness.focus("all");
       await creaseReadiness.restore(context, heldSteps());
-      if (node.id === "stubs" && seq === state.viewSeq) stubTool.show(held, creaseReadiness._state.before);
-      if (seq === state.viewSeq) scrollToStep(node.id);
+      if (seq === state.viewSeq) { workflowDoc.render(); scrollToStep(node.id); }
     }
     renderNextBar();
   } catch (e) {
@@ -983,7 +979,7 @@ async function showStep(node) {
 
 /** Close the polygons, Crease pattern and Folded base share one page; each scrolls to its own part of it. */
 function scrollToStep(id) {
-  const target = { creases: document.querySelector(".crease-build"), fold: $("foldCard") }[id];
+  const target = { fold: $("foldCard") }[id];
   if (target && !target.closest("[hidden]")) target.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -1181,7 +1177,11 @@ function enterNode(id) {
   state.flowNext = undefined;   // entering a node is not "moving on"
   linked.reset();
   renderNextBar();
-  closingHistory.render();
+  // The steps after a layout are one document: the live widget (tree beside sheet) moves into its "Add a step".
+  const duo = document.querySelector(".duo");
+  if (node.kind === "step") { if (duo.parentElement !== $("docLive")) $("docLive").append(duo); }
+  else if (duo.parentElement !== $("stageArea")) $("stageArea").prepend(duo);
+  if (state.docNode !== id) { state.docNode = id; workflowDoc.openMove(workflowDoc.moveFor(id)); }
 
   // Header and crumbs: which spec this part of the app implements.
   const doc = nodeDoc(node);
@@ -1360,6 +1360,7 @@ async function init() {
   });
   creaseReadiness.init();
   stubTool.init();
+  workflowDoc.init();
   linked.init();
   creaseReadiness.hooks.afterDraw = () => stubTool.draw();
   foldedView.init();
@@ -1367,20 +1368,16 @@ async function init() {
 
   // The crease panel reports to the workbench.
   creaseReadiness.hooks.onReport = (report) => {
-    if (workbench.layout && workbench.layout.polygonsValid !== report.valid) workbench.noteLayout({ polygonsValid: report.valid });
-    closingHistory.noteReport(report);
+    if (workbench.layout && !workbench.closure && workbench.layout.polygonsValid !== report.valid) workbench.noteLayout({ polygonsValid: report.valid });
   };
-  creaseReadiness.hooks.onCompletion = (result, bounds) => {
-    workbench.setClosure({ ...bounds, completion: result });
-    closingHistory.noteClosing(result, bounds);
-  };
+  creaseReadiness.hooks.onCompletion = (result, bounds) => workbench.setClosure({ ...bounds, completion: result });
   creaseReadiness.hooks.onCreases = (creases) => workbench.setCreases(creases);
   workbench.onChange((slot) => {
     // A new layout: redraw the tree sketch to face the way the leaves sit on the sheet, unless it was arranged by hand.
     if (slot === "layout" && !treeUi.handPlaced) { resetTreeLayout(); renderTreePreview(); }
     renderShelf();
     renderNextBar();
-    closingHistory.render();
+    workflowDoc.workbenchChanged(slot);
     if (state.node?.kind === "step") renderHeldSummary($("heldSummary"));
   });
 

@@ -402,6 +402,39 @@ const creaseReadiness = (() => {
    *  3. Otherwise bisect between s_b and s_t with the closing MILP, which may close the polygons with fewer tight pairs,
    *     to within 0.01.
    */
+  /**
+   * A:4 as a search any part of the app can run: the request (problem, layout, scale, edgeLengths) and a callback
+   * for progress notes. Returns { result, bound, text, ok } (result null when nothing was tried), or { already } when
+   * the polygons are valid already.
+   */
+  async function searchStrain(base, progress = () => {}) {
+    const roundUp = (v) => Math.max(0.001, Math.ceil(v * 1000 * (1 + 1e-9) + 1e-9) / 1000);
+    const close = (bound, targets) => post("/api/complete", { ...base, strainMin: -Math.min(bound, 0.99), strainMax: bound, ...(targets?.length ? { targets } : {}) });
+    progress("Finding the smallest strain that closes the polygons…");
+    const need = await post("/api/strain-needed", base);
+    if (need.alreadyValid) return { already: true, text: need.messages.join(" ") };
+    if (need.boundaryStrain == null) return { result: null, text: need.messages.join(" "), ok: false };
+    let lo = roundUp(need.boundaryStrain);
+    if (need.boundaryValid) {
+      const result = await close(lo, need.tightTargets);
+      return { result, bound: lo, ok: !!result.after?.valid, text: `The smallest strain that closes every polygon is ±${lo.toFixed(3)}. ${need.messages.join(" ")}` };
+    }
+    let hi = roundUp(need.triangulationStrain ?? Math.max(0.99, 1.5 * need.boundaryStrain));
+    progress(`${need.messages.join(" ")} Searching between ±${lo.toFixed(3)} and ±${hi.toFixed(3)}…`);
+    let best = await close(hi);
+    if (!best.after?.valid) return { result: best, bound: hi, ok: false, text: `Even strains within ±${hi.toFixed(3)} do not close every polygon with the leaves where they are. ${need.messages.join(" ")}` };
+    let tries = 1;
+    while (hi - lo > 0.01) {
+      const mid = roundUp((lo + hi) / 2);
+      if (mid >= hi) break;
+      progress(`Closes at ±${hi.toFixed(3)}; trying ±${mid.toFixed(3)}…`);
+      const result = await close(mid);
+      tries++;
+      if (result.after?.valid) { hi = mid; best = result; } else lo = mid;
+    }
+    return { result: best, bound: hi, ok: true, text: `The smallest strain found that closes every polygon is ±${hi.toFixed(3)} (${tries} closing solves). ${need.messages.join(" ")}` };
+  }
+
   async function findStrain() {
     if (!ui.context) return;
     const button = q("findStrain");
@@ -692,5 +725,5 @@ ${lines.join("\n")}
   /** The report the sheet shows now (as solved, or after closing). */
   function report() { return current(); }
 
-  return { init, update, restore, draw, focus, report, hooks, _state: ui };
+  return { init, update, restore, draw, focus, report, searchStrain, hooks, _state: ui };
 })();

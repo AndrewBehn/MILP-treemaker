@@ -1,13 +1,14 @@
-# Tree and layout files
+# Tree, layout and session files
 
-The TreeMaker app reads and writes two JSON formats. Their JSON Schemas (draft 2020-12) are in `schemas/`.
+The TreeMaker app reads and writes three JSON formats. Their JSON Schemas (draft 2020-12) are in `schemas/`.
 
 | Format | Schema | Saved by | Opening it |
 |---|---|---|---|
 | `treemaker-tree` | `schemas/treemaker-tree.schema.json` | **Save tree** (Tree panel) | Loads the tree, grid size, leaf conditions and mirror pairs into the editor. |
 | `treemaker-layout` | `schemas/treemaker-layout.schema.json` | **Save layout** (under the sheet, or the map's Layout card) | Loads the tree, then puts the layout on the workbench, where the steps after a solve and the next solve start from it. |
+| `treemaker-session` | `schemas/treemaker-session.schema.json` | **Save the session** (the step-by-step document) | Makes it the document again and puts its last step's output on the workbench. |
 
-**Open…** in the Tree panel, **Open a file…** on the map, and **Open a layout file…** in the steps' sidebar read either kind. It tells them apart by the `format` field.
+**Open…** in the Tree panel, **Open a file…** on the map, and **Open a layout file…** in the steps' sidebar read any of the three. It tells them apart by the `format` field.
 
 ## Tree file
 
@@ -75,3 +76,36 @@ The TreeMaker app reads and writes two JSON formats. Their JSON Schemas (draft 2
    - **Scalable MILP:** it replaces Stage 1. Stages 2 to 4 repair and improve around it, with the ladder reaching up to 1.25 times its scale.
 
 The box is greyed out, with a note, while the tree or grid size in the editor does not match the layout.
+
+## Session file
+
+A session file is the workflow document saved whole. It holds every step after the tree in order (solve, close the polygons, add a stub, build the crease pattern), each with its **input** and **output** state. A reader can follow the whole path without the app.
+
+```json
+{
+  "format": "treemaker-session",
+  "version": 1,
+  "name": "Running example with one stub",
+  "savedAt": "2026-11-01T22:00:00Z",
+  "steps": [
+    {
+      "kind": "stub",
+      "title": "Add the stub s1",
+      "params": { "attach": "u", "len": 2.507, "x": 5, "y": 2, "tight": ["2"] },
+      "input":  { "problem": { "...": "the tree" }, "layout": { "...": "points, scale" }, "closure": null, "creases": null, "report": { "...": "" }, "stubs": [] },
+      "output": { "problem": { "...": "the tree with s1" }, "layout": { "...": "with s1 at (5, 2)" }, "closure": null, "creases": null, "report": { "...": "" }, "stubs": ["s1"] },
+      "notes": ["The scale stays; every pair still fits."]
+    }
+  ]
+}
+```
+
+A state has these fields:
+- **`problem`**: the tree, with `edges`, `gridSize`, `leafConditions` and `mirrorPairs`, as in a tree file.
+- **`layout`**: `points`, `scale`, `edgeLengths` and the `node` that solved it. It is `null` before the first solve.
+- **`closure`**: the strain bounds and the server's completion result, after closing.
+- **`creases`**: the server's crease pattern, the lengths used and the pleat height, after building.
+- **`report`**: the polygon check.
+- **`stubs`**: the leaves added as stubs.
+
+The schema describes the server's results loosely, as objects, since their exact shape comes from the API.

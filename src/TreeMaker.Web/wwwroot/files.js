@@ -4,7 +4,8 @@
 //   Save layout: the layout on the sheet, with its scale and the edge lengths in use (the closed lengths when the
 //                crease panel shows "After closing").
 //   Open…:       a tree file loads into the editor; a layout file loads its tree and goes on the workbench as the
-//                layout, ready for the steps after a solve and as the starting point of the next solve.
+//                layout, ready for the steps after a solve and as the starting point of the next solve; a session
+//                file (schemas/treemaker-session.schema.json, saved by workflow.js) becomes the workflow document.
 // The host app calls treeFiles.init({ appName, getProblem, applyTree, importLayout, status, openButtons }).
 "use strict";
 
@@ -135,7 +136,14 @@ const treeFiles = (() => {
       });
       return;
     }
-    fail(`${file.name} is neither a tree file nor a layout file: its "format" must be "treemaker-tree" or "treemaker-layout".`);
+    if (data?.format === "treemaker-session") {
+      if (data.version !== 1) fail(`${file.name} is session format version ${data.version}; this app reads version 1.`);
+      for (const [k, step] of (data.steps ?? []).entries()) checkTree(step.output?.problem ?? {}, `${file.name}, step ${k + 1}`);
+      workflowDoc.openFile(data, file.name);
+      host.status?.(`Opened the session in ${file.name}: ${data.steps.length} steps.`);
+      return;
+    }
+    fail(`${file.name} is not a tree, layout or session file: its "format" must be "treemaker-tree", "treemaker-layout" or "treemaker-session".`);
   }
 
   function refresh() {

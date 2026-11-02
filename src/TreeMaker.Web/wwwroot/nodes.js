@@ -61,14 +61,14 @@ const NODES = {
   },
   close: {
     id: "close", kind: "step", step: "close", title: "Close the polygons", kicker: "Step after a layout", mapKicker: "Step 1",
-    lede: "Check whether the tight paths divide the leaves' hull into valid polygons, and change edge lengths (strain) until they do, with the leaves held where the solver put them.",
+    lede: "The session, step by step: every move after a solve (solve again, close the polygons by strain, add stubs, build the crease pattern) with its input and output. Closing changes edge lengths (strain) until the tight paths divide the leaves' hull into valid polygons, with the leaves held where they are.",
     blurb: "Check the polygons; find the strain that closes them",
     doc: "closing", section: "Polygon test A:1, closing A:2, strain bounds A:3, strain needed A:4 (Sections 4–7)",
     needs: "layout",
   },
   stubs: {
     id: "stubs", kind: "step", step: "stubs", title: "Add stubs", kicker: "Step after a layout · optional", mapKicker: "Step 1 · option",
-    lede: "Split an open polygon with a stub: a new short leaf edge hung from a joint of the tree, its leaf on a grid point inside the polygon, tight to the corners it can reach. The scale stays; close the polygons afterwards to tighten what is left.",
+    lede: "The session, opened at its Add a stub move: split an open polygon with a new short leaf edge hung from a joint of the tree, its leaf on a grid point inside the polygon. Then solve just the stubs, or close the polygons, to tighten what is left.",
     blurb: "Hang a short new flap inside an open polygon",
     doc: "closing", section: "Open problem 1, stubs (Section 10)",
     needs: "layout",

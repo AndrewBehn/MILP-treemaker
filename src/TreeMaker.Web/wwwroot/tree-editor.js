@@ -25,6 +25,8 @@ const treeUi = {
 
 /** In the Add stubs node the tree is the workbench layout's: it can be looked at and rearranged, not edited. */
 const treeLocked = () => ["stubs", "close", "creases", "fold"].includes(document.body.dataset.node);
+/** True while the workflow document's "Add a stub" move is open: clicks on joints hang the stub (stubs.js). */
+const stubbing = () => document.body.dataset.stubbing === "on";
 
 // ───────────────────────── Leaf conditions on the drawing ─────────────────────────
 // The same state as the sidebar's Leaf conditions table and Mirror pairs (state.conditions, state.mirrors), set by
@@ -99,7 +101,7 @@ function vertexClicked(v) {
   const info = treeInfo(state.edges);
   const leaf = info.leaves.includes(v);
   if (treeLocked()) {
-    if (document.body.dataset.node !== "stubs") { linked.pin(leaf ? v : null); return; }
+    if (!stubbing()) { linked.pin(leaf ? v : null); return; }
     if (!stubTool.jointClicked(v)) say(leaf ? "A stub hangs from a joint: click a vertex with two or more edges." : "Pick an open region first.");
     return;
   }
@@ -414,12 +416,14 @@ function bilateralLayout(info, mirrors, { edges = state.edges, lengths = null, t
 }
 
 /** Radial layout from the centre, in unit coordinates fitted to the drawing's aspect ratio. */
-function autoLayout(info, width, height) {
+function autoLayout(info, width, height, { edges = state.edges, mirrors = state.mirrors ?? [], sheet = sheetPoints(edges) } = {}) {
+  // The editor draws the editor's tree, facing the workbench layout; the workflow document draws other trees by
+  // passing their edges, mirror pairs and leaf points.
   const out = new Map();
   if (!info.vertices.length) return out;
-  const bilateral = bilateralLayout(info, state.mirrors ?? []);
-  if (bilateral) return fitLayout(alignToSheet(bilateral, sheetPoints(state.edges), { flipsOnly: true }), width, height);
-  if (!isTree(info, state.edges)) {
+  const bilateral = bilateralLayout(info, mirrors, { edges });
+  if (bilateral) return fitLayout(alignToSheet(bilateral, sheet, { flipsOnly: true }), width, height);
+  if (!isTree(info, edges)) {
     info.vertices.forEach((v, k) => {
       const a = (2 * Math.PI * k) / info.vertices.length - Math.PI / 2;
       out.set(v, [0.5 + 0.42 * Math.cos(a), 0.5 + 0.42 * Math.sin(a)]);
@@ -453,7 +457,7 @@ function autoLayout(info, width, height) {
     let a = start;
     for (const c of children.get(v)) {
       const span = (end - start) * leafCount.get(c) / leafCount.get(v);
-      depth.set(c, depth.get(v) + Math.max(0.05, Number(state.edges[edgeOf.get(c)].length) || 0.05));
+      depth.set(c, depth.get(v) + Math.max(0.05, Number(edges[edgeOf.get(c)].length) || 0.05));
       assign(c, a, a + span);
       a += span;
     }
@@ -461,7 +465,7 @@ function autoLayout(info, width, height) {
   assign(root, -Math.PI / 2, 1.5 * Math.PI);
 
   const raw = new Map(order.map((v) => [v, [depth.get(v) * Math.cos(angle.get(v)), depth.get(v) * Math.sin(angle.get(v))]]));
-  return fitLayout(alignToSheet(raw, sheetPoints(state.edges)), width, height);
+  return fitLayout(alignToSheet(raw, sheet), width, height);
 }
 
 /** Keep hand-placed vertices where they are; place new ones relative to a placed neighbour. */
@@ -609,7 +613,7 @@ function renderTreePreview() {
   }
 
   // The proposed stub (Add stubs node): a dashed edge out from its joint, away from the joint's other edges.
-  const stub = treeLocked() ? treeUi.stub : null;
+  const stub = stubbing() ? treeUi.stub : null;
   if (stub?.attach && px.has(stub.attach)) {
     const [ax, ay] = px.get(stub.attach);
     // Out through the widest gap between the joint's edges.
@@ -639,9 +643,9 @@ function renderTreePreview() {
     const leaf = info.adjacency.get(v).length === 1;
     const isDragged = dragging?.kind === "vertex" && dragging.v === v;
     const target = hover?.kind === "vertex" && hover.v === v;
-    const stubbing = treeUi.stub && treeLocked();
+    const choosingJoint = treeUi.stub && stubbing();
     const pickClass = picking ? (v === picking.from ? " pick-from" : leaf ? " pickable" : "")
-      : stubbing && !leaf ? (v === treeUi.stub.attach ? " pick-from" : " pickable") : "";
+      : choosingJoint && !leaf ? (v === treeUi.stub.attach ? " pick-from" : " pickable") : "";
     const g = el("g", { class: "vertex-group" + (isDragged ? " dragged" : "") + (target ? " target" : "") + pickClass, "data-vertex": v });
     g.append(
       el("circle", { cx: x, cy: y, r: HIT_VERTEX, class: "vertex-hit" }),
