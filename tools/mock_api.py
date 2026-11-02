@@ -138,6 +138,9 @@ class H(SimpleHTTPRequestHandler):
         parts = self.path.split("/")
         try:
             if self.path == "/api/cancel": return self.send_json(dict(cancelled=False))
+            if self.path == "/api/cp/fold":   # the real algorithm's Python twin (tools/cp_fold.py)
+                import cp_fold
+                return self.send_json(cp_fold.fold(body.get("lines") or [], tolerance_degrees=body.get("toleranceDegrees")))
             if len(parts) == 4 and parts[2] in ("pure","optimized","scalable"):
                 api, op = parts[2], parts[3]
                 if op == "analyze": return self.send_json(analyze(api, body))

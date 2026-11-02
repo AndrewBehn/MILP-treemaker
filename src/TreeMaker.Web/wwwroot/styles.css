@@ -1522,3 +1522,45 @@ details > summary .muted { font-weight: 400; }
 .config-run[hidden] { display: none; }
 .final-config > .config-run { grid-column: 1 / -1; }
 .next-move > button { align-self: flex-start; margin-left: 0; }
+
+/* ───────────── The crease-pattern page (cp.html): a side tool ───────────── */
+body[data-page="cp"] { background: var(--mat); color: var(--mat-ink); min-height: 100vh; }
+.cp-page { max-width: 1440px; margin: 0 auto; padding: 24px 28px 56px; }
+.cp-intro h1 { margin: 0 0 6px; font-size: 24px; font-weight: 760; font-stretch: 118%; color: #fff; }
+.cp-intro p { max-width: 900px; margin: 0 0 18px; color: var(--mat-ink-soft); line-height: 1.5; }
+.cp-grid { display: grid; grid-template-columns: minmax(260px, 0.8fr) minmax(320px, 1.1fr) minmax(320px, 1.1fr); gap: 16px; align-items: start; }
+@media (max-width: 1100px) { .cp-grid { grid-template-columns: 1fr; } }
+.cp-panel { background: var(--panel); color: var(--ink); border-radius: 8px; padding: 14px 16px; }
+.cp-panel h2 { margin: 0 0 10px; font-size: 15px; }
+.cp-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.cp-drop { display: block; border: 1.5px dashed #b9beb7; border-radius: 8px; padding: 18px 14px; text-align: center; cursor: pointer; background: var(--paper); font-size: 13px; }
+.cp-drop.over, .cp-drop:hover { border-color: var(--beni); }
+.cp-drop input { display: block; margin: 0 auto 8px; }
+.cp-options { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-top: 10px; font-size: 13px; }
+.cp-options input[type="number"] { width: 64px; height: 28px; }
+.cp-how { margin-top: 10px; font-size: 13px; }
+.cp-how p { margin: 6px 0 0; line-height: 1.45; }
+.cp-view { background: #fff; border: 1px solid #d9ddd6; border-radius: 6px; margin-bottom: 10px; }
+.cp-view svg { display: block; width: 100%; aspect-ratio: 1; }
+.cp-line { stroke-width: 0.004; stroke-linecap: round; }
+.cp-line.k-M { stroke: #c2304a; }
+.cp-line.k-V { stroke: #1f4e8c; stroke-dasharray: 0.02 0.01; }
+.cp-line.k-U { stroke: #333; }
+.cp-line.k-F { stroke: #9aa39c; stroke-dasharray: 0.006 0.008; }
+.cp-line.k-B { stroke: #111; stroke-width: 0.006; }
+.cp-hit { stroke: transparent; stroke-width: 0.02; cursor: pointer; }
+.cp-hit:hover { stroke: rgba(255, 128, 149, .35); }
+.cp-bad { fill: none; stroke: #e0475e; stroke-width: 0.006; }
+.cp-face { fill: rgba(222, 120, 140, .16); stroke: rgba(80, 20, 30, .55); }
+.cp-face.back { fill: rgba(40, 110, 160, .14); }
+.cp-legend { font-size: 12px; color: var(--ink-soft); display: inline-flex; align-items: center; gap: 4px 6px; flex-wrap: wrap; }
+.cp-legend i { display: inline-block; width: 18px; height: 0; border-top: 2px solid; margin-left: 6px; }
+.cp-legend .lg-m { border-color: #c2304a; } .cp-legend .lg-v { border-color: #1f4e8c; border-top-style: dashed; }
+.cp-legend .lg-u { border-color: #333; } .cp-legend .lg-f { border-color: #9aa39c; border-top-style: dotted; } .cp-legend .lg-b { border-color: #111; border-top-width: 3px; }
+.cp-verdict { font-weight: 700; margin: 4px 0; }
+.cp-verdict.good { color: #1d6a45; } .cp-verdict.bad { color: #b3263c; }
+.cp-messages { margin: 4px 0 8px; padding-left: 18px; font-size: 13px; }
+.btn-note.bad { color: #b3263c; }
+
+/* The map's side tool link. */
+.map-side { display: inline-flex; align-items: center; gap: 6px; }

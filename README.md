@@ -233,6 +233,20 @@ Not yet built: the mountain and valley assignment (which way each crease folds) 
 
 Whether a layout can be closed with small strains depends on which optimal layout the solver returns. Two layouts of the running example with the same m* need up to ±0.3 and ±0.5. Letting the leaves move while closing the polygons, which is a strain MILP with equality rows, would be the next improvement.
 
+
+### Fold a crease pattern (a side tool)
+
+**Fold a crease pattern ↗** on the map opens `cp.html` in its own tab. It runs in the same app process but shares nothing with the session and keeps nothing between visits. It folds any crease pattern flat with `CreasePatternFold` in `src/TreeMaker.Core` (`POST /api/cp/fold`). This is not the tree method's builder: it only reads lines.
+
+1. **Open** an `.svg`, a `.fold` file or an image (`.png`, `.jpg`).
+   - SVG: lines, polylines, polygons, rects and straight paths, through their transforms. Red strokes are mountains and blue strokes valleys. Strokes on the outline are the border, and the others are creases with no mountain or valley given.
+   - FOLD: `edges_assignment` M, V, B, F and U.
+   - Images are traced. The pixels are sorted into red, blue and dark, and a Hough transform finds the straight lines in each colour. Then the ends are joined: lines within 2° of a multiple of 22.5° are turned onto it, close ends merge, and ends snap to the coarsest grid they all sit on (or the N you give), or else onto the lines they nearly touch.
+2. **Check the lines.** Click a line to change it: mountain → valley → unassigned → flat → removed.
+3. **Fold.** From the face under the centre, every crease is crossed by reflecting across it, which gives every face's folded position. A face reached two ways with different maps means the pattern doesn't fold flat. Every inner vertex is checked against Kawasaki's theorem, and, when every crease there is mountain or valley, Maekawa's. Traced patterns are judged with an angle tolerance (1° by default). The folded faces are drawn see-through; layer order is not worked out.
+
+`tools/cp_fold.py` is the algorithm's Python twin, which the mock API serves. `node tools/ui_cp.js <port>` checks the page against it.
+
 ## Presets
 
 **Load a preset** lists the same trees in every solver.

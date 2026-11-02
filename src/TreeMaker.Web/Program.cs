@@ -8,6 +8,7 @@ using TreeMaker.Web;
 //   /api/optimized/*   lattice hulls and bisection (Optimized MILP; Lattice-Hull MILP with symmetry breaking off)
 //   /api/scalable/*    the four-stage pipeline (Scalable MILP)
 //   /api/polygons, /api/complete, /api/strain-needed, /api/creases   the steps after any solver
+//   /api/cp/fold       the crease-pattern page: fold any crease pattern flat
 var builder = WebApplication.CreateBuilder(args);
 
 // Without launch settings or ASPNETCORE_URLS, listen on a fixed local port.
@@ -56,6 +57,8 @@ TreeMaker.Web.Pure.PureEndpoints.Map(api.MapGroup("/pure"));
 TreeMaker.Web.Optimized.OptimizedEndpoints.Map(api.MapGroup("/optimized"));
 TreeMaker.Web.Scalable.ScalableEndpoints.Map(api.MapGroup("/scalable"));
 StepEndpoints.Map(api);
+// A side tool: fold any crease pattern from a file or an image (cp.html).
+CreasePatternEndpoints.Map(api.MapGroup("/cp"));
 
 app.Lifetime.ApplicationStarted.Register(() =>
 {
