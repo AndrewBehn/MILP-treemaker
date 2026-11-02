@@ -1486,3 +1486,7 @@ details[open] > summary::before { transform: rotate(90deg); }
 .close-way button { white-space: nowrap; }
 .next-solver-row { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 650; }
 .next-solver-row select { width: auto; min-width: 200px; height: 30px; }
+.strain-run { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 10px; font-size: 12.5px; }
+.strain-run input { width: 64px; }
+.strain-progress { font-weight: 650; color: var(--beni); }
+.strain-progress:empty { display: none; }

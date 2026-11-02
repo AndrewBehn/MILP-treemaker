@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=20261102k">
+  <link rel="stylesheet" href="styles.css?v=20261102l">
 </head>
 <body data-view="map">
   <!-- ───────────── Top bar: the way back to the map, and where you are ───────────── -->
@@ -280,6 +280,11 @@
                 <button id="docBounds" type="button" class="quiet small ">Strain within these bounds</button>
                 <p class="btn-note">Makes as many pairs tight as these bounds allow, hull sides first. Some polygons may stay open. <span class="ref" data-doc="closing">A:2</span></p>
               </div>
+            </div>
+            <div class="strain-run">
+              <label class="inline-field" title="Each closing solve is a MILP; on big trees the search makes several, so each is given this long">Time limit per closing solve (s) <input id="docStrainLimit" type="number" min="1" step="1" value="20"></label>
+              <span id="strainProgress" class="strain-progress" aria-live="polite"></span>
+              <button id="strainCancel" type="button" class="quiet small" hidden>Cancel</button>
             </div>
                 </section>
       <section class="block move-block stub-block" data-nodes="stubs">
@@ -564,18 +569,18 @@
 
   <input id="fileInput" type="file" accept=".json,application/json" hidden>
 
-  <script src="nodes.js?v=20261102k"></script>
-  <script src="workbench.js?v=20261102k"></script>
-  <script src="tree-editor.js?v=20261102k"></script>
-  <script src="polygons.js?v=20261102k"></script>
-  <script src="stubs.js?v=20261102k"></script>
-  <script src="workflow.js?v=20261102k"></script>
-  <script src="linked.js?v=20261102k"></script>
-  <script src="folded.js?v=20261102k"></script>
-  <script src="files.js?v=20261102k"></script>
-  <script src="solvers.js?v=20261102k"></script>
-  <script src="map.js?v=20261102k"></script>
-  <script src="specs.js?v=20261102k"></script>
-  <script src="app.js?v=20261102k"></script>
+  <script src="nodes.js?v=20261102l"></script>
+  <script src="workbench.js?v=20261102l"></script>
+  <script src="tree-editor.js?v=20261102l"></script>
+  <script src="polygons.js?v=20261102l"></script>
+  <script src="stubs.js?v=20261102l"></script>
+  <script src="workflow.js?v=20261102l"></script>
+  <script src="linked.js?v=20261102l"></script>
+  <script src="folded.js?v=20261102l"></script>
+  <script src="files.js?v=20261102l"></script>
+  <script src="solvers.js?v=20261102l"></script>
+  <script src="map.js?v=20261102l"></script>
+  <script src="specs.js?v=20261102l"></script>
+  <script src="app.js?v=20261102l"></script>
 </body>
 </html>
