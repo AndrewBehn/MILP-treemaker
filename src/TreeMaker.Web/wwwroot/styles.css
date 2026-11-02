@@ -1435,3 +1435,5 @@ body:not([data-node="tree"]) .duo-tree .edge-table { display: none; }
 .stub-option span { color: var(--ink-soft); font-size: 12px; }
 .stub-option[aria-pressed="true"] { border-color: var(--beni); box-shadow: inset 3px 0 0 var(--beni); }
 .stub-block .stub-actions { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; }
+.stub-block .stub-count { min-height: 1.5em; }
+.stub-block .stub-actions { margin: 6px 0 4px; }

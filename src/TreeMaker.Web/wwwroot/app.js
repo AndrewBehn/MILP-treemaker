@@ -949,11 +949,6 @@ async function showStep(node) {
   }
 }
 
-/** Close the polygons, Crease pattern and Folded base share one page; each scrolls to its own part of it. */
-function scrollToStep(id) {
-  const target = { fold: $("foldCard") }[id];
-  if (target && !target.closest("[hidden]")) target.scrollIntoView({ behavior: "smooth", block: "start" });
-}
 
 function renderHeldMetrics(held, v) {
   const from = NODES[held.node]?.title ?? (held.node === "file" ? "Layout file" : held.node);
@@ -1192,7 +1187,7 @@ async function init() {
     state.edges.push({ from: "", to: "", length: 1, stretch: false });
     renderEdges();
     const inputs = $("edgeRows").querySelectorAll("input[type=text]");
-    inputs[inputs.length - 2]?.focus();
+    inputs[inputs.length - 2]?.focus({ preventScroll: true });
   });
   $("addLeaf").addEventListener("click", () => {
     const info = treeInfo(state.edges);

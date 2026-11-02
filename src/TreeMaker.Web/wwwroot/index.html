@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=20261102g">
+  <link rel="stylesheet" href="styles.css?v=20261102h">
 </head>
 <body data-view="map">
   <!-- ───────────── Top bar: the way back to the map, and where you are ───────────── -->
@@ -286,9 +286,6 @@
         <h2>Add stubs</h2>
         <p class="btn-note">A stub is a short new flap whose leaf sits inside an open polygon, on a grid point where every pair still fits. The best are tight, or nearly, to three leaves around them, so they split the polygon. Pick a region and a proposal, or click the sheet or a joint on the tree. <span class="ref" data-doc="closing">Section 10</span></p>
         <p id="stubCount" class="stub-count"></p>
-        <p id="stubState" class="stub-state"></p>
-        <div id="stubRegions" class="stub-regions"></div>
-        <div id="stubFacts" class="stub-options"></div>
         <div class="stub-actions">
           <button id="addStub" type="button" class="primary small-primary" disabled>Add this stub</button>
           <button id="stubEvery" type="button" class="quiet small" title="Adds the best stub that splits a polygon, checks the polygons again, and repeats while one does (up to six)">Add the best stub to each open region</button>
@@ -296,6 +293,9 @@
           <button id="bestStub" type="button" class="quiet small" hidden>Best stub here</button>
           <span id="stubName" hidden></span>
         </div>
+        <p id="stubState" class="stub-state"></p>
+        <div id="stubRegions" class="stub-regions"></div>
+        <div id="stubFacts" class="stub-options"></div>
       </section>
       <section class="block move-block" data-nodes="creases">
         <h2>Build the crease pattern</h2>
@@ -556,18 +556,18 @@
 
   <input id="fileInput" type="file" accept=".json,application/json" hidden>
 
-  <script src="nodes.js?v=20261102g"></script>
-  <script src="workbench.js?v=20261102g"></script>
-  <script src="tree-editor.js?v=20261102g"></script>
-  <script src="polygons.js?v=20261102g"></script>
-  <script src="stubs.js?v=20261102g"></script>
-  <script src="workflow.js?v=20261102g"></script>
-  <script src="linked.js?v=20261102g"></script>
-  <script src="folded.js?v=20261102g"></script>
-  <script src="files.js?v=20261102g"></script>
-  <script src="solvers.js?v=20261102g"></script>
-  <script src="map.js?v=20261102g"></script>
-  <script src="specs.js?v=20261102g"></script>
-  <script src="app.js?v=20261102g"></script>
+  <script src="nodes.js?v=20261102h"></script>
+  <script src="workbench.js?v=20261102h"></script>
+  <script src="tree-editor.js?v=20261102h"></script>
+  <script src="polygons.js?v=20261102h"></script>
+  <script src="stubs.js?v=20261102h"></script>
+  <script src="workflow.js?v=20261102h"></script>
+  <script src="linked.js?v=20261102h"></script>
+  <script src="folded.js?v=20261102h"></script>
+  <script src="files.js?v=20261102h"></script>
+  <script src="solvers.js?v=20261102h"></script>
+  <script src="map.js?v=20261102h"></script>
+  <script src="specs.js?v=20261102h"></script>
+  <script src="app.js?v=20261102h"></script>
 </body>
 </html>

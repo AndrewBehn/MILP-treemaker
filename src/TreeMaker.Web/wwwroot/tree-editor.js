@@ -197,7 +197,7 @@ function openLeafMenu(leaf) {
   const top = Math.min(Math.max(spot.minY + 4, spot.y - h / 2), spot.maxY - h - 4);
   menu.style.left = `${left}px`;
   menu.style.top = `${top}px`;
-  (menu.querySelector("[aria-pressed=true]") ?? menu.querySelector("button"))?.focus();
+  (menu.querySelector("[aria-pressed=true]") ?? menu.querySelector("button"))?.focus({ preventScroll: true });
 }
 
 const HIT_VERTEX = 18;
@@ -997,13 +997,13 @@ function inlineEdit(x, y, value, onCommit, { numeric = false, label = "" } = {})
   const openedAt = performance.now();
   input.addEventListener("blur", () => {
     if (performance.now() - openedAt < 450) {
-      setTimeout(() => { if (!done) { input.focus(); input.select(); } }, 0);
+      setTimeout(() => { if (!done) { input.focus({ preventScroll: true }); input.select(); } }, 0);
       return;
     }
     finish(true);
   });
   stage.append(input);
-  input.focus();
+  input.focus({ preventScroll: true });
   input.select();
 }
 
