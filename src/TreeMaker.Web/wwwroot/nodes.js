@@ -9,12 +9,12 @@
  * parents. The docs page draws this tree; the map draws the workflow instead.
  */
 const DOCS = {
-  sheet: { title: "TreeMaker foundations: the tree, the sheet and spacing", short: "sheet", group: "foundations", url: "" },
-  offsets: { title: "TreeMaker foundations: grid offsets", short: "offsets", group: "foundations", url: "" },
-  conditions: { title: "TreeMaker foundations: leaf conditions and symmetry", short: "conditions", group: "foundations", url: "" },
-  hulls: { title: "TreeMaker foundations: lattice hulls and leaf windows", short: "hulls", group: "foundations", url: "" },
-  strain: { title: "TreeMaker foundations: strain", short: "strain", group: "foundations", url: "" },
-  polygons: { title: "TreeMaker foundations: tight pairs and polygons", short: "polygons", group: "foundations", url: "" },
+  sheet: { title: "TreeMaker foundations: the tree, the sheet and spacing", short: "sheet", group: "foundations", url: "https://claude.ai/artifact/Wkj6BjP3fGNPKLv3p3zW3C" },
+  offsets: { title: "TreeMaker foundations: grid offsets", short: "offsets", group: "foundations", url: "https://claude.ai/artifact/DLXohGDzg22AYwjJeHyYem" },
+  conditions: { title: "TreeMaker foundations: leaf conditions and symmetry", short: "conditions", group: "foundations", url: "https://claude.ai/artifact/3WP1SahWDm9pb5hs8Mhwp7" },
+  hulls: { title: "TreeMaker foundations: lattice hulls and leaf windows", short: "hulls", group: "foundations", url: "https://claude.ai/artifact/FxaVEDwfoA6pXYs4aMUwLk" },
+  strain: { title: "TreeMaker foundations: strain", short: "strain", group: "foundations", url: "https://claude.ai/artifact/Xr8Sus42zxf1wu68c1BMWt" },
+  polygons: { title: "TreeMaker foundations: tight pairs and polygons", short: "polygons", group: "foundations", url: "https://claude.ai/artifact/TdJgMS7ZgBLRCvMBdGYGMY" },
   pure: { title: "Pure MILP TreeMaker", short: "base", group: "solvers", url: "https://claude.ai/artifact/1L1y2Ey5CzUT8AzfJ2sev4" },
   sym: { title: "Symmetry-Breaking MILP TreeMaker", short: "symmetry-breaking", group: "solvers", parent: "pure", url: "https://claude.ai/artifact/4bhD37EK1NQy66fV4zhTaN" },
   hull: { title: "Lattice-Hull MILP TreeMaker", short: "lattice-hull", group: "solvers", url: "https://claude.ai/artifact/NwmqiYzpRCSneZiobahka6" },

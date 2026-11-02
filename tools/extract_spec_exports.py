@@ -32,6 +32,13 @@ SPECS = {
     "Scalable MILP TreeMaker": ("scalable", "https://claude.ai/artifact/Qz1WL7RZDpnMwKYdVT2G29"),
     "Polygon Closing TreeMaker": ("closing", "https://claude.ai/artifact/FtbYLxEKTVszvyrLtcniK4"),
     "Crease Pattern TreeMaker": ("crease", "https://claude.ai/artifact/1B22HTcwzUwAjaMqyfdTXp"),
+    # The foundations (docs/DOC-TREE.md).
+    "TreeMaker foundations: the tree, the sheet and spacing": ("sheet", "https://claude.ai/artifact/Wkj6BjP3fGNPKLv3p3zW3C"),
+    "TreeMaker foundations: grid offsets": ("offsets", "https://claude.ai/artifact/DLXohGDzg22AYwjJeHyYem"),
+    "TreeMaker foundations: leaf conditions and symmetry": ("conditions", "https://claude.ai/artifact/3WP1SahWDm9pb5hs8Mhwp7"),
+    "TreeMaker foundations: lattice hulls and leaf windows": ("hulls", "https://claude.ai/artifact/FxaVEDwfoA6pXYs4aMUwLk"),
+    "TreeMaker foundations: strain": ("strain", "https://claude.ai/artifact/Xr8Sus42zxf1wu68c1BMWt"),
+    "TreeMaker foundations: tight pairs and polygons": ("polygons", "https://claude.ai/artifact/TdJgMS7ZgBLRCvMBdGYGMY"),
 }
 
 
@@ -106,6 +113,8 @@ def _exports_in_file(path, start):
 TABS = {
     "a3a74054-0357": "pure", "fa0cae2e-1113": "sym", "7ffee6c7-7758": "hull", "c4592889-1f69": "optimized",
     "d64e2319-db8f": "scalable", "c45537c5-97f5": "closing", "6a9c70bb-7945": "crease",
+    "7b8bf7ce-7924": "sheet", "069f4cc8-543d": "offsets", "86010a5e-2237": "conditions", "230caaa8-90ad": "hulls",
+    "3bbea88a-7fdc": "strain", "d784c8ef-4f31": "polygons",
 }
 
 
