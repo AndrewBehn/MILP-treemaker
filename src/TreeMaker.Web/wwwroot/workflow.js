@@ -204,7 +204,13 @@ const workflowDoc = (() => {
    */
   function progressOf(step) {
     if (!step?.output) return { kind: "pending", text: "Not run yet." };
-    if (step.kind === "tree") return { kind: "progress", text: "The tree is ready to solve." };
+    if (step.kind === "tree") {
+      const edges = step.output.problem.edges;
+      const info = treeInfo(edges);
+      return info.leaves.length >= 2 && info.vertices.length === edges.length + 1
+        ? { kind: "progress", text: "The tree is ready to solve." }
+        : { kind: "none", text: "Draw a tree first: at least two leaves, connected, with one more vertex than edges." };
+    }
     if (step.kind === "creases") return step.output.creases?.result?.built ? { kind: "progress", text: `Crease pattern built: ${step.output.creases.result.creases.length} creases.` } : { kind: "none", text: "No crease pattern was built." };
     if (step.kind === "close" && !step.output.closure?.completion?.after) {
       return { kind: "none", text: "No strain within these bounds keeps every pair feasible, so nothing changed. Widen the bounds or find the smallest strain, add stubs instead, or go back." };
@@ -495,6 +501,7 @@ const workflowDoc = (() => {
     const f = last();
     q("finalNo").textContent = String(n);
     q("finalStep").dataset.kind = f.kind;
+    q("outputLabel").textContent = f.kind === "tree" ? "The tree: draw it, pin and mirror its leaves" : "Output";
     q("finalStep").dataset.progress = running ? "pending" : progressOf(f).kind;
     q("finalInput").replaceChildren(...(f.input ? [widget(f.input, null, "Input")] : []));
     renderFinalNotes();
@@ -518,22 +525,51 @@ const workflowDoc = (() => {
     }
   }
 
+  /**
+   * The step cards beside the document: one per step, with its number, title, what it did and a small sheet. They
+   * stay in view while the page scrolls; the card of the step on screen is outlined, and a click scrolls to it.
+   */
   function renderOutline() {
     const ol = q("docOutline");
     ol.replaceChildren(...doc.steps.map((step, k) => {
       const live = k === doc.steps.length - 1;
       const pr = progressOf(step);
-      const li = h("li", (live ? "current " : "") + (step.output?.report?.valid || step.kind === "creases" ? "valid" : step.output ? "open" : "pending"));
+      const li = h("li", "step-card" + (live ? " current" : ""));
       li.dataset.progress = pr.kind;
+      li.dataset.target = live ? "finalStep" : "doc-step-" + k;
+      const a = h("a");
+      a.href = "#" + li.dataset.target;
+      const body = h("span", "sc-body");
       const mark = { progress: "▲", worse: "▼", none: "■", neutral: "●", pending: "○" }[pr.kind];
-      const a = h("a", "", `${mark} ${k + 1}. ${stepTitle(step)}${live ? (step.output ? " (live)" : " (not run yet)") : ""}`);
+      body.append(h("span", "sc-kicker", `${mark} Step ${k + 1}${live ? (step.output ? " · live" : " · not run yet") : ""}`), h("b", "sc-title", stepTitle(step)),
+        h("span", "sc-text", pr.text.length > 110 ? pr.text.slice(0, 108).replace(/[;,]?\s+\S*$/, "") + "…" : pr.text));
+      a.append(body);
+      const s0 = step.output ?? step.input;
+      if (s0?.layout) { const t = sheetDrawing(s0, null); t.classList.add("sc-thumb"); a.append(t); }
       a.title = pr.text;
-      a.href = "#" + (live ? "finalStep" : "doc-step-" + k);
-      a.addEventListener("click", (e) => { e.preventDefault(); q(live ? "finalStep" : "doc-step-" + k)?.scrollIntoView({ behavior: "smooth", block: "start" }); });
+      a.addEventListener("click", (e) => { e.preventDefault(); q(li.dataset.target)?.scrollIntoView({ behavior: "smooth", block: "start" }); });
       li.append(a);
       return li;
     }));
+    if (running) ol.append(h("li", "step-card running", `Step ${doc.steps.length}: ${running.progress ?? "running"}…`));
+    watchSteps();
   }
+
+  /** Outlines the card of the step that fills most of the screen. */
+  let spy = null;
+  function watchSteps() {
+    spy?.disconnect();
+    if (!("IntersectionObserver" in window)) return;
+    const seen = new Map();
+    spy = new IntersectionObserver((entries) => {
+      for (const e of entries) seen.set(e.target.id, e.intersectionRatio * e.boundingClientRect.height);
+      let best = null, most = 0;
+      for (const [id, v] of seen) if (v > most) { most = v; best = id; }
+      for (const card of q("docOutline").children) card.classList.toggle("in-view", card.dataset.target === best);
+    }, { threshold: [0, 0.1, 0.25, 0.5, 0.75, 1] });
+    for (const el of [...q("docSteps").children, q("finalStep")]) if (el.id) spy.observe(el);
+  }
+
 
   /** The next moves, from the live step's kind and output. */
   function renderNext() {
@@ -546,7 +582,12 @@ const workflowDoc = (() => {
     box.replaceChildren();
     if (running) { q("nextIntro").textContent = "Wait for this step to finish, or cancel it."; return; }
     if (!f.output) { q("nextIntro").textContent = `Run step ${doc.steps.length} first: its output is what the next step starts from.`; return; }
-    if (progressOf(f).kind === "none") { q("nextIntro").textContent = `Step ${doc.steps.length} made no progress, so there is nothing new to build on. Change its settings and run it again, or go back to an earlier step.`; return; }
+    if (progressOf(f).kind === "none") {
+      q("pickCard").hidden = true;
+      q("nextIntro").textContent = f.kind === "tree" ? progressOf(f).text
+        : `Step ${doc.steps.length} made no progress, so there is nothing new to build on. Change its settings and run it again, or go back to an earlier step.`;
+      return;
+    }
     if (f.kind === "creases") {
       q("nextIntro").textContent = "The crease pattern is built: the end of this path. Go back to an earlier step to try another.";
       return;
@@ -617,6 +658,17 @@ const workflowDoc = (() => {
     commit(f.output ?? f.input);
     setStatus(`Back at step ${k + 1}; ${dropped} later step${dropped === 1 ? " was" : "s were"} dropped.`);
     go(f.node, true);
+  }
+
+  /**
+   * Redraws the page without losing your place: the page is rebuilt (and briefly shorter while the sheet is
+   * redrawn), so the scroll position is put back as the content returns.
+   */
+  function stayInPlace(redraw) {
+    const y = window.scrollY;
+    state.keepScroll = true;
+    try { redraw(); } finally { state.keepScroll = false; }
+    for (const t of [0, 120, 400, 900]) setTimeout(() => window.scrollTo(0, y), t);
   }
 
   /** Shows the session at its live step (enterNode runs that step's part of the app), then scrolls to it. */
@@ -717,7 +769,7 @@ const workflowDoc = (() => {
         commit(f.output);
         clearInterval(running.ticker);
         running = null;
-        go(f.node, false);
+        stayInPlace(() => go(f.node, false));
         return;
       }
     } catch (e) {
@@ -781,6 +833,26 @@ const workflowDoc = (() => {
     });
   }
 
+  /** Adds the best stub that splits a polygon, checks again, and repeats while one does (at most six). */
+  async function stubEveryRegion() {
+    const f = last();
+    if (f.kind !== "stub" || running) return;
+    let added = 0;
+    for (; added < 6; added++) {
+      const now = last().output ?? last().input;
+      const c = stubTool.bestAnywhere({ ...now.layout, problem: now.problem, gridSize: now.problem.gridSize, edgeLengths: lengthsOf(now) }, now.report);
+      if (!c) break;
+      const count = (r) => [(r?.polygons ?? []).length, (r?.polygons ?? []).filter((p) => p.valid).length];
+      const [n0, v0] = count(now.report);
+      await addStub(c);
+      const [n1, v1] = count(last().output?.report);
+      // A stub that neither split a polygon nor made one valid is not worth keeping: take it out and stop.
+      if (n1 <= n0 && v1 <= v0) { removeStub(); break; }
+      if (last().output?.report?.valid) { added++; break; }
+    }
+    setStatus(added ? `Added ${added} stub${added === 1 ? "" : "s"}, each the best that split a polygon at the time; stopped when the next would not.` : "No stub splits an open polygon here: straining the edges, or solving again, is the way on.");
+  }
+
   /** Takes the last stub out of the live stub step again. */
   function removeStub() {
     const f = last();
@@ -793,7 +865,7 @@ const workflowDoc = (() => {
     f.notes = stubs.length ? [`${stubs.length} stub${stubs.length === 1 ? "" : "s"} in this step.`] : [];
     save();
     commit(f.output ?? f.input);
-    go(f.node, false);
+    stayInPlace(() => go(f.node, false));
   }
 
   function runCreases() {
@@ -842,6 +914,7 @@ const workflowDoc = (() => {
 
   /** A layout file: a new session, its tree as step 1 and the opened layout as step 2 (live). */
   async function startFromLayout(problem, layout, name) {
+    resetControls();
     const tree = emptyState(problem);
     const out = { ...emptyState(problem), layout: { node: "scalable", points: clone(layout.points), scale: layout.scale, edgeLengths: layout.edgeLengths ?? null, status: layout.status ?? "Imported" } };
     doc.name = "";
@@ -870,6 +943,7 @@ const workflowDoc = (() => {
   function openFile(data, fileName) {
     if (!Array.isArray(data.steps) || !data.steps.length) throw new Error(`${fileName} has no steps.`);
     const d = data.version === 1 ? migrate(data) : data;
+    resetControls();
     doc.name = d.name ?? fileName.replace(/\.json$/i, "");
     doc.steps = d.steps;
     save();
@@ -878,15 +952,40 @@ const workflowDoc = (() => {
     go(f.node, true);
   }
 
-  /** A new session from the tree of step 1. */
+  // ───── Each document stands alone ─────
+
+  /** The settings controls as the page loads them: a new or opened document starts from these, not from another's. */
+  let defaults = null;
+  function captureDefaults() {
+    defaults = [...document.querySelectorAll(".final-config input, .final-config select")].map((el) => [el, el.type === "checkbox" || el.type === "radio" ? el.checked : el.value]);
+  }
+  function resetControls() {
+    for (const [el, v] of defaults ?? []) {
+      if (el.type === "checkbox" || el.type === "radio") el.checked = v; else el.value = v;
+    }
+    for (const el of document.querySelectorAll(".final-config [data-touched]")) delete el.dataset.touched;
+    if (typeof resetTreeLayout === "function") resetTreeLayout();
+    treeUi.handPlaced = false;
+  }
+
+  /** On load: the kept document's live step goes back on the page. */
+  function restore() {
+    const f = last();
+    commit(f.output ?? f.input);
+  }
+
+  /** A new, empty session: an empty tree, default settings, nothing from the document before. */
   function startOver() {
     if (running) return;
-    const tree = doc.steps[0]?.output?.problem ?? buildProblem();
+    resetControls();
+    const blank = { edges: [], gridSize: Number(defaults?.find(([el]) => el.id === "gridSize")?.[1]) || 9, leafConditions: [], mirrorPairs: [] };
     doc.name = "";
-    doc.steps = [{ kind: "tree", node: "tree", title: "", params: {}, input: null, output: emptyState(tree), notes: [] }];
+    doc.steps = [{ kind: "tree", node: "tree", title: "", params: {}, input: null, output: emptyState(blank), notes: [] }];
     save();
-    commit(last().output);
+    applyProblem(blank);
+    workbench.setLayout(null);
     go("tree", true);
+    setStatus("A new session: draw a tree, load a preset or open a file.");
   }
 
   function init() {
@@ -899,6 +998,7 @@ const workflowDoc = (() => {
     q("docBounds").addEventListener("click", () => runClose(false));
     q("docBuild").addEventListener("click", runCreases);
     q("removeStub").addEventListener("click", removeStub);
+    q("stubEvery").addEventListener("click", stubEveryRegion);
     q("docPleatOn").addEventListener("change", () => { q("docPleatHeight").disabled = !q("docPleatOn").checked; });
     q("docSave").addEventListener("click", saveFile);
     q("docNew").addEventListener("click", startOver);
@@ -907,7 +1007,7 @@ const workflowDoc = (() => {
   }
 
   return {
-    init, render, navigate, prepareLive, treeEdited, adjustRequest, solved, startFromLayout, openFile, startOver,
+    init, render, navigate, captureDefaults, restore, prepareLive, treeEdited, adjustRequest, solved, startFromLayout, openFile, startOver,
     get steps() { return doc.steps; }, get running() { return !!running; }, last, current,
   };
 })();

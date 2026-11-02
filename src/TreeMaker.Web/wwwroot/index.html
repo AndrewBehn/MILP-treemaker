@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=20261101z">
+  <link rel="stylesheet" href="styles.css?v=20261102g">
 </head>
 <body data-view="map">
   <!-- ───────────── Top bar: the way back to the map, and where you are ───────────── -->
@@ -103,27 +103,6 @@
         <div id="finalInput" class="final-input"></div>
         <div class="final-config">
           <h3 class="part">Settings</h3>
-      <section class="block" data-nodes="tree">
-        <h2>Tree details</h2>
-        <details class="edge-table">
-          <summary>Edit as a table</summary>
-          <table class="edges">
-            <thead><tr><th>From</th><th>To</th><th>Length ℓₑ</th><th><abbr title="Stretch set S, used by edge optimization">In S</abbr></th><th><span class="sr">Remove</span></th></tr></thead>
-            <tbody id="edgeRows"></tbody>
-          </table>
-          <div class="row gap-s add-row">
-            <button id="addEdge" class="quiet" type="button">Add edge</button>
-            <span class="divider" aria-hidden="true"></span>
-            <button id="addLeaf" class="quiet" type="button">Add leaf to</button>
-            <select id="leafParent" aria-label="Vertex the new leaf attaches to"></select>
-          </div>
-        </details>
-        <div class="fields grid-row">
-          <label class="field">Grid size N
-            <input id="gridSize" type="number" min="1" max="60" step="1" value="9">
-          </label>
-        </div>
-      </section>
 
       <!-- Base model settings: Pure MILP and Symmetry-Breaking MILP. -->
       <section class="block" data-nodes="pure sym">
@@ -272,23 +251,6 @@
         </details>
       </section>
 
-      <section class="block" data-nodes="tree">
-        <h2>Leaf conditions</h2>
-        <p class="hint">Pin leaves to an edge, a corner, the symmetry axis or a grid point, here or by clicking a leaf on the tree. <span class="ref" data-doc="pure">Sections 7.1–7.5</span></p>
-        <table class="conditions">
-          <thead><tr><th>Leaf</th><th>Condition</th><th>x</th><th>y</th></tr></thead>
-          <tbody id="conditionRows"></tbody>
-        </table>
-        <h3>Mirror pairs</h3>
-        <p class="hint">Book symmetry: x_a + x_b = N and y_a = y_b. <span class="ref" data-doc="pure">Section 7.3</span></p>
-        <div id="mirrorRows" class="mirror-list"></div>
-        <div class="row gap-s">
-          <select id="mirrorA" aria-label="First leaf"></select>
-          <span class="muted" aria-hidden="true">mirrors</span>
-          <select id="mirrorB" aria-label="Second leaf"></select>
-          <button id="addMirror" class="quiet" type="button">Add pair</button>
-        </div>
-      </section>
       <section id="whichBlock" class="block move-block" data-nodes="pure sym hull optimized scalable" hidden>
         <h2>Which leaves</h2>
             <fieldset class="which">
@@ -320,21 +282,21 @@
               </div>
             </div>
                 </section>
-      <section class="block move-block" data-nodes="stubs">
+      <section class="block move-block stub-block" data-nodes="stubs">
         <h2>Add stubs</h2>
-            <p class="btn-note">A stub is a new short leaf edge. Its leaf goes on a grid point inside an open polygon, as long as every pair still fits at this scale, so the tight paths to it split the polygon. Add as many as you like in this step: click inside an open region on the sheet, or a joint on the tree, then <b>Add this stub</b>. <span class="ref" data-doc="closing">Section 10</span></p>
-            <p id="stubCount" class="stub-count"></p>
-            <p id="stubState" class="stub-state"></p>
-            <div id="stubRegions" class="stub-regions"></div>
-            <div id="stubFacts" class="held-summary"></div>
-            <div class="stub-actions">
-              <button id="addStub" type="button" class="primary small-primary " disabled>Add this stub</button>
-              <p class="btn-note">Adds <b id="stubName">a new leaf</b> to the tree, hung from the joint shown, at the grid point shown, to this step. The scale doesn't change; the polygons are checked again, ready for the next stub.</p>
-              <button id="removeStub" type="button" class="quiet small" hidden>Remove the last stub</button>
-              <button id="bestStub" type="button" class="quiet small" disabled>Find the best stub here</button>
-              <p class="btn-note">Tries every joint and every free grid point in the region: the most leaves tight, then the longest stub.</p>
-            </div>
-                </section>
+        <p class="btn-note">A stub is a short new flap whose leaf sits inside an open polygon, on a grid point where every pair still fits. The best are tight, or nearly, to three leaves around them, so they split the polygon. Pick a region and a proposal, or click the sheet or a joint on the tree. <span class="ref" data-doc="closing">Section 10</span></p>
+        <p id="stubCount" class="stub-count"></p>
+        <p id="stubState" class="stub-state"></p>
+        <div id="stubRegions" class="stub-regions"></div>
+        <div id="stubFacts" class="stub-options"></div>
+        <div class="stub-actions">
+          <button id="addStub" type="button" class="primary small-primary" disabled>Add this stub</button>
+          <button id="stubEvery" type="button" class="quiet small" title="Adds the best stub that splits a polygon, checks the polygons again, and repeats while one does (up to six)">Add the best stub to each open region</button>
+          <button id="removeStub" type="button" class="quiet small" hidden>Remove the last stub</button>
+          <button id="bestStub" type="button" class="quiet small" hidden>Best stub here</button>
+          <span id="stubName" hidden></span>
+        </div>
+      </section>
       <section class="block move-block" data-nodes="creases">
         <h2>Build the crease pattern</h2>
             <div class="pleat-row">
@@ -364,7 +326,7 @@
       </section>
 
         <div class="final-output">
-          <h3 class="part">Output</h3>
+          <h3 id="outputLabel" class="part">Output</h3>
       <div class="stage-area" id="stageArea">
         <!-- One widget: the tree and the sheet side by side, sharing what is selected (linked.js). -->
         <div class="duo">
@@ -403,6 +365,7 @@
                 <span class="chip-label">Drag in</span>
                 <button type="button" class="drag-chip" data-chip="leaf" title="Drop on a vertex to add a leaf there, or on an edge to branch from its midpoint"><i class="dot leaf"></i>Leaf</button>
                 <button type="button" class="drag-chip" data-chip="joint" title="Drop on an edge to split it in two"><i class="dot"></i>Joint</button>
+                <label class="inline-field grid-n" title="The sheet is an N × N grid">Grid N <input id="gridSize" type="number" min="1" max="60" step="1" value="9"></label>
                 <span class="spacer"></span>
                 <label class="check small-check" title="A circle round each leaf, its radius in proportion to the leaf edge's length, as on the sheet"><input id="treeCircles" type="checkbox" checked> Leaf circles</label>
                 <button id="tidyTree" type="button" class="quiet small" title="Lay the tree out again automatically">Tidy</button>
@@ -411,6 +374,20 @@
               <svg id="treeView" class="tree-view" role="img" aria-label="Tree editor"></svg>
               <p id="treeHelp" class="tree-help">Drag vertices to move them, or onto another vertex to re-attach. Click a leaf to pin it to an edge, a corner or the axis, or to mirror it with another leaf. Click a length to edit it, double-click a vertex to rename it.</p>
               <div id="treeMessage" class="tree-message" role="status" hidden></div>
+              <p id="treeConditions" class="tree-conditions"></p>
+              <details class="edge-table">
+                <summary>Edit as a table</summary>
+                <table class="edges">
+                  <thead><tr><th>From</th><th>To</th><th>Length ℓₑ</th><th><abbr title="Stretch set S, used by edge optimization">In S</abbr></th><th><span class="sr">Remove</span></th></tr></thead>
+                  <tbody id="edgeRows"></tbody>
+                </table>
+                <div class="row gap-s add-row">
+                  <button id="addEdge" class="quiet" type="button">Add edge</button>
+                  <span class="divider" aria-hidden="true"></span>
+                  <button id="addLeaf" class="quiet" type="button">Add leaf to</button>
+                  <select id="leafParent" aria-label="Vertex the new leaf attaches to"></select>
+                </div>
+              </details>
               <section class="model-size" aria-live="polite" data-nodes="pure sym hull optimized scalable">
                 <h3>Model size <span id="sizeNote" class="muted">known before solving</span></h3>
                 <div id="sizeBreakdown" class="size-breakdown"></div>
@@ -579,18 +556,18 @@
 
   <input id="fileInput" type="file" accept=".json,application/json" hidden>
 
-  <script src="nodes.js?v=20261101z"></script>
-  <script src="workbench.js?v=20261101z"></script>
-  <script src="tree-editor.js?v=20261101z"></script>
-  <script src="polygons.js?v=20261101z"></script>
-  <script src="stubs.js?v=20261101z"></script>
-  <script src="workflow.js?v=20261101z"></script>
-  <script src="linked.js?v=20261101z"></script>
-  <script src="folded.js?v=20261101z"></script>
-  <script src="files.js?v=20261101z"></script>
-  <script src="solvers.js?v=20261101z"></script>
-  <script src="map.js?v=20261101z"></script>
-  <script src="specs.js?v=20261101z"></script>
-  <script src="app.js?v=20261101z"></script>
+  <script src="nodes.js?v=20261102g"></script>
+  <script src="workbench.js?v=20261102g"></script>
+  <script src="tree-editor.js?v=20261102g"></script>
+  <script src="polygons.js?v=20261102g"></script>
+  <script src="stubs.js?v=20261102g"></script>
+  <script src="workflow.js?v=20261102g"></script>
+  <script src="linked.js?v=20261102g"></script>
+  <script src="folded.js?v=20261102g"></script>
+  <script src="files.js?v=20261102g"></script>
+  <script src="solvers.js?v=20261102g"></script>
+  <script src="map.js?v=20261102g"></script>
+  <script src="specs.js?v=20261102g"></script>
+  <script src="app.js?v=20261102g"></script>
 </body>
 </html>

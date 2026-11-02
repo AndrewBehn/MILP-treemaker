@@ -1,30 +1,18 @@
-// The workbench: what carries over from one part of the app to the next.
+// Internal state for the drawing code: the session's live step (workflow.js) as the sheet, the polygon panel and the
+// folded base read it. It is not shown as such and not kept between visits: the session document is the only thing
+// the app keeps, and it puts its live step back here on load.
 //   tree     the tree in the editor (with grid size, leaf conditions and mirror pairs); every solver reads it
 //   layout   the last layout found or opened: which node made it, its problem, leaf points, scale and edge lengths
 //   closure  the last attempt to close that layout's polygons (the /api/complete answer and its strain bounds)
 //   creases  the last crease pattern built from it (the /api/creases answer)
 // A new result replaces its own slot and clears the slots after it, since they were made from the old one.
-// Everything is kept in localStorage, so the workbench survives a reload; a failed write only loses persistence.
 "use strict";
 
 const workbench = (() => {
-  const KEY = "treemaker.workbench.v1";
   const listeners = [];
-  let data = { tree: null, layout: null, closure: null, creases: null };
-
-  try {
-    const saved = JSON.parse(localStorage.getItem(KEY) ?? "null");
-    if (saved && typeof saved === "object") data = { ...data, ...saved };
-  } catch { /* private window or blocked storage: start empty */ }
-
-  function persist() {
-    try {
-      localStorage.setItem(KEY, JSON.stringify(data));
-    } catch {
-      // Too large (a big crease pattern) or blocked: keep everything but the crease pattern, then nothing.
-      try { localStorage.setItem(KEY, JSON.stringify({ ...data, creases: null })); } catch { /* in memory only */ }
-    }
-  }
+  const data = { tree: null, layout: null, closure: null, creases: null };
+  try { localStorage.removeItem("treemaker.workbench.v1"); } catch { /* nothing kept from earlier versions */ }
+  function persist() { /* memory only: the session document is what is kept */ }
 
   function emit(slot) {
     persist();

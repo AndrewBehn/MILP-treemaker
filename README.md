@@ -115,9 +115,9 @@ The work view is one document, **the session** (`workflow.js`). It runs from a t
 
   A live step with no progress, or one that made things worse, is framed in amber with a pulsing glow. A step with no progress offers no next move: change its settings and run it again, or go back. The sidebar outline carries the same marks.
 - **Go back to this step**, on any frozen step, makes it the live step again and drops the steps after it. It asks once to confirm.
-- **The sidebar outlines the session**, one line per step. From there, **Save the session** writes it whole (every step with its settings, input and output) as a `treemaker-session` file, version 2 ([docs/FILE-FORMATS.md](docs/FILE-FORMATS.md)). **Open…** reads a session, layout or tree file, and **New session** starts again from step 1's tree.
+- **Step cards** run down the side of the document, one per step. Each card has the step's number, title, progress mark, a line on what it did and a small sheet. They stay in view as you scroll, the card of the step on screen is outlined, and a click goes to that step. Above the cards, **Save the session** writes the whole session (every step with its settings, input and output) as a `treemaker-session` file, version 2 ([docs/FILE-FORMATS.md](docs/FILE-FORMATS.md)). **Open…** reads a session, layout or tree file, and **New session** starts an empty one.
 - **Opening a layout file** starts a new session: its tree as step 1 and the layout as step 2.
-- **Kept between visits.** The session is kept in the browser and survives a reload. The map shows it in short, with **Continue the session**.
+- **Only the session is kept.** The session document is the only thing the app keeps in the browser between visits, and it survives a reload. A new session starts empty, with default settings: it takes nothing from the previous one. An opened file starts afresh the same way. The map shows the session in short, with **Continue the session**.
 
 `workbench.js` still holds the live step's state for the drawing code (the sheet, the polygons, the folded base), but it is internal: there is no workbench in the interface.
 
@@ -134,6 +134,11 @@ The work view is one document, **the session** (`workflow.js`). It runs from a t
 | `tools/` | Packaging the specs (`extract_spec_exports.py`, `render_spec_figures.js`) and front-end checks without .NET (`mock_api.py`, `ui_flow.js`, `ui_reader.js`). |
 
 ## The tree editor
+
+**In the tree step** (step 1), the drawing comes first. The tree step has no separate settings panel: everything is on the tree.
+- The grid size **N** sits in the editor's toolbar.
+- Leaf conditions and mirror pairs are set by clicking a leaf (below), and a line under the drawing lists them.
+- **Edit as a table** under the drawing gives the edge list.
 
 Every part of the app shows the tree and the sheet side by side, as one widget: the tree editor (`tree-editor.js`) on the left and the sheet on the right. What you point at in one lights up in the other (`linked.js`):
 - Point at a leaf on either side: the leaf, its circle and its tight pairs on the sheet, and its edge in the tree.
@@ -187,7 +192,8 @@ If **Build the crease pattern** stays greyed out, the polygons aren't valid yet.
 
 **Add stubs** (`stubs.js`), a step of its own that can add as many stubs as you like, splits open polygons the TreeMaker way. A stub is a new short leaf edge hung from a joint of the tree, with its leaf inside the polygon. Its leaf goes on a grid point X, so the layout stays a grid layout. Hung from joint v, at the layout's scale m, the longest stub that keeps every pair feasible is ℓ = min over leaves a of (|X − P_a| / m − d(v, a)), and the leaves that reach that minimum are tight to it.
 - It works on the live step's tree and sheet. The tree editor is locked against edits: the proposed stub is a dashed edge, and clicking a joint hangs the stub there. On the sheet, the open region is outlined and the stub is drawn with its circle and its tight paths. Clicking a grid point inside the region moves the stub there.
-- **Find the best stub here** tries every joint and free grid point in the region. It prefers the most leaves tight, then the longest stub.
+- **Ranked proposals.** For the chosen region, the step lists the three best stubs over every joint and free grid point. Each shows the leaves it is tight to, and how much longer it would need to be to reach the next ones ("nearly to 3 +0.12"): that is what a strain step would have to make up. The ranking is TreeMaker's idea of a good stub. First come stubs whose three nearest leaves surround them, so they split the polygon. Then come those closest to being tight to all three, and then the longest. The region with the best stub of all opens first.
+- **Add the best stub to each open region** adds the best stub that splits a polygon, checks the polygons again, and repeats. It stops at six stubs, or as soon as the next stub would neither split a polygon nor make one valid.
 - **Add this stub** adds the leaf `s1`, `s2`, … to the tree and to the layout, at the same scale. The polygons are checked again, ready for the next stub. **Remove** takes the last stub out again.
 - **After stubs, no solve is needed.** Every stub already fits at the layout's scale, so the layout stays feasible. A grid point seldom makes three leaves tight at once, though, so **Strain the edges** is the suggested next step: it tightens what is left. **Solve just the stubs** is offered too, but with every other leaf held it can at best keep the scale.
 
@@ -249,7 +255,7 @@ The base and optimized times come from Python prototypes of their algorithms, wi
 
 ## Tree and layout files
 
-- **Open…** and **Save tree** are in the tree step. **Save layout** is under the sheet. **Open…** in the session's sidebar and **Open a file…** on the map read any of the three kinds.
+- **Open…** and **Save tree** are in the tree step, above the drawing. **Save layout** is under the sheet. **Open…** in the session's sidebar and **Open a file…** on the map read any of the three kinds.
 - A tree file holds the tree, grid size, leaf conditions and mirror pairs.
 - A layout file holds a solved layout with its tree, scale and edge lengths. Opening it starts a new session from it.
 - A session file holds the whole session.

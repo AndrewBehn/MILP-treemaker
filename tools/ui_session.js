@@ -37,7 +37,7 @@ const base = 'http://127.0.0.1:5099/';
   await next('Add stubs');
   await p.click('#addStub'); await p.waitForFunction(() => !workflowDoc.running && workflowDoc.last().output, null, { timeout: 20000 }); await p.waitForTimeout(1500);
   // A second stub in the same step, then take it out and put it back.
-  await p.click('#bestStub'); await p.waitForTimeout(300);
+  await p.click('#stubFacts .stub-option >> nth=0'); await p.waitForTimeout(300);
   await p.click('#addStub'); await p.waitForFunction(() => !workflowDoc.running && (workflowDoc.last().params.stubs ?? []).length === 2, null, { timeout: 20000 }); await p.waitForTimeout(1500);
   log.twoStubs = await p.evaluate(() => ({ stubs: workflowDoc.last().params.stubs.map((t) => t.name), leaves: workflowDoc.last().output.stubs, steps: workflowDoc.steps.length }));
   check('two stubs in one step', log.twoStubs.stubs.join() === 's1,s2' && log.twoStubs.steps === 3);
@@ -46,6 +46,8 @@ const base = 'http://127.0.0.1:5099/';
   check('remove the last stub', log.removed.join() === 's1');
   await p.click('#addStub'); await p.waitForFunction(() => !workflowDoc.running && (workflowDoc.last().params.stubs ?? []).length === 2, null, { timeout: 20000 }); await p.waitForTimeout(1500);
   log.afterStub = await steps();
+  log.proposals = await p.evaluate(() => [...document.querySelectorAll('#stubFacts .stub-option')].map((b) => b.innerText.replace(/\n/g, ' / ')));
+  check('ranked stub proposals', log.proposals.length >= 1 && log.proposals[0].startsWith('Best:'));
   log.stubMoves = await p.evaluate(() => [...document.querySelectorAll('#nextMoves .next-move.suggested button')].map((b) => b.textContent));
   check('after stubs, straining is suggested', log.stubMoves.includes('Strain the edges'));
 

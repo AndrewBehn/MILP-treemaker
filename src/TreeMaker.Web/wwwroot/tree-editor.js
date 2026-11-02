@@ -1050,11 +1050,7 @@ function followPointer(down, onMove, onEnd) {
 function initTreeEditor() {
   const svg = $("treeView");
   const circles = $("treeCircles");
-  try { circles.checked = localStorage.getItem("treemaker.treeCircles") !== "off"; } catch { /* default: on */ }
-  circles.addEventListener("change", () => {
-    try { localStorage.setItem("treemaker.treeCircles", circles.checked ? "on" : "off"); } catch { /* not kept */ }
-    renderTreePreview();
-  });
+  circles.addEventListener("change", renderTreePreview);
 
   // Vertex drags. Moves and the release are followed on the window rather than through pointer capture, which
   // behaves differently across Safari, Firefox and Chrome and is lost when the drawing is redrawn mid-drag.
