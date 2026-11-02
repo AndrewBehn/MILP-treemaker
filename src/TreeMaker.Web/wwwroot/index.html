@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=20261102l">
+  <link rel="stylesheet" href="styles.css?v=20261102q">
 </head>
 <body data-view="map">
   <!-- ───────────── Top bar: the way back to the map, and where you are ───────────── -->
@@ -36,12 +36,11 @@
   <main id="mapView" class="map-view">
     <div class="map-head">
       <div>
-        <h1>Pick a spec to run, or a step to continue</h1>
-        <p>Each box is one specification document and the part of the app that implements it. A tree goes into one of the layout solvers, and the session carries the layout it finds on to closing the polygons and the crease pattern. Click a box to open it; <b>← Map</b> brings you back here. A box's <b>Spec ↗</b> tag opens its document in a separate tab: the models, the algorithms and why they are exact.</p>
+        <h1>The specs, and the session that runs them</h1>
+        <p>Each box is a spec and the part of the app that implements it: click it to open the session there. <b>Spec ↗</b> opens the document.</p>
       </div>
       <div class="map-tools">
-        <button id="mapOpen" type="button" class="on-mat">Open a file…</button>
-        <a id="mapSpecs" class="on-mat button-like" href="docs.html#/" target="treemaker-specs">Read the specs ↗</a>
+        <a id="mapContinue" class="bench-go" href="#/tree">Start with a tree</a>
         <label class="check on-mat-check"><input id="showRefs" type="checkbox" checked> Spec references</label>
       </div>
     </div>
@@ -53,15 +52,8 @@
       <span><i class="lg build"></i>Spec builds on</span>
       <span><i class="lg hand"></i>Spec hands off to</span>
       <span><i class="lg cite"></i>Spec cites</span>
-      <span><i class="lg held"></i>Holds the session's current result</span>
+      <span><i class="lg held"></i>The session's live step</span>
     </div>
-    <section class="bench" aria-labelledby="benchTitle">
-      <div class="bench-head">
-        <h2 id="benchTitle">The session</h2>
-        <p>One document from a tree to a crease pattern: every step with its settings, input and output. Each box above opens the session at its step. It is kept in this browser between visits; <b>Save the session</b> writes it to a file.</p>
-      </div>
-      <div id="benchCards" class="bench-cards"></div>
-    </section>
   </main>
 
   <!-- ───────────── The workspace: one node of the map ───────────── -->
@@ -77,7 +69,7 @@
           <button id="docNew" type="button" class="quiet small" title="Start a new session from the tree of step 1">New session</button>
         </div>
         <ol id="docOutline" class="outline-list"></ol>
-        <p class="hint">Only the last step can be changed. To change an earlier one, go back to it: the steps after it are dropped.</p>
+        <p class="hint">Only the last step can be changed. To change an earlier one, delete the steps below it (“Delete this and below”).</p>
       </div>
     </aside>
 
@@ -99,6 +91,7 @@
           <details class="about"><summary>About this step</summary><p id="nodeLede"></p></details>
           <p id="nodeSpec" class="node-spec"></p>
         </div>
+        <span id="finalDelete" class="final-delete"></span>
       </header>
         <div id="finalInput" class="final-input"></div>
         <div class="final-config">
@@ -286,6 +279,15 @@
               <span id="strainProgress" class="strain-progress" aria-live="polite"></span>
               <button id="strainCancel" type="button" class="quiet small" hidden>Cancel</button>
             </div>
+            <details id="edgeStrainBox" class="edge-strain">
+              <summary><b>Per-edge room and cost</b> <span id="edgeStrainSummary" class="muted">every edge alike</span></summary>
+              <p class="btn-note">Both ways above strain every edge within its <b>room</b> times the bounds: 0 (or Lock) keeps the edge's length, 2 lets it strain twice as far. <b>Cost</b> weighs an edge's strain when the least strain is chosen, so a costly edge strains last. <span class="ref" data-doc="closing">D:7</span></p>
+              <table class="edge-strain-table">
+                <thead><tr><th>Edge</th><th>Length</th><th>Lock</th><th>Room ×</th><th>Cost</th></tr></thead>
+                <tbody id="edgeStrainRows"></tbody>
+              </table>
+              <button id="edgeStrainReset" type="button" class="quiet small">Every edge alike</button>
+            </details>
                 </section>
       <section class="block move-block stub-block" data-nodes="stubs">
         <h2>Add stubs</h2>
@@ -569,18 +571,18 @@
 
   <input id="fileInput" type="file" accept=".json,application/json" hidden>
 
-  <script src="nodes.js?v=20261102l"></script>
-  <script src="workbench.js?v=20261102l"></script>
-  <script src="tree-editor.js?v=20261102l"></script>
-  <script src="polygons.js?v=20261102l"></script>
-  <script src="stubs.js?v=20261102l"></script>
-  <script src="workflow.js?v=20261102l"></script>
-  <script src="linked.js?v=20261102l"></script>
-  <script src="folded.js?v=20261102l"></script>
-  <script src="files.js?v=20261102l"></script>
-  <script src="solvers.js?v=20261102l"></script>
-  <script src="map.js?v=20261102l"></script>
-  <script src="specs.js?v=20261102l"></script>
-  <script src="app.js?v=20261102l"></script>
+  <script src="nodes.js?v=20261102q"></script>
+  <script src="workbench.js?v=20261102q"></script>
+  <script src="tree-editor.js?v=20261102q"></script>
+  <script src="polygons.js?v=20261102q"></script>
+  <script src="stubs.js?v=20261102q"></script>
+  <script src="workflow.js?v=20261102q"></script>
+  <script src="linked.js?v=20261102q"></script>
+  <script src="folded.js?v=20261102q"></script>
+  <script src="files.js?v=20261102q"></script>
+  <script src="solvers.js?v=20261102q"></script>
+  <script src="map.js?v=20261102q"></script>
+  <script src="specs.js?v=20261102q"></script>
+  <script src="app.js?v=20261102q"></script>
 </body>
 </html>

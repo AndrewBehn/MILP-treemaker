@@ -1,7 +1,7 @@
 // UI check of the session (workflow.js) against tools/mock_api.py on port 5099. One document from a tree to a crease
 // pattern: step 1 the tree (live, then frozen), a solve, two stubs in one step, a solve of just the stubs, straining,
 // the crease
-// pattern; only the last step is live; "Go back to this step" drops the later ones; the session saves and reopens.
+// pattern; only the last step is live; "Delete this and below" drops a step and the later ones; the session saves and reopens.
 // Usage: node tools/ui_session.js [screenshot dir] (needs Playwright with Chromium).
 const { chromium } = require('playwright');
 const out = process.argv[2] ?? '.';
@@ -82,9 +82,9 @@ const base = 'http://127.0.0.1:5099/';
   const file = `${out}/saved.session.json`;
   await dl.saveAs(file);
 
-  await p.click('#doc-step-2 .go-back'); await p.click('#doc-step-2 .go-back'); await p.waitForTimeout(1800);
+  await p.click('#doc-step-3 .delete-below'); await p.waitForTimeout(1800);   // delete step 4 and below: step 3 is live
   log.afterGoBack = await steps();
-  check('go back to step 3', log.afterGoBack.length === 3);
+  check('delete step 4 and below', log.afterGoBack.length === 3);
   log.backLive = await p.evaluate(() => ({ hash: location.hash, stubbing: document.body.dataset.stubbing }));
 
   await p.setInputFiles('#fileInput', file); await p.waitForTimeout(2500);

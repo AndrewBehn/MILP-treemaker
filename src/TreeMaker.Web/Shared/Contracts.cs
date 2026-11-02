@@ -85,6 +85,12 @@ public sealed record PolygonRequest
     public double? StrainMin { get; init; }
     public double? StrainMax { get; init; }
 
+    /// <summary>Per-edge room rₑ ≥ 0, by edge index: a factor on the strain bounds; 0 locks the edge. All 1 when omitted.</summary>
+    public List<double>? EdgeRoom { get; init; }
+
+    /// <summary>Per-edge cost cₑ ≥ 0 of straining, by edge index, in the least-strain objectives. All 1 when omitted.</summary>
+    public List<double>? EdgeCost { get; init; }
+
     /// <summary>Pleat the flaps down to this height (grid units) when building the crease pattern; no pleating when omitted.</summary>
     public double? PleatHeight { get; init; }
 

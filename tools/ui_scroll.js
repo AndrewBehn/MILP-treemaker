@@ -1,6 +1,6 @@
 // UI check that no action inside a step moves the page (against tools/mock_api.py on port 5099). Each action is
 // done with its control scrolled to the middle of the screen; afterwards the control (or, if it is gone, the live
-// step's frame) must be where it was, within a few pixels. Only "Go back to this step", choosing a next step and the
+// step's frame) must be where it was, within a few pixels. Only "Delete this and below", choosing a next step and the
 // step cards scroll on purpose, so they are not checked here.
 // Usage: node tools/ui_scroll.js [screenshot dir] (needs Playwright with Chromium).
 const { chromium } = require('playwright');

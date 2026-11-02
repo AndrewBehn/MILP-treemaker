@@ -35,8 +35,10 @@ const base = 'http://127.0.0.1:5099/';
 
   // Straining and the crease pattern from the map boxes.
   await p.click('#backToMap'); await p.waitForTimeout(800);
+  // The map marks only the live step's box, and offers one way back into the session.
   log.mapBadges = await p.evaluate(() => [...document.querySelectorAll('.map-badge')].map((t) => t.textContent));
-  log.mapSession = await p.evaluate(() => document.getElementById('benchCards').innerText.replace(/\n/g, ' | '));
+  log.mapContinue = await p.evaluate(() => ({ text: document.getElementById('mapContinue').textContent, href: document.getElementById('mapContinue').getAttribute('href') }));
+  check('mapMarksLiveStep', log.mapBadges.join() === '● Live step 2' && log.mapContinue.href === '#/pure');
   await box('close'); await p.waitForTimeout(1400);   // straining runs at once: the smallest strain
   await p.waitForFunction(() => !workflowDoc.running && workflowDoc.last().output, null, { timeout: 20000 }); await p.waitForTimeout(1200);
   await p.screenshot({ path: `${out}/close.png`, fullPage: true });
@@ -49,7 +51,8 @@ const base = 'http://127.0.0.1:5099/';
   log.afterCreases = await steps();
 
   // Back to step 2, then each other solver from the map: a new solve step that starts from that layout.
-  const backTo2 = async () => { await p.click('#doc-step-1 .go-back'); await p.click('#doc-step-1 .go-back'); await p.waitForTimeout(1500); };
+  // Delete step 3 and below (no confirmation): step 2 is live again.
+  const backTo2 = async () => { await p.click((await p.$('#doc-step-2 .delete-below')) ? '#doc-step-2 .delete-below' : '#finalDelete .delete-below'); await p.waitForTimeout(1500); };
   await backTo2();
   check('backToStep2', (await steps()).length === 2);
   await p.goto(`${base}#/optimized`); await p.waitForTimeout(1400);

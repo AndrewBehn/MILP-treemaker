@@ -6,8 +6,8 @@
 // conditions; a solver's settings; the closing bounds; the stub; the pleats), and running it replaces its output.
 // Choosing a next step freezes it: the step keeps its settings, input and output as they were, and the moves on
 // offer depend on its kind and on its output (a tree can only be solved; a layout with open polygons can be closed,
-// stubbed or solved again; valid polygons can be built into creases). "Go back to this step" makes an earlier
-// step the last one again, live, and drops the steps after it.
+// stubbed or solved again; valid polygons can be built into creases). "Delete this and below" deletes a step and
+// every later one, with no confirmation; the step before it becomes the live one.
 //
 // A state is { problem, layout, closure, creases, report, stubs }:
 //   problem   the tree: edges, gridSize, leafConditions, mirrorPairs
@@ -200,7 +200,7 @@ const workflowDoc = (() => {
   /**
    * Whether a step got anywhere: { kind: progress | neutral | none | worse | pending, text }, the text listing what
    * actually changed. A step that made no progress (nothing feasible, or nothing changed) cannot be built on: change
-   * its settings and run it again, or go back. A step that made things worse can be built on, with a warning.
+   * its settings and run it again, or delete it. A step that made things worse can be built on, with a warning.
    */
   function progressOf(step) {
     if (!step?.output) return { kind: "pending", text: "Not run yet." };
@@ -215,7 +215,7 @@ const workflowDoc = (() => {
     if (step.kind === "close" && step.params?.already) return { kind: "neutral", text: "Every polygon was already valid: no strain needed." };
     if (step.kind === "close" && !step.output.closure?.completion?.after) {
       const why = step.output.closure?.completion?.messages?.join(" ");
-      const next = step.params?.auto ? "Add stubs to split the open polygons, or go back and solve again." : "Widen the bounds or find the smallest strain, add stubs instead, or go back.";
+      const next = step.params?.auto ? "Add stubs to split the open polygons, or delete this step and solve again." : "Widen the bounds or find the smallest strain, add stubs instead, or delete this step.";
       return { kind: "none", text: (why ? why + " " : "No strain within these bounds keeps every pair feasible, so nothing changed. ") + next };
     }
     if (step.kind === "solve" && !step.input?.layout) {
@@ -228,10 +228,10 @@ const workflowDoc = (() => {
     const better = b.score > a.score + 1e-6 || (step.kind === "solve" && step.output.layout.scale > step.input.layout.scale + 1e-9);
     const worse = b.score < a.score - 1e-6 || (step.kind === "solve" && step.output.layout.scale < step.input.layout.scale - 1e-9);
     if (better && !worse) return { kind: "progress", text: sentence(diff) || "Progress." };
-    if (worse && !better) return { kind: "worse", text: `${sentence(diff)} Worse than its input: you can go on from it, or go back.` };
+    if (worse && !better) return { kind: "worse", text: `${sentence(diff)} Worse than its input: you can go on from it, or delete it.` };
     if (better && worse) return { kind: "neutral", text: `${sentence(diff)} Some better, some worse.` };
     if (step.kind === "stub") return { kind: "neutral", text: `${sentence(diff) || "Stubs added."} The polygons are not closed yet: straining usually closes them now.` };
-    return { kind: "none", text: `No progress${diff.length ? ": " + diff.join("; ") + ", but no polygon closed and no open area shrank" : ": nothing changed"}. Change the settings and run it again, or go back.` };
+    return { kind: "none", text: `No progress${diff.length ? ": " + diff.join("; ") + ", but no polygon closed and no open area shrank" : ": nothing changed"}. Change the settings and run it again, or delete it.` };
   }
 
   /**
@@ -428,8 +428,9 @@ const workflowDoc = (() => {
         if (p.options?.stage) rows.push(["Model", p.options.stage]);
         return rows;
       }
-      case "close": return p.auto ? [["Strain", "the smallest that closes the polygons (A:4)"], ["Found", `±${fmt(p.strainMax, 3)}`]]
-        : [["σ_min", fmt(p.strainMin, 3)], ["σ_max", fmt(p.strainMax, 3)]];
+      case "close": return (p.auto ? [["Strain", "the smallest that closes the polygons (A:4)"], ["Found", `±${fmt(p.strainMax, 3)}`]]
+        : [["σ_min", fmt(p.strainMin, 3)], ["σ_max", fmt(p.strainMax, 3)]])
+        .concat((p.edges ?? []).map((e) => [`Edge ${e.label}`, edgeSettingText(e)]));
       case "stub": return stubsOf(p).map((t) => [t.name, `from ${t.attach}, ℓ = ${fmt(t.len, 4)}, at (${t.x}, ${t.y}), tight to ${(t.tight ?? []).join(", ")}`]);
       case "creases": return [["Pleats", p.pleatHeight ? `to height ${p.pleatHeight}` : "none"]];
       default: return [];
@@ -452,20 +453,7 @@ const workflowDoc = (() => {
     const head = h("header", "doc-step-head");
     head.append(h("span", "doc-no", String(k + 1)), h("h3", "", stepTitle(step)));
     if (step.ms) head.append(h("span", "doc-time", `${(step.ms / 1000).toFixed(1)} s`));
-    const back = h("button", "quiet small go-back", "Go back to this step");
-    back.type = "button";
-    const later = doc.steps.length - 1 - k;
-    back.title = `Make step ${k + 1} the live step again; the ${later} step${later === 1 ? "" : "s"} after it will be dropped`;
-    back.addEventListener("click", () => {
-      if (back.dataset.armed !== "yes") {
-        back.dataset.armed = "yes";
-        back.textContent = `Drop the ${later} later step${later === 1 ? "" : "s"} and go back?`;
-        setTimeout(() => { back.dataset.armed = ""; back.textContent = "Go back to this step"; }, 4000);
-        return;
-      }
-      goBack(k);
-    });
-    head.append(back);
+    head.append(backButton(k), deleteButton(k));
     li.append(head);
     const spec = specLine(step.node);
     if (spec) li.append(spec);
@@ -523,6 +511,7 @@ const workflowDoc = (() => {
     q("docSteps").replaceChildren(...steps.slice(0, -1).map(frozenItem));
     const f = last();
     q("finalNo").textContent = String(n);
+    q("finalDelete").replaceChildren(deleteButton(n - 1));
     q("finalStep").dataset.kind = f.kind;
     q("outputLabel").textContent = f.kind === "tree" ? "The tree: draw it, pin and mirror its leaves" : "Output";
     q("finalStep").dataset.progress = running ? "pending" : progressOf(f).kind;
@@ -551,15 +540,18 @@ const workflowDoc = (() => {
     ol.replaceChildren(...doc.steps.map((step, k) => {
       const live = k === doc.steps.length - 1;
       const pr = progressOf(step);
-      const li = h("li", "step-card" + (live ? " current" : ""));
-      li.dataset.progress = pr.kind;
+      const run = live && running;
+      const li = h("li", "step-card" + (live ? " current" : "") + (run ? " running" : ""));
+      li.dataset.progress = run ? "pending" : pr.kind;
       li.dataset.target = live ? "finalStep" : "doc-step-" + k;
       const a = h("a");
       a.href = "#" + li.dataset.target;
       const body = h("span", "sc-body");
       const mark = { progress: "▲", worse: "▼", none: "■", neutral: "●", pending: "○" }[pr.kind];
-      body.append(h("span", "sc-kicker", `${mark} Step ${k + 1}${live ? (step.output ? " · live" : " · not run yet") : ""}`), h("b", "sc-title", stepTitle(step)),
-        h("span", "sc-text", pr.text.length > 110 ? pr.text.slice(0, 108).replace(/[;,]?\s+\S*$/, "") + "…" : pr.text));
+      const status = run ? " · running" : live ? (step.output ? " · live" : " · not run yet") : "";
+      const text = run ? (running.progress ?? "Running…") : pr.text;
+      body.append(h("span", "sc-kicker", `${run ? "◌" : mark} Step ${k + 1}${status}`), h("b", "sc-title", stepTitle(step)),
+        h("span", "sc-text", text.length > 110 ? text.slice(0, 108).replace(/[;,]?\s+\S*$/, "") + "…" : text));
       a.append(body);
       const s0 = step.output ?? step.input;
       if (s0?.layout) { const t = sheetDrawing(s0, null); t.classList.add("sc-thumb"); a.append(t); }
@@ -568,7 +560,6 @@ const workflowDoc = (() => {
       li.append(a);
       return li;
     }));
-    if (running) ol.append(h("li", "step-card running", `Step ${doc.steps.length}: ${running.progress ?? "running"}…`));
     watchSteps();
   }
 
@@ -602,11 +593,11 @@ const workflowDoc = (() => {
     if (progressOf(f).kind === "none") {
       q("pickCard").hidden = true;
       q("nextIntro").textContent = f.kind === "tree" ? progressOf(f).text
-        : `Step ${doc.steps.length} made no progress, so there is nothing new to build on. Change its settings and run it again, or go back to an earlier step.`;
+        : `Step ${doc.steps.length} made no progress, so there is nothing new to build on. Change its settings and run it again, or delete it.`;
       return;
     }
     if (f.kind === "creases") {
-      q("nextIntro").textContent = "The crease pattern is built: the end of this path. Go back to an earlier step to try another.";
+      q("nextIntro").textContent = "The crease pattern is built: the end of this path. Delete the steps below an earlier one to try another.";
       return;
     }
     if (f.kind === "tree") {
@@ -682,16 +673,45 @@ const workflowDoc = (() => {
     }, 350);
   }
 
-  /** Makes step k the live one again; the steps after it are dropped. */
-  function goBack(k) {
+  /** "Delete this and below" for step k: no confirmation; the step before it becomes the live one. */
+  function deleteButton(k) {
+    const b = h("button", "quiet small delete-below", k === doc.steps.length - 1 ? "Delete this step" : "Delete this and below");
+    b.type = "button";
+    const n = doc.steps.length - k;
+    b.title = k === 0 ? "Delete every step, and start again from an empty tree"
+      : `Delete step ${k + 1}${n > 1 ? ` and the ${n - 1} after it` : ""}; step ${k} becomes the live step`;
+    b.addEventListener("click", () => deleteFrom(k));
+    return b;
+  }
+
+  /**
+   * "Go back to this result" on frozen step k: deletes the steps after it, with no confirmation, so its result is
+   * live again, and scrolls to the moves offered after it, to choose another next step.
+   */
+  function backButton(k) {
+    const b = h("button", "quiet small back-to-result", "Go back to this result");
+    b.type = "button";
+    const n = doc.steps.length - k - 1;
+    b.title = `Delete the ${n === 1 ? "step" : n + " steps"} after step ${k + 1}, and choose another next step from its result`;
+    b.addEventListener("click", () => deleteFrom(k + 1, true));
+    return b;
+  }
+
+  /**
+   * Deletes step k and every step after it; step k − 1 becomes live (deleting step 1 starts an empty session).
+   * With toNext, the page then scrolls to the next moves after the live step instead of to its top.
+   */
+  function deleteFrom(k, toNext = false) {
     if (running) return;
-    const dropped = doc.steps.length - 1 - k;
-    doc.steps = doc.steps.slice(0, k + 1);
+    if (k <= 0) { startOver(); return; }
+    const dropped = doc.steps.length - k;
+    doc.steps = doc.steps.slice(0, k);
     save();
     const f = last();
     commit(f.output ?? f.input);
-    setStatus(`Back at step ${k + 1}; ${dropped} later step${dropped === 1 ? " was" : "s were"} dropped.`);
-    go(f.node, true);
+    setStatus(`Deleted ${dropped} step${dropped === 1 ? "" : "s"}; step ${k} is live again.`);
+    go(f.node, !toNext);
+    if (toNext) for (const t of [60, 400]) setTimeout(() => q("nextMenu").scrollIntoView({ behavior: t < 100 ? "auto" : "smooth", block: "end" }), t);
   }
 
   /**
@@ -795,7 +815,11 @@ const workflowDoc = (() => {
     running.ticker = setInterval(() => { renderFinalNotes(); }, 250);
     renderFinalNotes(); renderNext(); renderOutline();
     try {
-      const result = await work((t) => { running.progress = t; });
+      const result = await work((t) => {
+        running.progress = t;
+        const card = q("docOutline").lastElementChild?.querySelector(".sc-text");
+        if (card) card.textContent = t;
+      });
       const ms = performance.now() - running.started;
       if (result) {
         Object.assign(f, result, { ms });
@@ -826,6 +850,8 @@ const workflowDoc = (() => {
     const s = f.input;
     const min = Number(q("docStrainMin").value), max = Number(q("docStrainMax").value);
     const limit = Math.max(1, Number(q("docStrainLimit").value) || 20);
+    const edges = edgeStrainSettings();
+    const keep = edges.length ? { edges } : {};
     const started = performance.now();
     const say = (t) => { q("strainProgress").textContent = `${t} · ${((performance.now() - started) / 1000).toFixed(0)} s`; };
     const ticker = setInterval(() => { if (strainLast) say(strainLast); }, 1000);
@@ -838,17 +864,17 @@ const workflowDoc = (() => {
     });
     const done = run("close", auto ? "Finding the smallest strain" : `Straining within ±${fmt(max, 3)}`, async (progress) => {
       const tell = (t) => { strainLast = t; say(t); progress(t); };
-      const req = { ...base(s), problem: { ...s.problem, timeLimitSeconds: limit } };
+      const req = { ...base(s), problem: { ...s.problem, timeLimitSeconds: limit }, ...edgeStrainRequest(edges, s.problem.edges.length) };
       let result, bounds, text;
       if (auto) {
         let found;
         try {
           found = await creaseReadiness.searchStrain(req, tell, () => strainStop);
         } catch (e) {
-          return stuck(strainStop ? "Cancelled: the search for the smallest strain was stopped." : `The search failed: ${e.message}`, { auto });
+          return stuck(strainStop ? "Cancelled: the search for the smallest strain was stopped." : `The search failed: ${e.message}`, { auto, ...keep });
         }
-        if (found.already) return { params: { auto, already: true }, output: { ...s }, notes: ["No strain needed: " + found.text] };
-        if (!found.result) return stuck(found.text, { auto });
+        if (found.already) return { params: { auto, already: true, ...keep }, output: { ...s }, notes: ["No strain needed: " + found.text] };
+        if (!found.result) return stuck(found.text, { auto, ...keep });
         result = found.result;
         bounds = { strainMin: -Math.min(found.bound, 0.99), strainMax: found.bound };
         text = found.text;
@@ -860,7 +886,7 @@ const workflowDoc = (() => {
       }
       const changed = (result.edgeLengths ?? []).filter((e) => Math.abs(e.strain) > 1e-9).length;
       return {
-        params: { auto, ...bounds },
+        params: { auto, ...bounds, ...keep },
         output: { ...s, closure: { ...bounds, completion: result }, creases: null, report: slim(result.after) ?? s.report },
         notes: [text, `${result.madeTight ?? 0} of ${result.targets?.length ?? 0} target pairs made tight; ${changed} edge length${changed === 1 ? "" : "s"} changed, largest strain ${fmt(result.largestStrain, 3)}.`].filter(Boolean),
       };
@@ -950,6 +976,62 @@ const workflowDoc = (() => {
     });
   }
 
+  /**
+   * Per-edge room and cost for the strain step (D:7 of the closing spec). The step keeps only the edges that differ
+   * from the default (room 1, cost 1), as params.edges = [{ edge, label, room, cost }]; the request sends one value per
+   * edge, or nothing when every edge is alike.
+   */
+  const edgeSettingText = (e) => (e.room === 0 ? "locked" : `room ×${fmt(e.room, 3)}`) + (e.cost !== 1 ? `, cost ${fmt(e.cost, 3)}` : "");
+  function renderEdgeStrain(s, saved) {
+    const rows = q("edgeStrainRows");
+    const edges = s?.problem?.edges ?? [];
+    const lengths = s?.layout?.edgeLengths ?? edges.map((e) => Number(e.length));
+    const by = new Map((saved ?? []).map((e) => [e.edge, e]));
+    rows.replaceChildren(...edges.map((e, k) => {
+      const set = by.get(k) ?? { room: 1, cost: 1 };
+      const tr = h("tr");
+      tr.dataset.edge = k;
+      tr.dataset.label = `${e.from}–${e.to}`;
+      const lock = h("input"); lock.type = "checkbox"; lock.className = "es-lock"; lock.checked = set.room === 0;
+      lock.title = "Keep this edge's length";
+      const room = h("input"); room.type = "number"; room.min = "0"; room.step = "0.25"; room.className = "es-room";
+      room.value = set.room === 0 ? 1 : set.room; room.disabled = lock.checked;
+      const cost = h("input"); cost.type = "number"; cost.min = "0"; cost.step = "0.5"; cost.className = "es-cost"; cost.value = set.cost;
+      const td = (...c) => { const d = h("td"); d.append(...c); return d; };
+      tr.append(td(tr.dataset.label), td(fmt(Number(lengths[k] ?? e.length), 4)), td(lock), td(room), td(cost));
+      lock.addEventListener("change", () => { room.disabled = lock.checked; summarizeEdgeStrain(); });
+      for (const el of [room, cost]) el.addEventListener("input", summarizeEdgeStrain);
+      return tr;
+    }));
+    q("edgeStrainBox").open = by.size > 0;
+    summarizeEdgeStrain();
+  }
+  /** The edges whose room or cost differs from 1, from the table. */
+  function edgeStrainSettings() {
+    const out = [];
+    for (const tr of q("edgeStrainRows").children) {
+      const locked = tr.querySelector(".es-lock").checked;
+      const num = (el) => { const v = Number(el.value); return Number.isFinite(v) && v >= 0 ? v : 1; };
+      const room = locked ? 0 : num(tr.querySelector(".es-room")), cost = num(tr.querySelector(".es-cost"));
+      if (room !== 1 || cost !== 1) out.push({ edge: Number(tr.dataset.edge), label: tr.dataset.label, room, cost });
+    }
+    return out;
+  }
+  /** The request fields for those settings: one room and one cost per edge, or none when every edge is alike. */
+  function edgeStrainRequest(settings, count) {
+    if (!settings?.length) return {};
+    const room = Array(count).fill(1), cost = Array(count).fill(1);
+    for (const e of settings) { room[e.edge] = e.room; cost[e.edge] = e.cost; }
+    return { edgeRoom: room, edgeCost: cost };
+  }
+  function summarizeEdgeStrain() {
+    const set = edgeStrainSettings();
+    const locked = set.filter((e) => e.room === 0).length, roomy = set.filter((e) => e.room !== 0 && e.room !== 1).length;
+    const costly = set.filter((e) => e.cost !== 1).length;
+    const parts = [locked && `${locked} locked`, roomy && `${roomy} with other room`, costly && `${costly} with other cost`].filter(Boolean);
+    q("edgeStrainSummary").textContent = parts.length ? parts.join(", ") : "every edge alike";
+  }
+
   /** The live step's controls for close, stub and creases, from its input. */
   function prepareLive() {
     const f = last();
@@ -958,6 +1040,7 @@ const workflowDoc = (() => {
     if (f.kind === "close") {
       q("closeValidNote").hidden = !s?.report?.valid;
       if (f.params?.strainMax != null && !f.params.auto) { q("docStrainMin").value = f.params.strainMin; q("docStrainMax").value = f.params.strainMax; }
+      renderEdgeStrain(s, f.params?.edges);
     }
     if (f.kind === "creases") {
       q("docBuild").disabled = !s?.report?.valid;
@@ -1062,6 +1145,7 @@ const workflowDoc = (() => {
     });
     q("docAuto").addEventListener("click", () => runClose(true));
     q("docBounds").addEventListener("click", () => runClose(false));
+    q("edgeStrainReset").addEventListener("click", () => renderEdgeStrain(last().input, []));
     q("docBuild").addEventListener("click", runCreases);
     q("strainCancel").addEventListener("click", () => { strainStop = true; q("strainProgress").textContent = "Stopping after the closing solve now running…"; });
     q("removeStub").addEventListener("click", removeStub);
