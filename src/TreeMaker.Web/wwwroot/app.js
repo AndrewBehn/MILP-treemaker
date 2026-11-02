@@ -340,72 +340,43 @@ function button(text, onClick, title, className) {
 
 function renderLeafControls() {
   const info = treeInfo(state.edges);
-
-  // Leaf conditions table.
-  const body = $("conditionRows");
-  body.replaceChildren();
-  for (const leaf of info.leaves) {
-    const c = state.conditions[leaf] ?? (state.conditions[leaf] = { kind: "", x: "", y: "" });
-    const tr = document.createElement("tr");
-    const select = document.createElement("select");
-    select.setAttribute("aria-label", `Condition for leaf ${leaf}`);
-    for (const [value, label] of CONDITION_KINDS) select.append(new Option(label, value));
-    select.value = c.kind;
-    const x = document.createElement("input");
-    const y = document.createElement("input");
-    for (const [input, key] of [[x, "x"], [y, "y"]]) {
-      input.type = "number";
-      input.min = "0";
-      input.step = "1";
-      input.value = c[key];
-      input.disabled = c.kind !== "Fixed";
-      input.setAttribute("aria-label", `${key} for leaf ${leaf}`);
-      input.addEventListener("input", () => { c[key] = input.value; changed(); });
-    }
-    select.addEventListener("change", () => {
-      c.kind = select.value;
-      x.disabled = y.disabled = c.kind !== "Fixed";
-      changed();
-    });
-    const name = document.createElement("td");
-    name.textContent = leaf;
-    tr.append(name, cell(select), cell(x), cell(y));
-    body.append(tr);
-  }
-
-  // Mirror pair selectors and chips.
-  for (const id of ["mirrorA", "mirrorB"]) {
-    const select = $(id);
-    const keep = select.value;
-    select.replaceChildren(...info.leaves.map((l) => new Option(l, l)));
-    if (info.leaves.includes(keep)) select.value = keep;
-  }
-  if ($("mirrorA").value === $("mirrorB").value && info.leaves.length > 1) {
-    $("mirrorB").value = info.leaves.find((l) => l !== $("mirrorA").value);
-  }
+  // Leaf conditions and mirror pairs are set on the tree itself (click a leaf, tree-editor.js); here they are kept in
+  // step with the tree's leaves and summed up under the drawing.
+  for (const leaf of info.leaves) state.conditions[leaf] ??= { kind: "", x: "", y: "" };
   const leafSet = new Set(info.leaves);
   state.mirrors = state.mirrors.filter((m) => leafSet.has(m.a) && leafSet.has(m.b));
-  const list = $("mirrorRows");
-  list.replaceChildren();
-  state.mirrors.forEach((m, i) => {
-    const chip = document.createElement("span");
-    chip.className = "chip";
-    chip.append(`${m.a} ↔ ${m.b}`, button("×", () => { state.mirrors.splice(i, 1); renderLeafControls(); changed(); }, "Remove pair"));
-    list.append(chip);
-  });
-  if (!state.mirrors.length) {
-    const none = document.createElement("span");
-    none.className = "muted";
-    none.textContent = "None";
-    list.append(none);
-  }
+  renderConditionSummary(info);
 
-  // Parent selector for "Add leaf to".
+  // Parent selector for "Add leaf to" in the edge table.
   const parent = $("leafParent");
   const keepParent = parent.value;
   const vertices = [...info.internal, ...info.leaves];
   parent.replaceChildren(...vertices.map((v) => new Option(v, v)));
   if (vertices.includes(keepParent)) parent.value = keepParent;
+}
+
+/** One line under the tree: which leaves are pinned and which are mirrored, all set by clicking a leaf. */
+function renderConditionSummary(info = treeInfo(state.edges)) {
+  const box = $("treeConditions");
+  if (!box) return;
+  const pinned = info.leaves.filter((l) => state.conditions[l]?.kind).map((l) => `${l} ${conditionTag(state.conditions[l])}`);
+  const pairs = state.mirrors.map((m) => `${m.a} ↔ ${m.b}`);
+  box.replaceChildren();
+  const parts = [];
+  if (pinned.length) parts.push(`Pinned: ${pinned.join(", ")}.`);
+  if (pairs.length) parts.push(`Mirrored: ${pairs.join(", ")}.`);
+  box.append(parts.length ? parts.join(" ") : "No leaf conditions or mirror pairs.");
+  if (document.body.dataset.node === "tree") {
+    const hint = document.createElement("span");
+    hint.className = "muted";
+    hint.textContent = " Click a leaf to pin it or mirror it.";
+    box.append(hint);
+    const ref = document.createElement("span");
+    ref.className = "ref";
+    ref.dataset.doc = "pure";
+    ref.textContent = "Sections 7.1–7.5";
+    box.append(" ", ref);
+  }
 }
 
 // ───────────────────────── Analysis (before solving) ─────────────────────────
@@ -978,11 +949,6 @@ async function showStep(node) {
   }
 }
 
-/** Close the polygons, Crease pattern and Folded base share one page; each scrolls to its own part of it. */
-function scrollToStep(id) {
-  const target = { fold: $("foldCard") }[id];
-  if (target && !target.closest("[hidden]")) target.scrollIntoView({ behavior: "smooth", block: "start" });
-}
 
 function renderHeldMetrics(held, v) {
   const from = NODES[held.node]?.title ?? (held.node === "file" ? "Layout file" : held.node);
@@ -1117,7 +1083,7 @@ function enterNode(id) {
   $("mapView").hidden = true;
   $("workView").hidden = false;
   $("backToMap").hidden = false;
-  window.scrollTo(0, 0);
+  if (!state.keepScroll) window.scrollTo(0, 0);
   document.title = `${node.title} · TreeMaker`;
   state.flowNext = undefined;   // entering a node is not "moving on"
   linked.reset();
@@ -1221,7 +1187,7 @@ async function init() {
     state.edges.push({ from: "", to: "", length: 1, stretch: false });
     renderEdges();
     const inputs = $("edgeRows").querySelectorAll("input[type=text]");
-    inputs[inputs.length - 2]?.focus();
+    inputs[inputs.length - 2]?.focus({ preventScroll: true });
   });
   $("addLeaf").addEventListener("click", () => {
     const info = treeInfo(state.edges);
@@ -1254,14 +1220,6 @@ async function init() {
       renderLeafControls();
       changed();
     }
-  });
-  $("addMirror").addEventListener("click", () => {
-    const a = $("mirrorA").value, b = $("mirrorB").value;
-    if (!a || !b || a === b) return;
-    if (state.mirrors.some((m) => (m.a === a && m.b === b) || (m.a === b && m.b === a))) return;
-    state.mirrors.push({ a, b });
-    renderLeafControls();
-    changed();
   });
 
   // Solver settings: any change re-runs the analysis.
@@ -1322,9 +1280,10 @@ async function init() {
     renderNextBar();
   });
 
-  // The tree: from the workbench when there is one, otherwise the running example.
-  if (workbench.tree?.edges?.length) {
-    applyProblem(workbench.tree);
+  // The session is the only thing kept between visits: put its live step back, or start one from the running example.
+  workflowDoc.captureDefaults();
+  if (workflowDoc.steps.length) {
+    workflowDoc.restore();
   } else {
     try {
       applyProblem(await (await fetch("/api/example")).json());

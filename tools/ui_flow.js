@@ -1,7 +1,7 @@
 // End-to-end UI check of the map and the solvers against tools/mock_api.py on port 5099. Every map box opens the
 // session (workflow.js): its live step, a new step that the live step allows, or an earlier step of that kind.
-//   map → Pure MILP (adds a solve step after the tree) → solve → Optimized MILP from the map (adds a solve step that
-//   starts from the layout) → Lattice-Hull and Symmetry-Breaking flags → close and creases from the map → reload.
+//   map → Pure MILP (adds a solve step after the tree) → solve → strain and creases from the map → back to step 2 →
+//   Optimized MILP (a solve step that starts from the layout) → Lattice-Hull and Symmetry-Breaking flags → reload.
 // The full path through stubs, closing and going back is tools/ui_session.js.
 // Usage: node tools/ui_flow.js [screenshot dir] (needs Playwright with Chromium).
 const { chromium } = require('playwright');
@@ -31,31 +31,11 @@ const base = 'http://127.0.0.1:5099/';
   log.afterSolve = await steps();
   await p.screenshot({ path: `${out}/pure-after.png`, fullPage: true });
 
-  // Another solver from the map: a new solve step that starts from this layout.
+  // Straining and the crease pattern from the map boxes.
   await p.click('#backToMap'); await p.waitForTimeout(800);
   log.mapBadges = await p.evaluate(() => [...document.querySelectorAll('.map-badge')].map((t) => t.textContent));
   log.mapSession = await p.evaluate(() => document.getElementById('benchCards').innerText.replace(/\n/g, ' | '));
-  await box('optimized'); await p.waitForTimeout(1400);
-  log.opt = { steps: await steps(), startRow: await p.evaluate(() => !document.getElementById('startRow').hidden) };
-  check('optimizedAddsStep', log.opt.steps.at(-1) === 'solve:optimized(open)');
-  await p.click('#solve'); await solved(); await p.waitForTimeout(500);
-  const solvePost = posts.filter(([u]) => u === '/api/optimized/solve').pop();
-  log.optSolve = { hasStart: !!JSON.parse(solvePost[1]).startLayout, sym: JSON.parse(solvePost[1]).options.symmetryBreaking };
-  check('optimizedStartsFromLayout', log.optSolve.hasStart && log.optSolve.sym === true);
-
-  // Lattice-hull: symmetry locked off. Sym: sends symmetryBreaking.
-  await p.goto(`${base}#/hull`); await p.waitForTimeout(1200);
-  log.hull = await p.evaluate(() => ({ sym: document.getElementById('optSymmetry').checked, disabled: document.getElementById('optSymmetry').disabled, node: document.body.dataset.node }));
-  await p.click('#solve'); await solved(); await p.waitForTimeout(500);
-  log.hullSym = JSON.parse(posts.filter(([u]) => u === '/api/optimized/solve').pop()[1]).options.symmetryBreaking;
-  check('hullSymmetryOff', log.hull.disabled && log.hullSym === false);
-  await p.goto(`${base}#/sym`); await p.waitForTimeout(1200);
-  await p.click('#solve'); await solved(); await p.waitForTimeout(500);
-  log.symFlag = JSON.parse(posts.filter(([u]) => u === '/api/pure/solve').pop()[1]).symmetryBreaking;
-  check('symFlag', log.symFlag === true);
-
-  // Close and creases from the map boxes.
-  await p.goto(`${base}#/close`); await p.waitForTimeout(1400);
+  await box('close'); await p.waitForTimeout(1400);
   await p.click('#docAuto');
   await p.waitForFunction(() => !workflowDoc.running && workflowDoc.last().output, null, { timeout: 20000 }); await p.waitForTimeout(1200);
   await p.screenshot({ path: `${out}/close.png`, fullPage: true });
@@ -66,11 +46,37 @@ const base = 'http://127.0.0.1:5099/';
   log.fold = await p.evaluate(() => ({ fold: !document.getElementById('foldCard').hidden, crease: getComputedStyle(document.getElementById('creaseCard')).display }));
   check('foldShown', log.fold.fold && log.fold.crease === 'none');
   await p.screenshot({ path: `${out}/fold.png`, fullPage: true });
+  log.afterCreases = await steps();
+
+  // Back to step 2, then each other solver from the map: a new solve step that starts from that layout.
+  const backTo2 = async () => { await p.click('#doc-step-1 .go-back'); await p.click('#doc-step-1 .go-back'); await p.waitForTimeout(1500); };
+  await backTo2();
+  check('backToStep2', (await steps()).length === 2);
+  await p.goto(`${base}#/optimized`); await p.waitForTimeout(1400);
+  log.opt = { steps: await steps(), startRow: await p.evaluate(() => !document.getElementById('startRow').hidden) };
+  check('optimizedAddsStep', log.opt.steps.at(-1) === 'solve:optimized(open)');
+  await p.click('#solve'); await solved(); await p.waitForTimeout(500);
+  const solvePost = posts.filter(([u]) => u === '/api/optimized/solve').pop();
+  log.optSolve = { hasStart: !!JSON.parse(solvePost[1]).startLayout, sym: JSON.parse(solvePost[1]).options.symmetryBreaking };
+  check('optimizedStartsFromLayout', log.optSolve.hasStart && log.optSolve.sym === true);
+  // The same layout again is no progress: the next step is blocked.
+  log.sameLayout = await p.evaluate(() => ({ progress: document.getElementById('finalStep').dataset.progress, moves: document.querySelectorAll('#nextMoves .next-move').length }));
+  await backTo2();
+  await p.goto(`${base}#/hull`); await p.waitForTimeout(1200);
+  log.hull = await p.evaluate(() => ({ sym: document.getElementById('optSymmetry').checked, disabled: document.getElementById('optSymmetry').disabled, node: document.body.dataset.node }));
+  await p.click('#solve'); await solved(); await p.waitForTimeout(500);
+  log.hullSym = JSON.parse(posts.filter(([u]) => u === '/api/optimized/solve').pop()[1]).options.symmetryBreaking;
+  check('hullSymmetryOff', log.hull.disabled && log.hullSym === false);
+  await backTo2();
+  await p.goto(`${base}#/sym`); await p.waitForTimeout(1200);
+  await p.click('#solve'); await solved(); await p.waitForTimeout(500);
+  log.symFlag = JSON.parse(posts.filter(([u]) => u === '/api/pure/solve').pop()[1]).symmetryBreaking;
+  check('symFlag', log.symFlag === true);
 
   // The tree box now shows step 1, frozen.
   await p.goto(`${base}#/tree`); await p.waitForTimeout(1200);
   log.treeBox = await p.evaluate(() => ({ node: document.body.dataset.node, frozenTree: !!document.querySelector('#doc-step-0') }));
-  check('treeBoxShowsStep1', log.treeBox.frozenTree && log.treeBox.node === 'creases');
+  check('treeBoxShowsStep1', log.treeBox.frozenTree && log.treeBox.node === 'sym');
 
   // Reload keeps the session.
   const before = await steps();

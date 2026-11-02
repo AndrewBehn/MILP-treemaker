@@ -106,11 +106,30 @@ const stubTool = (() => {
       len = Math.min(len, s);
     }
     const tight = slack.filter(([, s]) => s - len < 1e-9).map(([l]) => l);
-    return { attach: v, x: X[0], y: X[1], len, tight };
+    // The next leaves it nearly reaches: how much longer the stub (or how much strain) it would take to make them
+    // tight too. A stub that is tight, or nearly, to three leaves around it splits the polygon the TreeMaker way.
+    const near = slack.filter(([l]) => !tight.includes(l)).map(([leaf, s]) => ({ leaf, gap: s - len })).sort((a, b) => a.gap - b.gap);
+    const three = [...tight, ...near.map((n) => n.leaf)].slice(0, 3);
+    const pos = new Map(held.points.map((p) => [p.leaf, [p.x, p.y]]));
+    const splits = three.length === 3 && inTriangle(X, ...three.map((l) => pos.get(l)));
+    const gap3 = tight.length >= 3 ? 0 : (near[2 - tight.length]?.gap ?? Infinity);
+    return { attach: v, x: X[0], y: X[1], len, tight, near: near.slice(0, Math.max(0, 3 - tight.length)), splits, gap3 };
   }
 
-  /** The best stub in a region: hung from `attach` (or the best joint), most leaves tight, then the longest. */
-  function best(region, attach) {
+  function inTriangle(X, a, b, c) {
+    const d = (p, q, r) => (p[0] - r[0]) * (q[1] - r[1]) - (q[0] - r[0]) * (p[1] - r[1]);
+    const d1 = d(X, a, b), d2 = d(X, b, c), d3 = d(X, c, a);
+    return !((d1 < -1e-9 || d2 < -1e-9 || d3 < -1e-9) && (d1 > 1e-9 || d2 > 1e-9 || d3 > 1e-9));
+  }
+
+  /**
+   * How good a stub is: first, that its three nearest-tight leaves surround it (so it splits the polygon); then how
+   * little more it would take to make all three tight (the strain a closing step would need); then the longer stub.
+   */
+  const rank = (a, b) => (b.splits - a.splits) || (a.gap3 - b.gap3) || (b.len - a.len);
+
+  /** The best stubs in a region, best first (one per grid point): hung from `attach`, or from any joint. */
+  function ranked(region, attach, count = 3) {
     const held = ui.held, N = held.gridSize;
     const taken = new Set(held.points.map((p) => `${p.x},${p.y}`));
     const pointsIn = [];
@@ -125,10 +144,33 @@ const stubTool = (() => {
         if (c.len >= MIN_LENGTH) all.push(c);
       }
     }
-    if (!all.length) return null;
-    const longest = Math.max(...all.map((c) => c.len));
-    return all.filter((c) => c.len >= 0.25 * longest)
-      .sort((a, b) => b.tight.length - a.tight.length || b.len - a.len)[0];
+    all.sort(rank);
+    const out = [], seen = new Set();
+    for (const c of all) {
+      const key = `${c.x},${c.y}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(c);
+      if (out.length === count) break;
+    }
+    return out;
+  }
+
+  function best(region, attach) {
+    return ranked(region, attach, 1)[0] ?? null;
+  }
+
+  /** The best stub over every open region of a state, if one splits a polygon: for adding stubs region by region. */
+  function bestAnywhere(held, report) {
+    const saved = ui.held;
+    ui.held = held;
+    try {
+      const pos = new Map(held.points.map((p) => [p.leaf, [p.x, p.y]]));
+      const cands = openRegions(report, pos).flatMap((r) => ranked(r, null, 1)).filter((c) => c.splits).sort(rank);
+      return cands[0] ? { ...cands[0], name: newName() } : null;
+    } finally {
+      ui.held = saved;
+    }
   }
 
   // ───── The panel and the drawings ─────
@@ -141,8 +183,12 @@ const stubTool = (() => {
     ui.attach = null;
     const pos = new Map(held.points.map((p) => [p.leaf, [p.x, p.y]]));
     ui.regions = report ? openRegions(report, pos) : [];
-    ui.region = ui.regions.length ? 0 : -1;
-    if (ui.region >= 0) ui.cand = best(ui.regions[0], null);
+    // Open the region with the best stub of all.
+    const firsts = ui.regions.map((r) => best(r, null));
+    let k = -1;
+    firsts.forEach((c, i) => { if (c && (k < 0 || rank(c, firsts[k]) < 0)) k = i; });
+    ui.region = k >= 0 ? k : ui.regions.length ? 0 : -1;
+    if (ui.region >= 0) ui.cand = firsts[ui.region] ?? null;
     render();
   }
 
@@ -164,7 +210,7 @@ const stubTool = (() => {
         ? "Every polygon is already valid: no stub needed. Go on to the crease pattern."
         : "No open polygon to put a stub in: what is missing are hull sides, which closing the polygons tightens.";
     } else {
-      q("stubState").textContent = `${ui.regions.length} open region${ui.regions.length === 1 ? "" : "s"}. Pick one, here or on the sheet:`;
+      q("stubState").textContent = `${ui.regions.length} open region${ui.regions.length === 1 ? "" : "s"}:`;
       ui.regions.forEach((r, k) => {
         const b = document.createElement("button");
         b.type = "button";
@@ -179,21 +225,24 @@ const stubTool = (() => {
     const c = ui.cand;
     const facts = q("stubFacts");
     facts.replaceChildren();
-    if (c) {
-      for (const [k, v] of [
-        ["Hangs from", c.attach],
-        ["Length ℓ", fmt(c.len, 4)],
-        ["Leaf at", `(${c.x}, ${c.y})`],
-        ["Tight to", c.tight.join(", ")],
-      ]) {
-        const row = document.createElement("div");
-        row.className = "held-row on";
-        const a = document.createElement("span"); a.className = "k"; a.textContent = k;
-        const b = document.createElement("span"); b.className = "v"; b.textContent = v;
-        row.append(a, b);
-        facts.append(row);
-      }
-    } else if (ui.region >= 0) {
+    const r = ui.regions[ui.region];
+    const options = r ? ranked(r, ui.attach) : [];
+    const same = (a, b) => a && b && a.x === b.x && a.y === b.y && a.attach === b.attach;
+    if (c && !options.some((o) => same(o, c))) options.push(c);
+    options.forEach((o, k) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "stub-option";
+      b.setAttribute("aria-pressed", String(same(o, c)));
+      const near = o.near.map((n) => `${n.leaf} +${fmt(n.gap, 2)}`).join(", ");
+      b.innerHTML = "<b></b><span></span>";
+      b.children[0].textContent = `${k === 0 ? "Best: " : ""}(${o.x}, ${o.y}) from ${o.attach}, ℓ ${fmt(o.len, 2)}`;
+      b.children[1].textContent = `tight to ${o.tight.join(", ")}` + (near ? `; nearly to ${near}` : "") + (o.splits ? " · splits the polygon" : " · does not split it");
+      b.title = "The +numbers are how much longer the stub would have to be to reach those leaves too: what a strain step would have to make up.";
+      b.addEventListener("click", () => { ui.cand = o; render(); });
+      facts.append(b);
+    });
+    if (!options.length && ui.region >= 0) {
       facts.textContent = "No grid point in this region leaves room for a stub" + (ui.attach ? ` hung from ${ui.attach}. Click another joint on the tree.` : ".");
     }
     q("addStub").disabled = !c;
@@ -289,5 +338,5 @@ const stubTool = (() => {
     });
   }
 
-  return { init, show, hide, draw, jointClicked, hooks, _state: ui };
+  return { init, show, hide, draw, jointClicked, bestAnywhere, hooks, _state: ui };
 })();
