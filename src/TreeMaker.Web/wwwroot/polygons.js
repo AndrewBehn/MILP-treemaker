@@ -407,9 +407,12 @@ const creaseReadiness = (() => {
    * for progress notes. Returns { result, bound, text, ok } (result null when nothing was tried), or { already } when
    * the polygons are valid already.
    */
-  async function searchStrain(base, progress = () => {}) {
+  async function searchStrain(base, progress = () => {}, shouldStop = () => false) {
     const roundUp = (v) => Math.max(0.001, Math.ceil(v * 1000 * (1 + 1e-9) + 1e-9) / 1000);
-    const close = (bound, targets) => post("/api/complete", { ...base, strainMin: -Math.min(bound, 0.99), strainMax: bound, ...(targets?.length ? { targets } : {}) });
+    const close = (bound, targets) => {
+      if (shouldStop()) throw new Error("Cancelled.");
+      return post("/api/complete", { ...base, strainMin: -Math.min(bound, 0.99), strainMax: bound, ...(targets?.length ? { targets } : {}) });
+    };
     progress("Finding the smallest strain that closes the polygons…");
     const need = await post("/api/strain-needed", base);
     if (need.alreadyValid) return { already: true, text: need.messages.join(" ") };

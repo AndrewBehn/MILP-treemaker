@@ -202,6 +202,11 @@ After a solve, the session's next steps close the polygons (by straining the edg
 
 5. **Pleat the flaps** (optional, in step 3). This lowers the base to a chosen height H, in grid units. Each facet is cut along the elevation contours z = H, 2H, 3H, …, and the contours fold valley, mountain, valley, … in turn, so every flap collapses into a band of height H. A contour changes from mountain to valley where it crosses a ridge, as a pleat over a fold must. H = 1 gives pleats one grid unit apart, as in box pleating. The pleat creases carry their mountain or valley assignment into the FOLD file.
 
+Each closing solve in the search is a MILP, and the server gives it no time limit of its own. The search makes several of them, so on a big tree it could run for minutes with no sign of life. Now:
+- Each closing solve gets the step's **time limit per closing solve** (20 s by default).
+- The search shows where it is, with the time so far, beside its buttons, and **Cancel** stops it after the solve in progress.
+- Every outcome is recorded as the step's result: closed, still open, no strain possible (with the server's reason), cancelled, failed, or no strain needed.
+
 If **Build the crease pattern** stays greyed out, the polygons aren't valid yet. **Find the smallest strain** first solves two linear programs. One finds the smallest strain bound ±s that makes the hull's boundary pairs tight. Valid polygons need those pairs tight, so this is a lower bound, and when no strain manages it the button says so at once. The other finds the smallest bound that makes the whole triangulation tight, which is an upper bound. If tightening the boundary already gives valid polygons, that bound is the answer. Otherwise the button bisects between the two bounds with the closing MILP, to within 0.01. It then closes the polygons at the bound found.
 
 **Add stubs** (`stubs.js`), a step of its own that can add as many stubs as you like, splits open polygons the TreeMaker way. A stub is a new short leaf edge hung from a joint of the tree, with its leaf inside the polygon. Its leaf goes on a grid point X, so the layout stays a grid layout. Hung from joint v, at the layout's scale m, the longest stub that keeps every pair feasible is ℓ = min over leaves a of (|X − P_a| / m − d(v, a)), and the leaves that reach that minimum are tight to it.

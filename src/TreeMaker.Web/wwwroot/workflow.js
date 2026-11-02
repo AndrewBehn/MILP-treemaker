@@ -212,8 +212,11 @@ const workflowDoc = (() => {
         : { kind: "none", text: "Draw a tree first: at least two leaves, connected, with one more vertex than edges." };
     }
     if (step.kind === "creases") return step.output.creases?.result?.built ? { kind: "progress", text: `Crease pattern built: ${step.output.creases.result.creases.length} creases.` } : { kind: "none", text: "No crease pattern was built." };
+    if (step.kind === "close" && step.params?.already) return { kind: "neutral", text: "Every polygon was already valid: no strain needed." };
     if (step.kind === "close" && !step.output.closure?.completion?.after) {
-      return { kind: "none", text: "No strain within these bounds keeps every pair feasible, so nothing changed. Widen the bounds or find the smallest strain, add stubs instead, or go back." };
+      const why = step.output.closure?.completion?.messages?.join(" ");
+      const next = step.params?.auto ? "Add stubs to split the open polygons, or go back and solve again." : "Widen the bounds or find the smallest strain, add stubs instead, or go back.";
+      return { kind: "none", text: (why ? why + " " : "No strain within these bounds keeps every pair feasible, so nothing changed. ") + next };
     }
     if (step.kind === "solve" && !step.input?.layout) {
       const r = step.output.report;
@@ -811,21 +814,46 @@ const workflowDoc = (() => {
     render();
   }
 
+  /**
+   * The strain step. Each closing solve is a MILP with no time limit of its own on the server, and the search for the
+   * smallest strain makes several, so each gets the step's time limit; the search shows where it is beside its
+   * buttons, can be cancelled between solves, and every outcome (none needed, none possible, failed) is recorded as
+   * the step's result rather than left as a passing message.
+   */
+  let strainStop = false;
   function runClose(auto) {
-    const s = last().input;
+    const f = last();
+    const s = f.input;
     const min = Number(q("docStrainMin").value), max = Number(q("docStrainMax").value);
-    return run("close", auto ? "Finding the smallest strain" : `Straining within ±${fmt(max, 3)}`, async (progress) => {
-      const req = base(s);
+    const limit = Math.max(1, Number(q("docStrainLimit").value) || 20);
+    const started = performance.now();
+    const say = (t) => { q("strainProgress").textContent = `${t} · ${((performance.now() - started) / 1000).toFixed(0)} s`; };
+    const ticker = setInterval(() => { if (strainLast) say(strainLast); }, 1000);
+    let strainLast = "";
+    strainStop = false;
+    for (const id of ["docAuto", "docBounds"]) q(id).disabled = true;
+    q("strainCancel").hidden = false;
+    const stuck = (message, params) => ({
+      params, output: { ...s, closure: { ...params, completion: { after: null, messages: [message] } }, creases: null }, notes: [message],
+    });
+    const done = run("close", auto ? "Finding the smallest strain" : `Straining within ±${fmt(max, 3)}`, async (progress) => {
+      const tell = (t) => { strainLast = t; say(t); progress(t); };
+      const req = { ...base(s), problem: { ...s.problem, timeLimitSeconds: limit } };
       let result, bounds, text;
       if (auto) {
-        const found = await creaseReadiness.searchStrain(req, progress);
-        if (found.already) { setStatus("No strain needed: " + found.text); return null; }
-        if (!found.result) { setStatus(found.text, "error"); return null; }
+        let found;
+        try {
+          found = await creaseReadiness.searchStrain(req, tell, () => strainStop);
+        } catch (e) {
+          return stuck(strainStop ? "Cancelled: the search for the smallest strain was stopped." : `The search failed: ${e.message}`, { auto });
+        }
+        if (found.already) return { params: { auto, already: true }, output: { ...s }, notes: ["No strain needed: " + found.text] };
+        if (!found.result) return stuck(found.text, { auto });
         result = found.result;
         bounds = { strainMin: -Math.min(found.bound, 0.99), strainMax: found.bound };
         text = found.text;
       } else {
-        progress("Closing the polygons");
+        tell("Closing the polygons");
         result = await postJson("/api/complete", { ...req, strainMin: min, strainMax: max });
         bounds = { strainMin: min, strainMax: max };
         text = result.messages?.join(" ") ?? "";
@@ -836,6 +864,13 @@ const workflowDoc = (() => {
         output: { ...s, closure: { ...bounds, completion: result }, creases: null, report: slim(result.after) ?? s.report },
         notes: [text, `${result.madeTight ?? 0} of ${result.targets?.length ?? 0} target pairs made tight; ${changed} edge length${changed === 1 ? "" : "s"} changed, largest strain ${fmt(result.largestStrain, 3)}.`].filter(Boolean),
       };
+    });
+    return Promise.resolve(done).finally(() => {
+      clearInterval(ticker);
+      const el = q("strainProgress");
+      if (el) el.textContent = "";
+      for (const id of ["docAuto", "docBounds"]) if (q(id)) q(id).disabled = false;
+      if (q("strainCancel")) q("strainCancel").hidden = true;
     });
   }
 
@@ -1028,6 +1063,7 @@ const workflowDoc = (() => {
     q("docAuto").addEventListener("click", () => runClose(true));
     q("docBounds").addEventListener("click", () => runClose(false));
     q("docBuild").addEventListener("click", runCreases);
+    q("strainCancel").addEventListener("click", () => { strainStop = true; q("strainProgress").textContent = "Stopping after the closing solve now running…"; });
     q("removeStub").addEventListener("click", removeStub);
     q("stubEvery").addEventListener("click", stubEveryRegion);
     q("docPleatOn").addEventListener("change", () => { q("docPleatHeight").disabled = !q("docPleatOn").checked; });
