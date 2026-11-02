@@ -55,7 +55,8 @@ public static class CreasePatternFold
     {
         ArgumentNullException.ThrowIfNull(lines);
         double angleTol = toleranceDegrees is > 0 ? Math.Max(1e-4, toleranceDegrees.Value * Math.PI / 180) : 1e-4;
-        double mapTol = toleranceDegrees is > 0 ? Math.Max(1e-6, 4 * angleTol) : 1e-6;
+        // Coordinates in files carry a few digits, and composing reflections grows their error: maps agree to 4 · angleTol.
+        double mapTol = 4 * angleTol;
         var messages = new List<string>();
         if (lines.Count == 0) return new CpFoldResult { Messages = new[] { "There are no lines." } };
 

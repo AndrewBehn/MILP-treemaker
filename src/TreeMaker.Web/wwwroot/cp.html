@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=20261103a">
+  <link rel="stylesheet" href="styles.css?v=20261103b">
 </head>
 <!-- A side tool, apart from the session: read a crease pattern from a file or an image, check it and fold it flat.
      It keeps nothing between visits and never touches the session (workflow.js is not loaded here). -->
@@ -30,7 +30,7 @@
   <main class="cp-page">
     <section class="cp-intro">
       <h1>Fold a crease pattern</h1>
-      <p>Open a crease pattern, check its lines, and see it folded flat. Vector files (<b>.svg</b>, <b>.fold</b>) are read exactly. Images (<b>.png</b>, <b>.jpg</b>) are traced. Red lines are mountains and blue lines valleys; dark lines are mountains when solid and valleys when dashed, or the border along the outline. Check the traced lines before folding. This page is separate from the session and keeps nothing.</p>
+      <p>Open a crease pattern, check its lines, and see it folded flat. Vector files (<b>.svg</b>, <b>.fold</b>) are read exactly. Images (<b>.png</b>, <b>.jpg</b>) are traced. Red lines are mountains, blue lines valleys and yellow lines flat; dark lines are the border in a coloured pattern, and otherwise mountains when solid and valleys when dashed (the border along the outline). Check the traced lines before folding. This page is separate from the session and keeps nothing.</p>
     </section>
 
     <div class="cp-grid">
@@ -44,18 +44,18 @@
           <label class="inline-field" title="Snap traced endpoints to an N × N grid of the sheet: auto finds the coarsest grid every end sits on; 0 for no grid">Snap to grid N <input id="cpGrid" type="text" inputmode="numeric" value="auto" size="4"></label>
           <label class="check" title="Lines within 2° of a multiple of 22.5° are turned onto it; others are left as traced"><input id="cpAngles" type="checkbox" checked> Snap near-22.5° angles</label>
           <label class="inline-field" title="Endpoints closer than this share one point, as a share of the sheet">Join within (%) <input id="cpJoin" type="number" min="0.2" max="6" step="0.1" value="1.5"></label>
-          <label class="inline-field" title="A traced pattern is never exact: angles this close count as meeting Kawasaki's theorem, and faces this close as one fold">Angle tolerance (°) <input id="cpTol" type="number" min="0.1" max="5" step="0.1" value="1"></label>
         </div>
         <div id="cpReadOptions" class="cp-options" hidden>
           <label class="check" title="Lines with no colour of their own: solid lines are mountains and dashed lines valleys (solid lines on the outline stay the border)"><input id="cpStyle" type="checkbox" checked> Solid lines are mountains, dashed lines valleys</label>
           <label class="check" title="Every mountain becomes a valley and every valley a mountain: the same pattern folded from the paper's other side"><input id="cpSwap" type="checkbox"> Swap mountains and valleys</label>
+          <label class="inline-field" title="Drawn and traced patterns are never exact: angles this close count as meeting Kawasaki's theorem, and faces this close as one fold">Angle tolerance (°) <input id="cpTol" type="number" min="0.1" max="5" step="0.1" value="1"></label>
           <button id="cpRetrace" type="button" class="quiet small">Read again</button>
         </div>
         <p id="cpReadNote" class="btn-note"></p>
         <details id="cpHow" class="cp-how">
           <summary>How the lines are read</summary>
-          <p>SVG: every line, polyline, polygon, rect and straight path. Red strokes are mountains and blue strokes valleys. A stroke with no colour of its own is a mountain when solid and a valley when dashed (stroke-dasharray), unless that option is off, when it is a crease with no mountain or valley given; on the outline it is the border. A title containing "mountain" or "valley" also sets it. FOLD: <code>edges_assignment</code> M, V, B, F and U.</p>
-          <p>Images: the pixels are sorted by colour, straight lines are found in each colour (a Hough transform), and their ends are joined and snapped. Along each dark line, the share covered by ink tells a dashed line from a solid one: gaps between dashes are bridged, so a dashed line is read as one line. <b>Swap mountains and valleys</b> exchanges every assignment, which folds the same shape from the paper's other side. Click a line in the drawing to change it: mountain → valley → unassigned → flat → removed.</p>
+          <p>SVG: every line, polyline, polygon, rect and straight path. Red strokes are mountains, blue valleys, yellow or grey flat, green a cut (the border) and magenta a crease with no fold given. Where the folds are coloured, a solid black stroke is the border, wherever it lies. Otherwise a stroke with no colour of its own is a mountain when solid and a valley when dashed (stroke-dasharray), unless that option is off, when it is a crease with no mountain or valley given; on the outline it is the border. A title containing "mountain" or "valley" also sets it. Ends that nearly meet are joined. FOLD: <code>edges_assignment</code> M, V, B, F, U and C (a cut); a folded form is refused.</p>
+          <p>Images: the pixels are sorted by colour, straight lines are found in each colour (a Hough transform) and fitted to their pixels, and their ends are joined and snapped. Along each dark line, the share covered by ink tells a dashed line from a solid one: gaps between dashes are bridged, so a dashed line is read as one line. <b>Swap mountains and valleys</b> exchanges every assignment, which folds the same shape from the paper's other side. Click a line in the drawing to change it: mountain → valley → unassigned → flat → removed.</p>
         </details>
       </section>
 
@@ -82,6 +82,6 @@
     </div>
   </main>
 
-  <script src="cp.js?v=20261103a"></script>
+  <script src="cp.js?v=20261103b"></script>
 </body>
 </html>

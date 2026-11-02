@@ -84,4 +84,25 @@ public class CreasePatternFoldTests
         Assert.Equal(4, r.Faces.Count);
         Assert.True(r.Foldable);
     }
+
+    [Fact]
+    public void PinwheelBaseWithCoordinatesToThreeDecimalsFolds()
+    {
+        // tools/cp_fixtures/pinwheelBase.svg (Origami Simulator, MIT): drawn in Illustrator, its coordinates rounded to
+        // 0.001 in a 1553-unit sheet. Composing reflections grows that rounding past an exact test of the maps.
+        var lines = new List<CpLine>
+        {
+            L(515.823, 521.176, 2068.766, 521.176, LineKind.B), L(515.823, 2074.117, 2068.766, 2074.117, LineKind.B),
+            L(515.824, 2074.117, 515.823, 521.176, LineKind.B), L(2068.766, 2074.117, 2068.766, 521.176, LineKind.B),
+            L(904.059, 1685.882, 1680.529, 1685.882, LineKind.M), L(904.059, 909.411, 1680.529, 909.411, LineKind.M),
+            L(515.823, 521.176, 904.059, 909.411, LineKind.M), L(2068.766, 1297.646, 1680.529, 909.411, LineKind.V),
+            L(2068.766, 521.176, 1680.529, 909.411, LineKind.M), L(2068.766, 2074.117, 1680.529, 1685.882, LineKind.M),
+            L(515.823, 2074.117, 904.059, 1685.882, LineKind.M), L(515.823, 1297.646, 904.059, 1685.882, LineKind.V),
+            L(904.059, 909.411, 904.059, 1685.882, LineKind.M), L(1680.529, 909.411, 1680.529, 1685.882, LineKind.M),
+            L(904.059, 909.411, 1292.294, 521.176, LineKind.V), L(1680.529, 1685.882, 1292.294, 2074.117, LineKind.V),
+        };
+        var r = CreasePatternFold.Fold(lines);
+        Assert.True(r.Foldable, string.Join(" ", r.Messages));
+        Assert.Equal(9, r.Faces.Count);
+    }
 }

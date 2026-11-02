@@ -18,7 +18,7 @@ ORDER = {"M": 0, "V": 0, "U": 1, "F": 2, "B": 3}   # which kind wins when two li
 def fold(segments, eps_rel=1e-6, tolerance_degrees=None):
     """tolerance_degrees: how far from exact the angles may be (traced images); exact (1e-4 rad) when None."""
     atol = max(1e-4, math.radians(tolerance_degrees)) if tolerance_degrees else 1e-4
-    mtol = max(1e-6, 4 * atol) if tolerance_degrees else 1e-6
+    mtol = 4 * atol   # coordinates in files carry a few digits, and composing reflections grows their error
     segs = []
     for s in segments:
         a, b = (float(s["a"]["x"]), float(s["a"]["y"])), (float(s["b"]["x"]), float(s["b"]["y"]))
