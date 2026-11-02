@@ -255,6 +255,13 @@ const workflowDoc = (() => {
       if (step.kind === "stub") moves.push({ kind: "solve", which: "stubs", label: "Solve just the stubs", note: "Let a solver re-place the stubs, every other leaf held. Optional: the stubs already fit." });
       if (step.kind !== "stub") moves.push({ kind: "stub", label: "Add stubs", note: o.inside ? `A leaf is inside ${o.inside.leaves.join("–")}: split it with stubs.` : "Split open polygons with short new flaps, as many as you like in one step.", suggested: !!o.inside });
     }
+    // A solve that stopped with a feasible layout, not a proven optimum, can be refined first: the same solver and
+    // settings again, starting from that layout.
+    if (step.kind === "solve" && s.layout?.status === "Feasible" && SOLVER_IDS.includes(step.node) && !step.params?.opened) {
+      moves.unshift({ kind: "solve", which: "all", refine: true, node: step.node, label: "Refine solution",
+        note: `The solve stopped at a feasible layout, not a proven optimum. Run ${NODES[step.node].title} again with the same settings, starting from this layout.`, suggested: true });
+      for (const m of moves.slice(1)) m.suggested = false;
+    }
     moves.push({ kind: "solve", which: "all", label: "Solve again", note: "Solve all the leaves again, from this layout." });
     if (s.stubs?.length && step.kind !== "stub") moves.push({ kind: "solve", which: "stubs", label: "Solve just the stubs", note: "Every other leaf held where it is." });
     return moves;
@@ -441,6 +448,7 @@ const workflowDoc = (() => {
 
   function stepTitle(step) {
     if (step.kind === "solve" && step.params?.opened) return `Opened ${step.params.opened}`;
+    if (step.kind === "solve" && step.params?.refine) return `Refine with ${NODES[step.node]?.title ?? step.node}`;
     if (step.kind === "solve") return `Solve with ${NODES[step.node]?.title ?? step.node}` + (step.params?.which === "stubs" ? ": just the stubs" : "");
     if (step.kind === "stub" && stubsOf(step.params).length) return `Add stubs: ${stubsOf(step.params).map((t) => t.name).join(", ")}`;
     if (step.kind === "close" && step.output?.closure) return `Strain the edges: ±${fmt(step.output.closure.strainMax, 3)}` + (step.output.report?.valid ? ", polygons closed" : ", still open");
@@ -618,14 +626,16 @@ const workflowDoc = (() => {
     };
     for (const m of moves) {
       const card = h("div", "next-move" + (m.suggested ? " suggested" : "") + (m.kind === "solve" ? " solve" : ""));
-      const solver = m.kind === "solve" ? solverSelect() : null;
+      const solver = m.kind === "solve" && !m.refine ? solverSelect() : null;
       const b = h("button", m.suggested ? "primary small-primary" : "quiet", m.label);
       b.type = "button";
-      b.addEventListener("click", () => addStep(m.kind, solver ? solver.value : KIND_NODE[m.kind], m.which ? { which: m.which } : {}));
+      b.addEventListener("click", () => m.refine
+        ? addStep("solve", m.node, { which: "all", refine: true, controls: last().params?.controls })
+        : addStep(m.kind, solver ? solver.value : KIND_NODE[m.kind], m.which ? { which: m.which } : {}));
       const note = h("p", "btn-note", m.note + " ");
       const spec = () => {
         note.querySelector(".spec-mini")?.remove();
-        const node = NODES[solver ? solver.value : KIND_NODE[m.kind]];
+        const node = NODES[m.refine ? m.node : solver ? solver.value : KIND_NODE[m.kind]];
         if (node?.doc) note.append(specLinks.link("Spec", node.doc, specLinks.firstTarget(node.section, node.doc).at, "spec-mini"));
       };
       spec();
@@ -814,7 +824,7 @@ const workflowDoc = (() => {
       closure: null, creases: null, report: null, stubs: f.input.stubs ?? [],
     };
     f.node = node.id;
-    f.params = { which: f.input.layout ? which : undefined, timeLimit: request.timeLimitSeconds, options: S.options(node) };
+    f.params = { ...(f.params?.refine ? { refine: true } : {}), which: f.input.layout ? which : undefined, timeLimit: request.timeLimitSeconds, options: S.options(node), controls: snapshotControls(node.id) };
     f.ms = response.totalMilliseconds ?? null;
     const before = f.input.layout;
     const moved = before ? out.layout.points.filter((p) => { const o = before.points.find((x) => x.leaf === p.leaf); return o && (o.x !== p.x || o.y !== p.y); }).length : null;
@@ -1000,30 +1010,72 @@ const workflowDoc = (() => {
    * edge, or nothing when every edge is alike.
    */
   const edgeSettingText = (e) => (e.room === 0 ? "locked" : `room ×${fmt(e.room, 3)}`) + (e.cost !== 1 ? `, cost ${fmt(e.cost, 3)}` : "");
+  /**
+   * The table lists every edge; the strain LP (A:3, uniform settings) says which ones the hull's boundary needs
+   * changed, and by how much. Those come first and are the only ones shown until "Show all edges"; "Lock the others"
+   * keeps every edge the LP leaves alone at its length. Nothing is applied without a click.
+   */
+  let edgeNeed = null, edgeNeedKey = null, showAllEdges = false;
   function renderEdgeStrain(s, saved) {
     const rows = q("edgeStrainRows");
     const edges = s?.problem?.edges ?? [];
     const lengths = s?.layout?.edgeLengths ?? edges.map((e) => Number(e.length));
     const by = new Map((saved ?? []).map((e) => [e.edge, e]));
-    rows.replaceChildren(...edges.map((e, k) => {
+    const need = edgeNeed?.length === edges.length ? edgeNeed : null;
+    const needs = (k) => need && Math.abs(need[k]) > 1e-6;
+    const order = edges.map((_, k) => k).sort((a, b) => (need ? Math.abs(need[b]) - Math.abs(need[a]) : 0) || a - b);
+    rows.replaceChildren(...order.map((k) => {
+      const e = edges[k];
       const set = by.get(k) ?? { room: 1, cost: 1 };
-      const tr = h("tr");
+      const tr = h("tr", needs(k) ? "es-needed" : "");
       tr.dataset.edge = k;
       tr.dataset.label = `${e.from}–${e.to}`;
+      tr.hidden = !!need && !showAllEdges && !needs(k) && !by.has(k);
       const lock = h("input"); lock.type = "checkbox"; lock.className = "es-lock"; lock.checked = set.room === 0;
       lock.title = "Keep this edge's length";
       const room = h("input"); room.type = "number"; room.min = "0"; room.step = "0.25"; room.className = "es-room";
       room.value = set.room === 0 ? 1 : set.room; room.disabled = lock.checked;
       const cost = h("input"); cost.type = "number"; cost.min = "0"; cost.step = "0.5"; cost.className = "es-cost"; cost.value = set.cost;
       const td = (...c) => { const d = h("td"); d.append(...c); return d; };
-      tr.append(td(tr.dataset.label), td(fmt(Number(lengths[k] ?? e.length), 4)), td(lock), td(room), td(cost));
+      const want = need ? (needs(k) ? `${need[k] > 0 ? "+" : "−"}${fmt(Math.abs(need[k]), 3)}` : "—") : "…";
+      tr.append(td(tr.dataset.label), td(fmt(Number(lengths[k] ?? e.length), 4)), td(h("span", "es-need", want)), td(lock), td(room), td(cost));
       lock.addEventListener("change", () => { room.disabled = lock.checked; summarizeEdgeStrain(); });
       for (const el of [room, cost]) el.addEventListener("input", summarizeEdgeStrain);
       return tr;
     }));
-    q("edgeStrainBox").open = by.size > 0;
+    const hidden = [...rows.children].filter((tr) => tr.hidden).length;
+    q("edgeStrainAll").hidden = !hidden && !showAllEdges;
+    q("edgeStrainAll").textContent = showAllEdges ? "Show only the edges that need strain" : `Show all ${edges.length} edges`;
+    q("edgeStrainSuggest").hidden = !need || !edges.some((_, k) => !needs(k));
+    if (by.size) q("edgeStrainBox").open = true;
     summarizeEdgeStrain();
   }
+  /** Asks the strain LP, once per input, which edges the boundary needs strained (uniform settings). */
+  async function loadEdgeNeed(s) {
+    const key = JSON.stringify([s?.layout?.points, s?.layout?.scale, s?.layout?.edgeLengths]);
+    if (!s?.layout || s.report?.valid || key === edgeNeedKey) return;
+    edgeNeedKey = key;
+    edgeNeed = null;
+    try {
+      const r = await postJson("/api/strain-needed", base(s));
+      if (edgeNeedKey !== key) return;
+      edgeNeed = r.boundaryStrains?.length ? r.boundaryStrains : null;
+    } catch { edgeNeed = null; }
+    const f = last();
+    if (f.kind === "close" && f.input === s) renderEdgeStrain(s, edgeStrainSettings());
+  }
+  /** "Lock the others": every edge the LP leaves alone keeps its length. */
+  function suggestEdgeStrain() {
+    if (!edgeNeed) return;
+    for (const tr of q("edgeStrainRows").children) {
+      const k = Number(tr.dataset.edge);
+      const lock = tr.querySelector(".es-lock");
+      lock.checked = !(Math.abs(edgeNeed[k]) > 1e-6);
+      tr.querySelector(".es-room").disabled = lock.checked;
+    }
+    summarizeEdgeStrain();
+  }
+
   /** The edges whose room or cost differs from 1, from the table. */
   function edgeStrainSettings() {
     const out = [];
@@ -1047,18 +1099,45 @@ const workflowDoc = (() => {
     const locked = set.filter((e) => e.room === 0).length, roomy = set.filter((e) => e.room !== 0 && e.room !== 1).length;
     const costly = set.filter((e) => e.cost !== 1).length;
     const parts = [locked && `${locked} locked`, roomy && `${roomy} with other room`, costly && `${costly} with other cost`].filter(Boolean);
-    q("edgeStrainSummary").textContent = parts.length ? parts.join(", ") : "every edge alike";
+    const rows = q("edgeStrainRows").children.length;
+    const needed = q("edgeStrainRows").querySelectorAll(".es-needed").length;
+    q("edgeStrainSummary").textContent = `${rows} edges` + (edgeNeed ? ` · ${needed} need strain` : "") + " · " + (parts.length ? parts.join(", ") : "every edge alike");
+  }
+
+  /** The values of the settings controls, by id: what a refine step puts back to run the same solve again. */
+  function snapshotControls(node) {
+    const out = {};
+    for (const el of document.querySelectorAll(".final-config input[id], .final-config select[id]")) {
+      // Only the solver's own settings: the blocks shown for that node.
+      if (!el.closest("[data-nodes]")?.dataset.nodes.split(" ").includes(node) || el.type === "file") continue;
+      out[el.id] = el.type === "checkbox" || el.type === "radio" ? el.checked : el.value;
+    }
+    return out;
+  }
+  function applyControls(values) {
+    for (const [id, v] of Object.entries(values ?? {})) {
+      const el = q(id);
+      if (!el) continue;
+      if (el.type === "checkbox" || el.type === "radio") el.checked = !!v; else el.value = v;
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    }
   }
 
   /** The live step's controls for close, stub and creases, from its input. */
   function prepareLive() {
     const f = last();
     const s = f.input;
+    // A refine step runs with the settings of the solve it refines.
+    if (f.kind === "solve" && f.params?.refine && f.params.controls && !f.output) {
+      applyControls(f.params.controls);
+      if (q("useStart") && !q("useStart").disabled) q("useStart").checked = true;
+    }
     document.body.dataset.stubbing = f.kind === "stub" && s?.layout ? "on" : "off";
     if (f.kind === "close") {
       q("closeValidNote").hidden = !s?.report?.valid;
       if (f.params?.strainMax != null && !f.params.auto) { q("docStrainMin").value = f.params.strainMin; q("docStrainMax").value = f.params.strainMax; }
       renderEdgeStrain(s, f.params?.edges);
+      loadEdgeNeed(s);
     }
     if (f.kind === "creases") {
       q("docBuild").disabled = !s?.report?.valid;
@@ -1164,6 +1243,8 @@ const workflowDoc = (() => {
     q("docAuto").addEventListener("click", () => runClose(true));
     q("docBounds").addEventListener("click", () => runClose(false));
     q("edgeStrainReset").addEventListener("click", () => renderEdgeStrain(last().input, []));
+    q("edgeStrainSuggest").addEventListener("click", suggestEdgeStrain);
+    q("edgeStrainAll").addEventListener("click", () => { showAllEdges = !showAllEdges; renderEdgeStrain(last().input, edgeStrainSettings()); });
     q("docBuild").addEventListener("click", runCreases);
     q("strainCancel").addEventListener("click", () => { strainStop = true; q("strainProgress").textContent = "Stopping after the closing solve now running…"; });
     q("removeStub").addEventListener("click", removeStub);

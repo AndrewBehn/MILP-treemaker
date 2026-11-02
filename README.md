@@ -96,10 +96,13 @@ The work view is one document, **the session** (`workflow.js`). It runs from a t
   | After | You can |
   |---|---|
   | the tree | solve, with any solver: the solvers are listed with how well each suits the tree |
+  | a solve that stopped at a feasible layout, not a proven optimum | **refine solution** first (suggested): the same solver and settings again, starting from that layout |
   | a layout with open polygons | strain the edges, add stubs, or solve again |
   | added stubs | strain the edges (suggested), or solve just the stubs (optional: the stubs already fit) |
   | valid polygons | build the crease pattern (suggested), or solve again |
   | the crease pattern | nothing: this is the end of the path |
+
+  A solve move carries its own solver choice inside its card.
 
   Choosing a move freezes the live step and adds the new one, which runs at once with its default settings:
   - a solve solves;

@@ -146,7 +146,8 @@ class H(SimpleHTTPRequestHandler):
             p = body["problem"]; lay = [dict(leaf=q["leaf"], vertex=i, x=q["x"], y=q["y"]) for i,q in enumerate(body["layout"])]
             if self.path == "/api/polygons": return self.send_json(report(p, lay, body["scale"], body.get("edgeLengths")))
             if self.path == "/api/strain-needed":
-                return self.send_json(dict(alreadyValid=False, boundaryStrain=0.183, boundaryValid=True, triangulationStrain=0.3, tightTargets=[dict(a=lay[0]["leaf"], b=lay[1]["leaf"])], solves=1, milliseconds=12, messages=["Making the boundary pairs tight needs ±0.183 (mock)."]))
+                bs = [(0.183, 0.0, -0.09)[k % 3] * (room[k] if (room := body.get("edgeRoom")) else 1) for k in range(len(p["edges"]))]
+                return self.send_json(dict(boundaryStrains=bs, triangulationStrains=[], alreadyValid=False, boundaryStrain=0.183, boundaryValid=True, triangulationStrain=0.3, tightTargets=[dict(a=lay[0]["leaf"], b=lay[1]["leaf"])], solves=1, milliseconds=12, messages=["Making the boundary pairs tight needs ±0.183 (mock)."]))
             if self.path == "/api/complete":
                 ok = (body.get("strainMax") or 0) >= 0.18
                 after = report(p, lay, body["scale"], None, force_valid=ok)

@@ -1444,7 +1444,7 @@ details > summary::before { content: "▸"; display: inline-block; width: 1em; c
 details[open] > summary::before { transform: rotate(90deg); }
 /* Folded sections share one look: a small bold summary line. */
 .about > summary, .tree-help-box > summary, .doc-more > summary, .sheet-key > summary, .model-size > summary, .more-results > summary {
-  font-size: 12px; font-weight: 650; color: var(--ink-soft); padding: 2px 0;
+  font-size: 12px; font-weight: 650; color: var(--ink-soft);
 }
 .final-head .about > summary { color: var(--mat-ink-soft); }
 .final-head .about p { margin: 4px 0 0; }
@@ -1493,7 +1493,6 @@ details[open] > summary::before { transform: rotate(90deg); }
 
 /* Per-edge room and cost in the strain step (workflow.js renderEdgeStrain). */
 .edge-strain { margin-top: 10px; font-size: 13px; }
-.edge-strain summary { cursor: pointer; }
 .edge-strain-table { border-collapse: collapse; margin: 6px 0 8px; font-size: 12.5px; }
 .edge-strain-table th { text-align: left; font-weight: 650; color: var(--ink-soft); padding: 2px 10px 4px 0; }
 .edge-strain-table td { padding: 2px 10px 2px 0; }
@@ -1501,3 +1500,25 @@ details[open] > summary::before { transform: rotate(90deg); }
 .edge-strain-table input:disabled { opacity: .4; }
 .edge-strain-table { width: auto; }
 .edge-strain .btn-note { max-width: 760px; }
+
+.edge-strain-table tr.es-needed td:first-child { font-weight: 700; }
+.es-need { font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+.es-needed .es-need { color: var(--beni); font-weight: 650; }
+
+/* Every expandable section looks the same: a bordered chip with a chevron that turns when open, so it reads as
+   "click to show more" wherever it is (on the paper panels or on the green mat). */
+details > summary {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+  padding: 4px 10px 4px 8px; border: 1px solid color-mix(in srgb, currentColor 30%, transparent); border-radius: 6px;
+  font-size: 13px; font-weight: 650; line-height: 1.35; cursor: pointer; user-select: none;
+}
+details > summary:hover { background: color-mix(in srgb, currentColor 9%, transparent); border-color: color-mix(in srgb, currentColor 55%, transparent); }
+details > summary::before { content: "▸"; width: auto; margin-right: 0; font-size: 12px; color: inherit; transition: transform .15s; }
+details[open] > summary { margin-bottom: 8px; background: color-mix(in srgb, currentColor 6%, transparent); }
+details > summary .muted { font-weight: 400; }
+
+/* The solve step's Solve and Cancel, at the foot of its settings, on the left. */
+.config-run { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line, #d9ddd6); }
+.config-run[hidden] { display: none; }
+.final-config > .config-run { grid-column: 1 / -1; }
+.next-move > button { align-self: flex-start; margin-left: 0; }
