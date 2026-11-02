@@ -6,13 +6,13 @@ using TreeMaker.Pure;
 namespace TreeMaker.Optimized;
 
 /// <summary>
-/// The combined algorithm of Section 7.1: bisection over candidate scales (Section 5), each test a feasibility
-/// question answered with lattice-hull models (Section 3) under symmetry breaking (Section 4), built up
-/// incrementally (Section 6).
+/// The combined algorithm of Section 4.1: bisection over candidate scales (lattice-hull Section 8.2), each test a
+/// feasibility question answered with lattice-hull models (lattice-hull Sections 3–6) under symmetry breaking
+/// (Section 3), built up incrementally (lattice-hull Sections 8.3–8.6).
 /// </summary>
 public static class OptimizedSolver
 {
-    /// <summary>Largest number of rounds in one phase; the loop always ends sooner in practice (Section 6.11).</summary>
+    /// <summary>Largest number of rounds in one phase; the loop always ends sooner in practice (lattice-hull Section 9).</summary>
     private const int RoundLimit = 5000;
 
     public static OptimizedResult Solve(ProblemSpec spec, OptimizedOptions? options = null,
@@ -42,7 +42,7 @@ public static class OptimizedSolver
         return result with { Milliseconds = clock.Elapsed.TotalMilliseconds, BaseSolve = baseSolve };
     }
 
-    /// <summary>The size of the full Feas(m) at a scale: every pair, its crossable hull facets, C:2, C:3, mirrors.</summary>
+    /// <summary>The size of the full Feas(m) at a scale: every pair, its crossable hull facets, conditions C:6, C:7, mirrors.</summary>
     public static FeasibilityEstimate EstimateFeasibility(ProblemSpec spec, Definitions definitions,
         SymmetryBreaking symmetry, HullCache cache, double scale)
     {
@@ -97,7 +97,7 @@ public static class OptimizedSolver
         private readonly Stopwatch _clock = Stopwatch.StartNew();
         private readonly List<string> _messages = new();
 
-        // Section 6 state, carried between tests (Section 6.10).
+        // Incremental state, carried between tests (lattice-hull Section 8.6).
         private readonly HashSet<int> _active = new();
         private readonly Dictionary<int, HashSet<Point>> _inner = new();
         private (int X, int Y)[]? _center;        // by leaf index
@@ -120,7 +120,7 @@ public static class OptimizedSolver
             int maxTests = candidates.Count <= 1 ? candidates.Count : (int)Math.Ceiling(Math.Log2(candidates.Count));
             if (_symmetry.Note is not null) _messages.Add(_symmetry.Note);
 
-            // Level 0: the seed layout gives a known-feasible lower end and the first window centre (Section 5.3).
+            // Level 0: the seed layout gives a known-feasible lower end and the first window centre (lattice-hull Section 8.2).
             double? seedScale = null;
             int lo = -1;
             if (_spec.StartLayout is { } start)
@@ -262,7 +262,7 @@ public static class OptimizedSolver
             };
         }
 
-        // Level 2: one test at a trial scale (Section 6.9).
+        // Level 2: one test at a trial scale (lattice-hull Section 8.3; optimized Section 3.3).
         private TestTrace Test(int number, int index, double m, out (int X, int Y)[]? layout)
         {
             var started = _clock.Elapsed;
@@ -274,7 +274,7 @@ public static class OptimizedSolver
             bool incremental = _options.PairGeneration || _options.FacetGeneration || _options.LeafWindows;
             if (!incremental)
             {
-                // Without Section 6, a test is one solve of the full Feas(m).
+                // Without incremental solving (lattice-hull Sections 8.3–8.6), a test is one solve of the full Feas(m).
                 var all = Enumerable.Range(0, _tree.Pairs.Count)
                     .ToDictionary(p => p, p => _hulls.Crossable(limits[p]));
                 var round = SolveRound(1, m, all, null, out var found);
@@ -322,7 +322,7 @@ public static class OptimizedSolver
             _ => "No",
         };
 
-        // Section 6.7 and 6.10: set up or carry A and Q for a new trial scale.
+        // Lattice-hull Sections 8.5 and 8.6: set up or carry A and Q for a new trial scale.
         private void PrepareState(double m, long[] limits)
         {
             int pairs = _tree.Pairs.Count;
@@ -361,14 +361,14 @@ public static class OptimizedSolver
                 foreach (int p in _active.ToArray())
                 {
                     var set = _inner.TryGetValue(p, out var existing) ? existing : (_inner[p] = new HashSet<Point>());
-                    // Points that are long enough at this scale no longer belong (Section 6.10).
+                    // Points that are long enough at this scale no longer belong (lattice-hull Section 8.6).
                     set.RemoveWhere(q => !LatticeHull.IsForbidden(q.X, q.Y, limits[p]));
                     foreach (var q in _hulls.Starting(limits[p])) set.Add(q);
                 }
             }
         }
 
-        // Level 3: the generation loop (Section 6.8).
+        // Level 3: the generation loop (lattice-hull Section 8.4).
         private PhaseTrace Loop(double m, long[] limits, Window[]? windows, out (int X, int Y)[]? layout)
         {
             layout = null;

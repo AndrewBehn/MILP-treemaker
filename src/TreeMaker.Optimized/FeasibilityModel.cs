@@ -3,7 +3,7 @@ using TreeMaker.Core;
 
 namespace TreeMaker.Optimized;
 
-/// <summary>A leaf window W = [x̲, x̄] × [y̲, ȳ] (P:5).</summary>
+/// <summary>A leaf window W = [x̲, x̄] × [y̲, ȳ] (hulls P:3).</summary>
 public readonly record struct Window(int MinX, int MaxX, int MinY, int MaxY);
 
 /// <summary>Size of one feasibility model as built.</summary>
@@ -18,8 +18,9 @@ public sealed record FeasibilitySize
 }
 
 /// <summary>
-/// The feasibility model at a trial scale: Feas(m) (Sections 3–4) when every pair is active with its full hull and
-/// windows cover the sheet, and the restricted model R(m; A, Q, W) of Section 6 otherwise. It has no objective.
+/// The feasibility model at a trial scale: Feas(m) (lattice-hull Section 6, with the symmetry breaking of Section 3) when
+/// every pair is active with its full hull and windows cover the sheet, and the restricted model R(m; A, Q, W) of
+/// lattice-hull Section 6 otherwise. It has no objective.
 /// </summary>
 internal sealed class FeasibilityModel : IDisposable
 {
@@ -41,7 +42,7 @@ internal sealed class FeasibilityModel : IDisposable
     /// Builds the model.
     /// </summary>
     /// <param name="spec">The problem (tree, grid, conditions, mirror pairs).</param>
-    /// <param name="symmetry">C:2 and C:3.</param>
+    /// <param name="symmetry">Conditions C:6 and C:7.</param>
     /// <param name="pairFacets">For each active pair index, the facets of its (inner) polygon.</param>
     /// <param name="windows">Leaf windows by leaf index, or null for the whole sheet.</param>
     public static FeasibilityModel Build(ProblemSpec spec, SymmetryBreaking symmetry,
@@ -71,7 +72,7 @@ internal sealed class FeasibilityModel : IDisposable
         int rows = 0, binaries = 0, facetCount = 0, activePairs = 0;
         long nonzeros = 0;
 
-        // Bounds: the sheet (base C:1), the leaf windows (C:4), position conditions, and C:2's half-sheet bounds.
+        // Bounds: the sheet (base C:1), the leaf windows (lattice-hull C:1), position conditions, and conditions C:6's half-sheet bounds.
         var lo = new (int X, int Y)[leaves];
         var hi = new (int X, int Y)[leaves];
         for (int k = 0; k < leaves; k++)
@@ -125,7 +126,7 @@ internal sealed class FeasibilityModel : IDisposable
             Y[k] = Solver.MakeIntVar(lo[k].Y, Math.Max(lo[k].Y, hi[k].Y), $"y[{name}]");
         }
 
-        // C:1 / C:5: each modelled pair lies beyond at least one facet of its polygon.
+        // Lattice-hull C:2: each modelled pair lies beyond at least one facet of its polygon.
         foreach (var (p, facets) in pairFacets)
         {
             var pair = tree.Pairs[p];
@@ -135,7 +136,7 @@ internal sealed class FeasibilityModel : IDisposable
             bool alwaysSatisfied = false;
             foreach (var f in facets)
             {
-                // The range of aᵀ(uᵢ − uⱼ) over the two leaves' boxes (D:2 on the full sheet, D:5 in windows).
+                // The range of aᵀ(uᵢ − uⱼ) over the two leaves' boxes (hulls D:2 on the full sheet, hulls D:4 in windows).
                 long min = RangeMin(f.A1, lo[i].X, hi[i].X, lo[j].X, hi[j].X) + RangeMin(f.A2, lo[i].Y, hi[i].Y, lo[j].Y, hi[j].Y);
                 long max = -RangeMin(-f.A1, lo[i].X, hi[i].X, lo[j].X, hi[j].X) - RangeMin(-f.A2, lo[i].Y, hi[i].Y, lo[j].Y, hi[j].Y);
                 if (max < f.B + 1) continue;           // cannot be crossed here
@@ -171,7 +172,7 @@ internal sealed class FeasibilityModel : IDisposable
             Selectors[p] = (usable.Select(u => u.F).ToArray(), z);
         }
 
-        // C:2 (the y ≤ x part; 2x ≤ N and 2y ≤ N are bounds above) and C:3.
+        // Conditions C:6 (the y ≤ x part; 2x ≤ N and 2y ≤ N are bounds above) and C:7.
         if (symmetry.Anchor is int a)
         {
             int k = tree.LeafIndex(a);

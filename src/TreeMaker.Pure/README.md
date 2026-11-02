@@ -16,8 +16,8 @@ Then open <http://localhost:5080>. `dotnet test` at the root runs every test pro
 
 | Project | Contents |
 |---|---|
-| `src/TreeMaker.Pure` | This library: the MILP builder (C:1–C:7, and C:5–C:6 of the Symmetry-Breaking doc), the solver driver (`PureMilpSolver`) and an exact model-size predictor (`ModelSize`). |
-| `src/TreeMaker.Core` | What it builds on, shared with every solver: the tree and definitions (D:1–D:4), the problem, the independent layout checker, and the steps after a solve. |
+| `src/TreeMaker.Pure` | This library: the MILP builder (C:1–C:7, and conditions C:6–C:7 for the Symmetry-Breaking doc), the solver driver (`PureMilpSolver`) and an exact model-size predictor (`ModelSize`). |
+| `src/TreeMaker.Core` | What it builds on, shared with every solver: the tree and definitions (sheet D:1, offsets D:2, sheet D:3 and base D:1), the problem, the independent layout checker, and the steps after a solve. |
 | `tests/TreeMaker.Pure.Tests` | xUnit tests of the solver and its symmetry breaking. Expected optima were computed independently with HiGHS. |
 
 ## Models
@@ -28,7 +28,7 @@ Then open <http://localhost:5080>. `dotnet test` at the root runs every test pro
 | **Edge** | C:1–C:3, C:5 at fixed m₀ | maximize the common stretch σ ≥ 0 of the stretch set S |
 | **Strain** | C:1–C:3, C:6, C:7 at target m₀ | minimize Σ aₑ (total) or a_max (largest), with σ_min ≤ σₑ ≤ σ_max |
 
-If edge optimization has no fixed m₀, it solves the scale stage first. It then uses that stage's m* as m₀ and seeds the second solve with the stage-one layout (Section 11.2).
+If edge optimization has no fixed m₀, it solves the scale stage first. It then uses that stage's m* as m₀ and seeds the second solve with the stage-one layout (Section 8.2).
 
 Optional conditions are available for every stage:
 

@@ -1,0 +1,21 @@
+{
+ "airplane.svg": { "folds": true, "faces": 16 },
+ "birdBase.svg": { "folds": true, "faces": 16 },
+ "boatBase.svg": { "folds": true, "faces": 12 },
+ "brochurefold.svg": { "folds": true, "faces": 8 },
+ "diagonal-cp.fold": { "folds": true, "faces": 2 },
+ "flat_crane.svg": { "folds": true, "faces": 70, "pngLimit": "dense fan at the corners: short creases are missed and traced angles are not within 1°" },
+ "frogBase.svg": { "folds": false, "why": "the drawing puts its reference points at 0.35 of the side instead of the exact frog-base points, so 8 vertices miss Kawasaki by 1.4°; it folds within 3°" },
+ "mapfold.svg": { "folds": true, "faces": 8 },
+ "miura-ori.svg": { "folds": true, "faces": 156, "pngLimit": "the zigzag is only 2.5° off straight, about a stroke's width: some columns trace as straight lines" },
+ "openSinkBase.svg": { "folds": true, "faces": 12 },
+ "pinwheelBase.svg": { "folds": true, "faces": 9 },
+ "simple.fold": { "read": false, "why": "a 3D folded form, not a crease pattern" },
+ "simpleVertex.svg": { "folds": true, "faces": 4 },
+ "singlesquaretwist.svg": { "folds": true, "faces": 9 },
+ "squareBase.svg": { "folds": true, "faces": 6 },
+ "squaretwist.fold": { "read": false, "why": "a rigidly folded (3D) square twist, not a crease pattern" },
+ "traditionalCrane.svg": { "folds": false, "why": "Origami Simulator's 3D crane: neck, tail and wings are left part-folded, so 20 vertices are not flat-foldable" },
+ "waterbomb.svg": { "folds": true, "faces": 330 },
+ "waterbombBase.svg": { "folds": true, "faces": 8 }
+}

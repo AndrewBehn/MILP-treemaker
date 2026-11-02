@@ -9,7 +9,7 @@ Every part of the app implements one of these model and algorithm specifications
 | Spec | What it specifies | In the app (map node) | Code | Read it |
 |---|---|---|---|---|
 | [Pure MILP TreeMaker](src/TreeMaker.Web/wwwroot/specs/pure.md) | The base model: TreeMaker's scale optimization as one exact MILP on an N × N grid, with edge and strain stages. | Tree, Pure MILP | `src/TreeMaker.Pure`, `src/TreeMaker.Core` | [in the repo](src/TreeMaker.Web/wwwroot/specs/pure.md) · [live doc](https://claude.ai/artifact/1L1y2Ey5CzUT8AzfJ2sev4) |
-| [Symmetry-Breaking MILP TreeMaker](src/TreeMaker.Web/wwwroot/specs/sym.md) | The base model plus an anchor leaf in the fundamental domain (C:5) and siblings in order (C:6). | Symmetry-Breaking MILP | `src/TreeMaker.Pure`, `src/TreeMaker.Core/SymmetryBreaking.cs` | [in the repo](src/TreeMaker.Web/wwwroot/specs/sym.md) · [live doc](https://claude.ai/artifact/4bhD37EK1NQy66fV4zhTaN) |
+| [Symmetry-Breaking MILP TreeMaker](src/TreeMaker.Web/wwwroot/specs/sym.md) | The base model plus an anchor leaf in the fundamental domain (conditions C:6) and siblings in order (conditions C:7). | Symmetry-Breaking MILP | `src/TreeMaker.Pure`, `src/TreeMaker.Core/SymmetryBreaking.cs` | [in the repo](src/TreeMaker.Web/wwwroot/specs/sym.md) · [live doc](https://claude.ai/artifact/4bhD37EK1NQy66fV4zhTaN) |
 | [Lattice-Hull MILP TreeMaker](src/TreeMaker.Web/wwwroot/specs/hull.md) | Lattice hulls at a fixed scale, bisection over candidate scales and incremental generation, without symmetry breaking. | Lattice-Hull MILP | `src/TreeMaker.Optimized` | [in the repo](src/TreeMaker.Web/wwwroot/specs/hull.md) · [live doc](https://claude.ai/artifact/NwmqiYzpRCSneZiobahka6) |
 | [Optimized MILP TreeMaker](src/TreeMaker.Web/wwwroot/specs/optimized.md) | The exact model made fast: lattice hulls, symmetry breaking, scale search and incremental solving together. | Optimized MILP | `src/TreeMaker.Optimized` | [in the repo](src/TreeMaker.Web/wwwroot/specs/optimized.md) · [live doc](https://claude.ai/artifact/LxhWqnKYWWuTrdmJ3hrKdq) |
 | [Scalable MILP TreeMaker](src/TreeMaker.Web/wwwroot/specs/scalable.md) | Good layouts for 25 to 100 leaves without an optimality proof: continuous LPs, CP-SAT repair, neighbourhood search and a closing finish. | Scalable MILP | `src/TreeMaker.Scalable` | [in the repo](src/TreeMaker.Web/wwwroot/specs/scalable.md) · [live doc](https://claude.ai/artifact/Qz1WL7RZDpnMwKYdVT2G29) |
@@ -45,13 +45,13 @@ The first screen is a map of the specs and the steps after them, drawn like the 
 
 | Map node | Route | Spec, and where in it | What runs | API |
 |---|---|---|---|---|
-| Tree | `#/tree` | [Pure MILP](src/TreeMaker.Web/wwwroot/specs/pure.md), parameters P:1–P:3; conditions, Sections 7.1–7.5 | The tree editor, grid size, leaf conditions and mirror pairs | none |
-| Pure MILP | `#/pure` | [Pure MILP](src/TreeMaker.Web/wwwroot/specs/pure.md), Sections 3–8 and 11 | The base model as one MILP (SCIP); scale, edge and strain stages | `/api/pure/*` |
-| Symmetry-Breaking MILP | `#/sym` | [Symmetry-Breaking MILP](src/TreeMaker.Web/wwwroot/specs/sym.md), C:5 and C:6 | The base model with the anchor leaf in the fundamental domain and siblings in order | `/api/pure/*` with `symmetryBreaking: true` |
-| Lattice-Hull MILP | `#/hull` | [Lattice-Hull MILP](src/TreeMaker.Web/wwwroot/specs/hull.md), Sections 8 and 10 | Lattice-hull feasibility tests and bisection over candidate scales, without symmetry breaking | `/api/optimized/*` with `options.symmetryBreaking: false` |
-| Optimized MILP | `#/optimized` | [Optimized MILP](src/TreeMaker.Web/wwwroot/specs/optimized.md), Section 7 | Lattice hulls, symmetry breaking, pair and facet generation, leaf windows, border seed | `/api/optimized/*` |
+| Tree | `#/tree` | [Pure MILP](src/TreeMaker.Web/wwwroot/specs/pure.md), Section 1; sheet P:1–P:3; conditions P:1, C:1–C:5 | The tree editor, grid size, leaf conditions and mirror pairs | none |
+| Pure MILP | `#/pure` | [Pure MILP](src/TreeMaker.Web/wwwroot/specs/pure.md), Sections 3–5 and 8 | The base model as one MILP (SCIP); scale, edge and strain stages | `/api/pure/*` |
+| Symmetry-Breaking MILP | `#/sym` | [Symmetry-Breaking MILP](src/TreeMaker.Web/wwwroot/specs/sym.md), Section 3; conditions C:6 and C:7 | The base model with the anchor leaf in the fundamental domain and siblings in order | `/api/pure/*` with `symmetryBreaking: true` |
+| Lattice-Hull MILP | `#/hull` | [Lattice-Hull MILP](src/TreeMaker.Web/wwwroot/specs/hull.md), Sections 6 and 8 | Lattice-hull feasibility tests and bisection over candidate scales, without symmetry breaking | `/api/optimized/*` with `options.symmetryBreaking: false` |
+| Optimized MILP | `#/optimized` | [Optimized MILP](src/TreeMaker.Web/wwwroot/specs/optimized.md), Section 4 | Lattice hulls, symmetry breaking, pair and facet generation, leaf windows, border seed | `/api/optimized/*` |
 | Scalable MILP | `#/scalable` | [Scalable MILP](src/TreeMaker.Web/wwwroot/specs/scalable.md), Section 9 | Continuous LP, CP-SAT repair, neighbourhood search, foldability finish | `/api/scalable/*` |
-| Strain the edges | `#/close` | [Polygon Closing](src/TreeMaker.Web/wwwroot/specs/closing.md), A:1 to A:4 (Sections 4–7) | Check the polygons; change edge lengths (strain) until they close; find the smallest strain | `/api/polygons`, `/api/complete`, `/api/strain-needed` |
+| Strain the edges | `#/close` | [Polygon Closing](src/TreeMaker.Web/wwwroot/specs/closing.md), polygon test (Section 4, polygons A:1), A:1 to A:3 (Sections 5–7) | Check the polygons; change edge lengths (strain) until they close; find the smallest strain | `/api/polygons`, `/api/complete`, `/api/strain-needed` |
 | Add stubs (optional) | `#/stubs` | [Polygon Closing](src/TreeMaker.Web/wwwroot/specs/closing.md), open problem 1 (Section 10) | Hang a short new leaf edge inside an open polygon; then close again | none: computed in the browser (`stubs.js`), checked by `/api/polygons` |
 | Crease pattern | `#/creases` | [Crease Pattern](src/TreeMaker.Web/wwwroot/specs/crease.md), A:1 and A:3 (Sections 4, 5, 7 and 8) | Universal molecules, pleats, .fold and .svg | `/api/creases` |
 | Folded base | `#/fold` | [Crease Pattern](src/TreeMaker.Web/wwwroot/specs/crease.md), A:2 (Section 6) | The base in 3D | (from the crease pattern) |
@@ -96,10 +96,13 @@ The work view is one document, **the session** (`workflow.js`). It runs from a t
   | After | You can |
   |---|---|
   | the tree | solve, with any solver: the solvers are listed with how well each suits the tree |
+  | a solve that stopped at a feasible layout, not a proven optimum | **refine solution** first (suggested): the same solver and settings again, starting from that layout |
   | a layout with open polygons | strain the edges, add stubs, or solve again |
   | added stubs | strain the edges (suggested), or solve just the stubs (optional: the stubs already fit) |
   | valid polygons | build the crease pattern (suggested), or solve again |
   | the crease pattern | nothing: this is the end of the path |
+
+  A solve move carries its own solver choice inside its card.
 
   Choosing a move freezes the live step and adds the new one, which runs at once with its default settings:
   - a solve solves;
@@ -129,7 +132,7 @@ The work view is one document, **the session** (`workflow.js`). It runs from a t
 
   Toggles are the same rounded pills on the tree and on the sheet. The main action of each step is the one red button.
 - **Go back to this result**, on any frozen step, deletes the steps after it, with no confirmation, so that step's result is live again, and scrolls to the moves offered after it, to choose another next step.
-- **Delete this and below**, on any step, deletes that step and every step after it, with no confirmation. The step before it becomes the live step again. On the live step the button reads **Delete this step**. Deleting step 1 starts an empty session.
+- **Delete this step**, on the live step only, deletes it with no confirmation; the step before it becomes the live step again. Deleting step 1 starts an empty session.
 - **Step cards** run down the side of the document, one per step. Each card has the step's number, title, progress mark, a line on what it did and a small sheet. They stay in view as you scroll, the card of the step on screen is outlined, and a click goes to that step. Above the cards, **Save the session** writes the whole session (every step with its settings, input and output) as a `treemaker-session` file, version 2 ([docs/FILE-FORMATS.md](docs/FILE-FORMATS.md)). **Open…** reads a session, layout or tree file, and **New session** starts an empty one.
 - **Opening a layout file** starts a new session: its tree as step 1 and the layout as step 2.
 - **Only the session is kept.** The session document is the only thing the app keeps in the browser between visits, and it survives a reload. A new session starts empty, with default settings: it takes nothing from the previous one. An opened file starts afresh the same way. The map shows the session in short, with **Continue the session**.
@@ -162,7 +165,7 @@ Every part of the app shows the tree and the sheet side by side, as one widget: 
 
 A row of toggles above the sheet chooses what it shows: leaf circles, every pair and, once they exist, the polygons and the creases.
 
-The tree can be edited only while the tree is the session's live step. In every later step it is locked: delete the steps below step 1 (“Delete this and below” on step 2) to change it.
+The tree can be edited only while the tree is the session's live step. In every later step it is locked: use **Go back to this result** on step 1 to change it.
 
 The editor works the same everywhere it can edit.
 
@@ -198,7 +201,7 @@ After a solve, the session's next steps close the polygons (by straining the edg
 
    The leaves and the scale stay fixed. The edge lengths change (strain σₑ within your bounds) so the pairs of a triangulation that keeps the existing tight pairs become exactly tight, and every other pair still fits. Boundary pairs come first, since the polygons cannot cover the hull without them. A second solve then uses the least total strain.
 
-   Each edge gets its own strain, but by default every edge shares the same bounds and costs the same. Under **Per-edge room and cost** you can change that for single edges, and both ways of straining honour it (closing spec P:8 and D:7):
+   Each edge gets its own strain, but by default every edge shares the same bounds and costs the same. Under **Per-edge room and cost** you can change that for single edges, and both ways of straining honour it (strain P:2 and D:3):
    - **Lock** keeps an edge's length (room 0).
    - **Room ×** multiplies the bounds for that edge: 2 lets it strain twice as far as the others, 0.5 half as far. In **Find the smallest strain**, the bound found is the one for an edge with room 1.
    - **Cost** weighs the edge's strain in the least-strain solves, so an edge with cost 3 is strained only where a cheaper one can't do the job.
@@ -230,12 +233,28 @@ Not yet built: the mountain and valley assignment (which way each crease folds) 
 
 Whether a layout can be closed with small strains depends on which optimal layout the solver returns. Two layouts of the running example with the same m* need up to ±0.3 and ±0.5. Letting the leaves move while closing the polygons, which is a strain MILP with equality rows, would be the next improvement.
 
+
+### Fold a crease pattern (a side tool)
+
+**Fold a crease pattern ↗** on the map opens `cp.html` in its own tab. It runs in the same app process but shares nothing with the session and keeps nothing between visits. It folds any crease pattern flat with `CreasePatternFold` in `src/TreeMaker.Core` (`POST /api/cp/fold`). This is not the tree method's builder: it only reads lines.
+
+1. **Open** an `.svg`, a `.fold` file or an image (`.png`, `.jpg`).
+   - SVG: lines, polylines, polygons, rects and straight paths, through their transforms. Colours follow the editors' convention (ORIPA, Origami Simulator): red mountain, blue valley, yellow or grey flat, green a cut (read as border), magenta a crease with no fold given. In a pattern whose folds are coloured, solid black lines are the border wherever they lie, so the sheet need not be square. Otherwise strokes on the outline are the border. Ends closer than 0.3% of the sheet are joined, and an end that close to another line moves onto it, since drawn files are often a little off.
+   - FOLD: `edges_assignment` M, V, B, F, U and C (a cut, read as border). A file that holds a folded form (3D vertices, or `frame_classes` foldedForm) is refused, unless one of its `file_frames` is the crease pattern.
+   - Line style: a line with no colour of its own (black or grey) is a mountain when solid and a valley when dashed, or the border along the outline. SVG reads `stroke-dasharray`; in an image, the ink along each line is split into strokes, and short strokes with gaps between them are dashes. A line that changes from solid to dashed is read as two lines. Turn **Solid lines are mountains, dashed lines valleys** off to read such lines as creases with no assignment.
+   - **Swap mountains and valleys** exchanges every assignment: the same pattern folded from the paper's other side. The folded base is then shown mirrored, with front and back exchanged.
+   - Images are traced (up to 1000 px on the long side). The pixels are sorted by colour as above (plus dark), and a Hough transform finds the straight lines in each colour. Each line is then fitted to its own pixels by least squares, and a line that bends by about a pixel is split where it bends. A solid line runs on across a gap only where its own colour continues (a crossing); across paper or another colour's line it has ended. Then the ends are joined: lines within 2° of a multiple of 22.5° are turned onto it, an end runs on to a crossing within a few stroke widths (further where there is ink all the way, as at the tip of a fan), close ends meet where their lines cross, and ends snap to the coarsest grid they all sit on within an eighth of a cell (or the N you give), or else onto the lines they nearly touch.
+2. **Check the lines.** Click a line to change it: mountain → valley → unassigned → flat → removed.
+3. **Fold.** From the face under the centre, every crease is crossed by reflecting across it, which gives every face's folded position. A face reached two ways with different maps means the pattern doesn't fold flat. Every inner vertex is checked against Kawasaki's theorem, and, when every crease there is mountain or valley, Maekawa's. Patterns are judged with an angle tolerance (1° by default), since drawn and traced patterns are never exact. The folded faces are drawn see-through; layer order is not worked out.
+
+`tools/cp_fold.py` is the algorithm's Python twin, which the mock API serves. `node tools/ui_cp.js <port>` checks the page against it. `node tools/ui_cp_corpus.js <port>` runs it over 19 real crease patterns in `tools/cp_fixtures/` (traditional models and bases from MIT-licensed repositories; sources, licences and expected results in its README), each as a file and again as a rendered PNG.
+
 ## Presets
 
 **Load a preset** lists the same trees in every solver.
 
 - **Grid size.** Each preset sets its own grid size N: the largest tested N at which every solver that offers the preset solves it within the 60 s limit.
-- **Symmetry.** Every bilateral preset loads the conditions it would be folded with (Pure MILP spec, Sections 7.3 and 7.4): left–right mirror pairs for its paired flaps, and the symmetry axis for its unpaired ones. They show in **Leaf conditions** and can be removed there.
+- **Symmetry.** Every bilateral preset loads the conditions it would be folded with (conditions C:3 and C:4): left–right mirror pairs for its paired flaps, and the symmetry axis for its unpaired ones. They show in **Leaf conditions** and can be removed there.
 
   | Preset | Mirror pairs | On the symmetry axis |
   |---|---|---|

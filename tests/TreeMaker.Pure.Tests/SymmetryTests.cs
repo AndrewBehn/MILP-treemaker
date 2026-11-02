@@ -2,7 +2,7 @@ using TreeMaker.Core;
 
 namespace TreeMaker.Pure.Tests;
 
-/// <summary>The Symmetry-Breaking MILP doc: the base model with C:5 (anchor) and C:6 (sibling order) added.</summary>
+/// <summary>The Symmetry-Breaking MILP doc: the base model with conditions C:6 (anchor) and C:7 (sibling order) added.</summary>
 public class SymmetryTests
 {
     private static ProblemSpec Star(int legs, int n) => new()
@@ -31,7 +31,7 @@ public class SymmetryTests
         Assert.Equal(SolveStatus.Optimal, result.Status);
         Assert.Equal(2.0, result.Scale!.Value, 6);
         Assert.Equal(ModelSize.Predict(spec), result.Model);
-        // All four legs are interchangeable siblings: no anchor, and C:6 orders them by (N + 1)·x + y.
+        // All four legs are interchangeable siblings: no anchor, and conditions C:7 orders them by (N + 1)·x + y.
         var keys = result.Layout.OrderBy(p => int.Parse(p.Leaf)).Select(p => 5 * p.X + p.Y).ToArray();
         Assert.Equal(keys.OrderBy(k => k), keys);
         Assert.Contains(result.Messages, m => m.StartsWith("Symmetry breaking"));

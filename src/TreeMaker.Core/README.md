@@ -6,15 +6,15 @@ The code every solver and the app share. Nothing here solves the layout problem 
 
 | File | Contents |
 |---|---|
-| `Tree.cs`, `Definitions.cs` | The tree, its leaves and pairs, path lengths ℓᵢⱼ, the distance table D(δ) and the scale bound m̄ (base spec D:1–D:3). |
+| `Tree.cs`, `Definitions.cs` | The tree, its leaves and pairs, path lengths ℓᵢⱼ, the distance table D(δ) and the scale bound m̄ (sheet D:1 and D:3, offsets D:2). |
 | `ProblemSpec.cs` | The problem every solver takes: tree, grid, stage, leaf conditions, mirror pairs, solver settings, a starting layout. |
 | `Results.cs` | What a solve returns: status, leaf placements, pair and edge reports, model and solve metrics. |
 | `RunningExample.cs` | The specs' running example (leaves 1–4, internal vertices u and v), used by every test project and the app. |
 | `LayoutAnalysis.cs` | Independent checks from a layout alone, with exact distances: a layout's exact scale, the pair spacing table and violations. |
 | `LayoutImport.cs` | Checks a layout from the workbench or a layout file so it can be shown as if just solved. |
-| `SymmetryBreaking.cs` | The anchor leaf and the interchangeable sibling groups (Symmetry-Breaking doc C:5 and C:6), used by the base model and the optimized search. |
-| `ActivePaths.cs` | The polygon test: do the tight pairs divide the leaves' hull into valid polygons (Polygon Closing doc A:1)? |
-| `PolygonCompletion.cs`, `StrainNeeded.cs` | Closing the polygons by strain with the leaves fixed, and the strain LPs behind **Find the strain needed** (Polygon Closing doc A:2–A:4). |
+| `SymmetryBreaking.cs` | The anchor leaf and the interchangeable sibling groups (conditions C:6 and C:7, used by the Symmetry-Breaking doc), used by the base model and the optimized search. |
+| `ActivePaths.cs` | The polygon test: do the tight pairs divide the leaves' hull into valid polygons (polygons A:1)? |
+| `PolygonCompletion.cs`, `StrainNeeded.cs` | Closing the polygons by strain with the leaves fixed, and the strain LPs behind **Find the strain needed** (Polygon Closing doc A:1–A:3). |
 | `CreasePattern.cs` | Universal molecules, the folded base and its self-check, and pleating (Crease Pattern doc A:1–A:3). |
 
 Its tests are in `tests/TreeMaker.Core.Tests`. Some of them solve a layout with the base model first, so that project also references `TreeMaker.Pure`.

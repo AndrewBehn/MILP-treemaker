@@ -3,8 +3,8 @@ using TreeMaker.Core;
 namespace TreeMaker.Optimized;
 
 /// <summary>
-/// D:3: every lookup-table distance divided by a pair's path length, up to m̄. The optimum m* is one of them
-/// (Section 5.4), so bisection over this sorted list finds it.
+/// Offsets D:3: every lookup-table distance divided by a pair's path length, up to m̄. The optimum m* is one of them
+/// (lattice-hull Section 9), so bisection over this sorted list finds it.
 /// </summary>
 public static class CandidateScales
 {

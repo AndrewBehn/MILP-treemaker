@@ -92,7 +92,7 @@ public sealed record SolveResult
     /// </summary>
     public double? Scale { get; init; }
 
-    /// <summary>The scale in TreeMaker's unit-square units, Scale / N (Section 1).</summary>
+    /// <summary>The scale in TreeMaker's unit-square units, Scale / N (sheet D:2).</summary>
     public double? TreeMakerScale { get; init; }
 
     /// <summary>The common stretch σ of edge optimization.</summary>

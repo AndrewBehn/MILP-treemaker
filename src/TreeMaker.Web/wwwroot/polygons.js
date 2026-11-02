@@ -394,7 +394,7 @@ const creaseReadiness = (() => {
   }
 
   /**
-   * A:4 of the Polygon Closing TreeMaker spec (strain needed; precision ε = 0.01, rounding γ = 0.001).
+   * A:3 of the Polygon Closing TreeMaker spec (strain needed; precision ε = 0.01, rounding γ = 0.001).
    * Finds the smallest symmetric strain bound that closes every polygon, then closes them at it.
    *  1. Two LPs on the server (/api/strain-needed): the boundary pairs alone give a lower bound s_b (and prove at once
    *     that nothing works when they cannot all be made tight); the whole triangulation gives an upper bound s_t.
@@ -403,7 +403,7 @@ const creaseReadiness = (() => {
    *     to within 0.01.
    */
   /**
-   * A:4 as a search any part of the app can run: the request (problem, layout, scale, edgeLengths) and a callback
+   * A:3 as a search any part of the app can run: the request (problem, layout, scale, edgeLengths) and a callback
    * for progress notes. Returns { result, bound, text, ok } (result null when nothing was tried), or { already } when
    * the polygons are valid already.
    */

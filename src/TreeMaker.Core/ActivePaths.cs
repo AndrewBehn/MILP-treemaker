@@ -43,8 +43,8 @@ public sealed record ActivePathReport
 }
 
 /// <summary>
-/// Builds the <see cref="ActivePathReport"/> of a layout, with exact integer geometry: A:1 of the Polygon Closing
-/// TreeMaker spec (the valid subdivision is its D:4, the greedy triangulation its D:5).
+/// Builds the <see cref="ActivePathReport"/> of a layout, with exact integer geometry: polygons A:1 (TreeMaker
+/// foundations: tight pairs and polygons; the valid subdivision is polygons D:3, the greedy triangulation polygons D:4).
 /// </summary>
 public static class ActivePaths
 {

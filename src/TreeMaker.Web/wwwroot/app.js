@@ -79,7 +79,7 @@ const PRESETS = {
 };
 
 /**
- * The symmetry each bilateral preset is folded with (Pure MILP spec, Sections 7.3 and 7.4): its left–right mirror
+ * The symmetry each bilateral preset is folded with (conditions C:3 and C:4): its left–right mirror
  * pairs, and the unpaired flaps (head, tail, stinger) that lie on the mirror line. Every pair has equal edge lengths
  * in the preset, and every preset with axis leaves has an even grid size, as the axis condition needs.
  */
@@ -373,8 +373,8 @@ function renderConditionSummary(info = treeInfo(state.edges)) {
     box.append(hint);
     const ref = document.createElement("span");
     ref.className = "ref";
-    ref.dataset.doc = "pure";
-    ref.textContent = "Sections 7.1–7.5";
+    ref.dataset.doc = "conditions";
+    ref.textContent = "C:1–C:5";
     box.append(" ", ref);
   }
 }
@@ -1110,6 +1110,7 @@ function enterNode(id) {
     spec.append("Spec: ");
     // The doc, and every label and section the node cites, open in the docs tab.
     spec.append(specLinks.link(doc.title, node.doc, null), " · ", specLinks.linkify(node.section, node.doc));
+    for (const c of nodeDocs(node).slice(1)) spec.append(document.createElement("br"), "Uses: ", specLinks.link(DOCS[c.doc].title.replace(/^TreeMaker foundations: /, ""), c.doc, null), " ", specLinks.linkify(c.section, c.doc));
   } else {
     spec.textContent = "Spec: none yet.";
   }
@@ -1126,21 +1127,21 @@ function enterNode(id) {
     ? "Drag vertices to move them, or onto another vertex to re-attach. Click a leaf to pin it to an edge, a corner or the axis, or to mirror it with another leaf. Click an edge to toggle S, click a length to edit it, double-click a vertex to rename it."
     : "Drag vertices to move them, or onto another vertex to re-attach. Click a leaf to pin it to an edge, a corner or the axis, or to mirror it with another leaf. Click a length to edit it, double-click a vertex to rename it.";
   if (node.id === "stubs") {
-    $("treeHelp").textContent = "The tree from step 1, locked (delete the steps below step 1 to change it). The dashed edge is the proposed stub; click a joint to hang it there, click it again to let the search choose.";
+    $("treeHelp").textContent = "The tree from step 1, locked (“Go back to this result” on step 1 to change it). The dashed edge is the proposed stub; click a joint to hang it there, click it again to let the search choose.";
   } else if (node.kind !== "tree") {
-    $("treeHelp").textContent = "The tree from step 1, locked (delete the steps below step 1 to change it). Point at a leaf here or on the sheet to see it in both; point at a pair on the sheet to see the tree path it measures. Click a leaf to keep it lit.";
+    $("treeHelp").textContent = "The tree from step 1, locked (“Go back to this result” on step 1 to change it). Point at a leaf here or on the sheet to see it in both; point at a pair on the sheet to see the tree path it measures. Click a leaf to keep it lit.";
   }
   if (node.lockOptions?.symmetryBreaking === false) {
     $("optSymmetry").checked = false;
     $("optSymmetry").disabled = true;
     $("optSymmetryRow").classList.add("locked");
     $("optSymmetryRef").textContent = "Off: the Lattice-Hull spec has none; the Optimized MILP adds it";
-    $("searchRef").textContent = "Lattice-Hull spec, Sections 8 and 10";
+    $("searchRef").textContent = "Lattice-Hull spec, Sections 6 and 8";
   } else {
     $("optSymmetry").disabled = false;
     $("optSymmetryRow").classList.remove("locked");
-    $("optSymmetryRef").textContent = "§4";
-    $("searchRef").textContent = "Optimized spec, Sections 3 and 5";
+    $("optSymmetryRef").textContent = "§3";
+    $("searchRef").textContent = "Optimized spec, Sections 3 and 4";
     if (id === "optimized" && $("optSymmetry").dataset.touched !== "1") $("optSymmetry").checked = true;
   }
   s?.updateParams();

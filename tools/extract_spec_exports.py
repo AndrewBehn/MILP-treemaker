@@ -32,13 +32,21 @@ SPECS = {
     "Scalable MILP TreeMaker": ("scalable", "https://claude.ai/artifact/Qz1WL7RZDpnMwKYdVT2G29"),
     "Polygon Closing TreeMaker": ("closing", "https://claude.ai/artifact/FtbYLxEKTVszvyrLtcniK4"),
     "Crease Pattern TreeMaker": ("crease", "https://claude.ai/artifact/1B22HTcwzUwAjaMqyfdTXp"),
+    # The foundations (docs/DOC-TREE.md).
+    "TreeMaker foundations: the tree, the sheet and spacing": ("sheet", "https://claude.ai/artifact/Wkj6BjP3fGNPKLv3p3zW3C"),
+    "TreeMaker foundations: grid offsets": ("offsets", "https://claude.ai/artifact/DLXohGDzg22AYwjJeHyYem"),
+    "TreeMaker foundations: leaf conditions and symmetry": ("conditions", "https://claude.ai/artifact/3WP1SahWDm9pb5hs8Mhwp7"),
+    "TreeMaker foundations: lattice hulls and leaf windows": ("hulls", "https://claude.ai/artifact/FxaVEDwfoA6pXYs4aMUwLk"),
+    "TreeMaker foundations: strain": ("strain", "https://claude.ai/artifact/Xr8Sus42zxf1wu68c1BMWt"),
+    "TreeMaker foundations: tight pairs and polygons": ("polygons", "https://claude.ai/artifact/TdJgMS7ZgBLRCvMBdGYGMY"),
 }
 
 
 def spec_for(name):
     stem = name[:-3] if name.endswith(".md") else name
     for title, (key, url) in SPECS.items():
-        if stem == title or stem.startswith(title + ":"):
+        # The export drops a colon from the file name ("TreeMaker foundations strain.md").
+        if stem == title or stem.startswith(title + ":") or stem == title.replace(":", ""):
             return title, key, url
     return None
 
@@ -106,6 +114,8 @@ def _exports_in_file(path, start):
 TABS = {
     "a3a74054-0357": "pure", "fa0cae2e-1113": "sym", "7ffee6c7-7758": "hull", "c4592889-1f69": "optimized",
     "d64e2319-db8f": "scalable", "c45537c5-97f5": "closing", "6a9c70bb-7945": "crease",
+    "7b8bf7ce-7924": "sheet", "069f4cc8-543d": "offsets", "86010a5e-2237": "conditions", "230caaa8-90ad": "hulls",
+    "3bbea88a-7fdc": "strain", "d784c8ef-4f31": "polygons",
 }
 
 
@@ -170,7 +180,9 @@ def docs_reads(path):
                         except ValueError:
                             continue
                         order += 1
-                        yield order, ref.get("id"), obj
+                        # Order by time, so a read in a subagent's transcript does not override a later one in
+                        # the session's own transcript (the files are scanned one after another).
+                        yield (entry.get("timestamp") or "", order), ref.get("id"), obj
 
 
 def collect_figures(sources):
@@ -179,9 +191,11 @@ def collect_figures(sources):
     for src in sources:
         if not src.endswith(".jsonl"):
             continue
-        for _, ref, obj in docs_reads(src):
+        for _, ref, obj in sorted(docs_reads(src), key=lambda r: r[0]):
             xml = (obj.get("data") or {}).get("xml")
-            if xml and ref in TABS:
+            # A partial read (an outline or a search, with <gap/>s) may leave figures out: only a read that lists
+            # embeds, or a whole read, sets a doc's figure list.
+            if xml and ref in TABS and ("<embed" in xml or "<gap" not in xml):
                 lists[TABS[ref]] = [
                     (m.group(2), html_unescape(m.group(1)))
                     for m in re.finditer(r"<embed\b[^>]*?caption='([^']*)'[^>]*?ref='node/([^']+)'", xml)]

@@ -3,7 +3,7 @@ using TreeMaker.Core;
 namespace TreeMaker.Optimized;
 
 /// <summary>
-/// A cheap starting layout, standing in for the rounded TreeMaker layout of base Section 9 (which needs a continuous,
+/// A cheap starting layout, standing in for the rounded TreeMaker layout of base Section 6 (which needs a continuous,
 /// nonlinear solve). Leaves go around the sheet's border in the tree's depth-first order, which is where TreeMaker
 /// puts them, at evenly spaced grid points; the best of several rotations is kept. Its exact scale is a known-feasible
 /// lower bound for the bisection, and the layout centres the first leaf windows.

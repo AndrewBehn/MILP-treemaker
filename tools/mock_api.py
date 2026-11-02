@@ -84,7 +84,7 @@ def solve(api, problem):
     m = exact_scale(problem, layout)
     ps = pairs_of(problem, layout, m)
     base = dict(binaryVariables=1234, constraints=500, nonzeros=9000, pairCount=len(ps), selectorsPerPair=80, leafCount=len(layout), variables=1300, integerVariables=10, continuousVariables=1, scaleUpperBound=m*1.2)
-    msgs = ["Mock solve."] + (["Symmetry breaking: anchor leaf 1 (C:5)."] if problem.get("symmetryBreaking") else []) + (["Started from the workbench layout."] if problem.get("startLayout") else [])
+    msgs = ["Mock solve."] + (["Symmetry breaking: anchor leaf 1 (conditions C:6)."] if problem.get("symmetryBreaking") else []) + (["Started from the workbench layout."] if problem.get("startLayout") else [])
     if api == "pure":
         r = dict(stage=problem.get("stage","Scale"), status="Optimal", solverName="SCIP (mock)", objective=m, scale=m, bestBound=m, relativeGap=0, treeMakerScale=m/problem["gridSize"], layout=layout, pairs=ps, edgeLengths=[], violations=[], messages=msgs, model=base, metrics=dict(nodes=12, iterations=300))
         return dict(result=r, buildMilliseconds=20, solveMilliseconds=600, totalMilliseconds=620)
@@ -138,6 +138,9 @@ class H(SimpleHTTPRequestHandler):
         parts = self.path.split("/")
         try:
             if self.path == "/api/cancel": return self.send_json(dict(cancelled=False))
+            if self.path == "/api/cp/fold":   # the real algorithm's Python twin (tools/cp_fold.py)
+                import cp_fold
+                return self.send_json(cp_fold.fold(body.get("lines") or [], tolerance_degrees=body.get("toleranceDegrees")))
             if len(parts) == 4 and parts[2] in ("pure","optimized","scalable"):
                 api, op = parts[2], parts[3]
                 if op == "analyze": return self.send_json(analyze(api, body))
@@ -146,7 +149,8 @@ class H(SimpleHTTPRequestHandler):
             p = body["problem"]; lay = [dict(leaf=q["leaf"], vertex=i, x=q["x"], y=q["y"]) for i,q in enumerate(body["layout"])]
             if self.path == "/api/polygons": return self.send_json(report(p, lay, body["scale"], body.get("edgeLengths")))
             if self.path == "/api/strain-needed":
-                return self.send_json(dict(alreadyValid=False, boundaryStrain=0.183, boundaryValid=True, triangulationStrain=0.3, tightTargets=[dict(a=lay[0]["leaf"], b=lay[1]["leaf"])], solves=1, milliseconds=12, messages=["Making the boundary pairs tight needs ±0.183 (mock)."]))
+                bs = [(0.183, 0.0, -0.09)[k % 3] * (room[k] if (room := body.get("edgeRoom")) else 1) for k in range(len(p["edges"]))]
+                return self.send_json(dict(boundaryStrains=bs, triangulationStrains=[], alreadyValid=False, boundaryStrain=0.183, boundaryValid=True, triangulationStrain=0.3, tightTargets=[dict(a=lay[0]["leaf"], b=lay[1]["leaf"])], solves=1, milliseconds=12, messages=["Making the boundary pairs tight needs ±0.183 (mock)."]))
             if self.path == "/api/complete":
                 ok = (body.get("strainMax") or 0) >= 0.18
                 after = report(p, lay, body["scale"], None, force_valid=ok)

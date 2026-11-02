@@ -1,10 +1,11 @@
 namespace TreeMaker.Core;
 
 /// <summary>
-/// Symmetry breaking, shared by two specs. The Symmetry-Breaking MILP doc adds it to the base model: the anchor leaf
-/// (P:4) in the fundamental domain (C:5) and interchangeable siblings 𝒯 in order (C:6). The Optimized MILP doc uses
-/// the same constraints in its feasibility models, where they are C:2 and C:3 (Section 4). This class finds 𝒯 and the
-/// anchor, and maps any layout to the equivalent one those constraints allow.
+/// Symmetry breaking, defined in the conditions spec (TreeMaker foundations: leaf conditions and symmetry): the anchor
+/// leaf (conditions P:2) in the fundamental domain (conditions C:6) and interchangeable siblings 𝒯 (conditions D:1) in
+/// order (conditions C:7); conditions Lemma 1 shows they keep an optimum. The Symmetry-Breaking MILP doc adds them to the
+/// base model, and the Optimized MILP doc uses them in its feasibility models (its Section 3). This class finds 𝒯 and
+/// the anchor, and maps any layout to the equivalent one those constraints allow.
 /// </summary>
 public sealed class SymmetryBreaking
 {
@@ -19,13 +20,13 @@ public sealed class SymmetryBreaking
 
     public int GridSize { get; }
 
-    /// <summary>The anchor leaf (a vertex id), or null when C:2 does not apply.</summary>
+    /// <summary>The anchor leaf (a vertex id), or null when conditions C:6 does not apply.</summary>
     public int? Anchor { get; }
 
     /// <summary>Groups of interchangeable siblings (vertex ids, in increasing order); each has at least two leaves.</summary>
     public IReadOnlyList<IReadOnlyList<int>> SiblingGroups { get; }
 
-    /// <summary>𝒯 as consecutive ordered pairs (a, b) within each group; C:3 orders each pair.</summary>
+    /// <summary>𝒯 as consecutive ordered pairs (a, b) within each group; conditions C:7 orders each pair.</summary>
     public IReadOnlyList<(int A, int B)> SiblingOrder { get; }
 
     /// <summary>Why part of the symmetry breaking was left out, if it was.</summary>
@@ -33,7 +34,7 @@ public sealed class SymmetryBreaking
 
     /// <summary>
     /// Finds 𝒯 and r*. The sheet's symmetries are only valid without position conditions or mirror pairs, so those
-    /// switch C:2 off; leaves that carry a condition or a mirror pair are not interchangeable, so they leave 𝒯.
+    /// switch conditions C:6 off; leaves that carry a condition or a mirror pair are not interchangeable, so they leave 𝒯.
     /// </summary>
     public static SymmetryBreaking Create(ProblemSpec spec)
     {
@@ -87,12 +88,12 @@ public sealed class SymmetryBreaking
     public static SymmetryBreaking None(int gridSize) =>
         new(gridSize, null, Array.Empty<IReadOnlyList<int>>(), null);
 
-    /// <summary>Is (x, y) in the fundamental domain 0 ≤ y ≤ x ≤ N/2 (Optimized C:2, Symmetry-Breaking C:5)?</summary>
+    /// <summary>Is (x, y) in the fundamental domain 0 ≤ y ≤ x ≤ N/2 (conditions C:6)?</summary>
     public bool InDomain(int x, int y) => 2 * x <= GridSize && 2 * y <= GridSize && y <= x;
 
     /// <summary>
-    /// Maps a layout (by vertex id) to an equivalent one that satisfies C:2 and C:3: a symmetry of the square that puts
-    /// the anchor in the fundamental domain, then sibling positions sorted (Section 6.9).
+    /// Maps a layout (by vertex id) to an equivalent one that satisfies conditions C:6 and C:7: a symmetry of the square that
+    /// puts the anchor in the fundamental domain, then sibling positions sorted (optimized Section 3.3).
     /// </summary>
     public Dictionary<int, (int X, int Y)> Canonicalize(IReadOnlyDictionary<int, (int X, int Y)> layout)
     {
@@ -121,7 +122,7 @@ public sealed class SymmetryBreaking
         return result;
     }
 
-    /// <summary>The lexicographic key (N + 1)·x + y of the sibling order (Optimized C:3, Symmetry-Breaking C:6).</summary>
+    /// <summary>The lexicographic key (N + 1)·x + y of the sibling order (conditions C:7).</summary>
     public long Key(int x, int y) => (long)(GridSize + 1) * x + y;
 
     /// <summary>The 8 symmetries of the square [0, N]², identity first.</summary>

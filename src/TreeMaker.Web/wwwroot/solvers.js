@@ -14,7 +14,7 @@ SOLVERS.pure = {
   cards: ["metricsCard", "pairsCard", "edgesCard"],
   panes: ["metrics", "messages", "pairsTable", "edgesTable"],
   sizeNote: "exact, before solving",
-  solverSummary: "1% gap, 60 s limit",
+  solverSummary: "1% gap",
   gap: true,
 
   options(node) {
@@ -59,7 +59,7 @@ SOLVERS.pure = {
     let rowFormula = `4P = 4 × ${P}`;
     if (mirrors) rowFormula += ` + 2 × ${mirrors} mirror`;
     if (request.stage === "Strain") rowFormula += largest ? ` + 3|E| = + 3 × ${E}` : ` + 2|E| = + 2 × ${E}`;
-    if (request.symmetryBreaking) rowFormula += " + C:5, C:6";
+    if (request.symmetryBreaking) rowFormula += " + conditions C:6, C:7";
     const rows = [
       ["Offset choices w (binary)", `P × |Δ_N| = ${P} × ${S.toLocaleString()}`, m.binaryVariables],
       ["Leaf positions x, y (integer)", `2n = 2 × ${n}`, m.integerVariables],
@@ -147,7 +147,7 @@ SOLVERS.optimized = {
   cards: ["metricsCard", "pairsCard", "traceCard", "hullCard"],
   panes: ["metrics", "messages", "pairsTable", "traceTable", "ladder", "hullView", "hullPair", "hullNote"],
   sizeNote: "known before solving",
-  solverSummary: "1% gap, 60 s limit",
+  solverSummary: "1% gap",
   gap: true,
 
   options(node) {
@@ -346,7 +346,7 @@ SOLVERS.scalable = {
   cards: ["metricsCard", "pairsCard", "traceCard", "hullCard"],
   panes: ["metrics", "messages", "pairsTable", "traceTable", "roundTable", "ladder", "hullView", "hullNote"],
   sizeNote: "known before solving",
-  solverSummary: "60 s limit for all stages",
+  solverSummary: "threads",
   gap: false,
 
   options() {
@@ -361,6 +361,8 @@ SOLVERS.scalable = {
         closeWithMovingLeaves: $("optClose").checked,
         strainMin: Math.min(0, numberOrNull("optStrainMin") ?? -0.3),
         strainMax: Math.max(0, numberOrNull("optStrainMax") ?? 0.3),
+        windowSeconds: Math.max(1, numberOrNull("optWindowSec") ?? 20),
+        neighbourhoodSeconds: Math.max(1, numberOrNull("optLnsSec") ?? 10),
         randomSeed: state.randomSeed,
       },
     };

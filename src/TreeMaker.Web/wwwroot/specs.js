@@ -1,6 +1,6 @@
 // The specs, packaged with the app, and the page that shows them.
 //
-// The seven specification documents are copied into wwwroot/specs/*.md by tools/extract_spec_exports.py (see
+// The specification documents (a tree: docs/DOC-TREE.md) are copied into wwwroot/specs/*.md by tools/extract_spec_exports.py (see
 // CLAUDE.md, "Specification documents"). Reading them is kept apart from the working app: the docs open in their
 // own browser tab (docs.html), and the app's tab stays on the map and the workbench.
 //   - specLinks, used by the app: the map's Spec tags, the Spec link in the top bar, each node's header and every
@@ -21,8 +21,10 @@ const SpecText = (() => {
     return `${kind}-${number}`;
   }
 
-  /** How the docs name each other in running text: "base C:1", "closing D:4", "the scalable spec". */
-  const PREFIX = { base: "pure", closing: "closing", scalable: "scalable", optimized: "optimized", crease: "crease" };
+  /** How the docs name each other in running text: "base C:1", "polygons D:3", "the scalable spec". */
+  const PREFIX = { base: "pure", closing: "closing", scalable: "scalable", optimized: "optimized", crease: "crease",
+    "symmetry-breaking": "sym", "lattice-hull": "hull",
+    sheet: "sheet", offsets: "offsets", conditions: "conditions", hulls: "hulls", strain: "strain", polygons: "polygons" };
 
   /** Doc names as they appear in the app's own text ("Pure MILP C:5", "Lattice-Hull spec, Section 10"). */
   const NAMES = [
@@ -33,10 +35,16 @@ const SpecText = (() => {
     [/Scalable/i, "scalable"],
     [/Polygon Closing|closing spec/i, "closing"],
     [/Crease Pattern|crease spec/i, "crease"],
+    [/sheet spec|the tree, the sheet and spacing/i, "sheet"],
+    [/offsets spec|grid offsets/i, "offsets"],
+    [/conditions spec|leaf conditions and symmetry/i, "conditions"],
+    [/hulls spec|lattice hulls and leaf windows/i, "hulls"],
+    [/strain spec|foundations: strain/i, "strain"],
+    [/polygons spec|tight pairs and polygons/i, "polygons"],
   ];
 
   /** Every reference in a piece of text: labels, lemmas and sections, with the doc they point into. */
-  const REF = /(?:\b(base|closing|scalable|optimized|crease)\s+)?(?:\b([PDCMA]):(\d+)\b|\b(Lemma)\s+(\d+)\b|\b(Sections?)\s+(\d+(?:\.\d+)?)|§\s?(\d+(?:\.\d+)?))/g;
+  const REF = /(?:\b(base|closing|scalable|optimized|crease|symmetry-breaking|lattice-hull|sheet|offsets|conditions|hulls|strain|polygons)\s+)?(?:\b([PDCMA]):(\d+)\b|\b(Lemma)\s+(\d+)\b|\b(Sections?)\s+(\d+(?:\.\d+)?)|§\s?(\d+(?:\.\d+)?))/g;
 
   function refsIn(text, doc) {
     const found = [];
@@ -89,7 +97,7 @@ const SpecText = (() => {
     return s.replace(/\u0000(\d+)\u0000/g, (_, n) => held[n]);
   }
 
-  /** The anchor a block defines when it starts with its label in bold: "**D:4 Inner polygon.**", "- **P:1** …". */
+  /** The anchor a block defines when it starts with its label in bold: "**D:3 Inner polygon.**", "- **P:1** …". */
   function definedLabel(raw) {
     const m = raw.match(/^\*\*(?:([PDCMA]):(\d+)\b|Lemma (\d+)\b)/);
     if (!m) return null;
@@ -389,24 +397,30 @@ const specReader = typeof document === "undefined" || document.body.dataset.page
       el("h1", { text: "The specifications" }),
       el("p", { class: "lede", text: "Every part of this app implements one of these documents: the models, the algorithms and why they are exact. All of them are served by the app itself, so they read offline." }),
     );
-    const groups = [["Layout solvers", SOLVER_IDS.map((id) => NODES[id].doc)], ["After a layout", ["closing", "crease"]]];
-    for (const [name, keys] of groups) {
-      wrap.append(el("h2", { text: name }));
-      const list = el("div", { class: "spec-cards" });
-      for (const key of keys) {
-        const d = docs[key];
-        const meta = manifest?.specs?.[key];
-        const card = el("article", { class: "spec-card" });
-        card.append(
-          el("a", { class: "spec-card-title", href: href(key), text: DOCS[key].title }),
-          el("p", { text: trimTo(d?.summary ?? "", 260) }),
-        );
-        const row = el("div", { class: "spec-card-row" });
-        row.append(el("span", { class: "muted", text: meta ? `Revision ${meta.rev ?? "?"}` : "Not packaged" }));
-        for (const n of implementers(key)) row.append(el("a", { class: "app-chip", href: appHref(n.id), target: APP_TAB, text: `Run it: ${n.title} →` }));
-        card.append(row);
-        list.append(card);
-      }
+    // The documents as a tree: the groups, then each top document with its children indented under it.
+    const card = (key, depth) => {
+      const d = docs[key];
+      const meta = manifest?.specs?.[key];
+      const c = el("article", { class: "spec-card" + (depth ? " child" : "") });
+      c.style.setProperty("--depth", depth);
+      c.append(
+        el("a", { class: "spec-card-title", href: href(key), text: DOCS[key].title }),
+        ...(DOCS[key].parent ? [el("p", { class: "spec-card-parent", text: `Builds on ${DOCS[DOCS[key].parent].title}` })] : []),
+        el("p", { text: trimTo(d?.summary ?? "", 260) }),
+      );
+      const row = el("div", { class: "spec-card-row" });
+      row.append(el("span", { class: "muted", text: meta ? `Revision ${meta.rev ?? "?"}` : "Not packaged" }));
+      for (const n of implementers(key)) row.append(el("a", { class: "app-chip", href: appHref(n.id), target: APP_TAB, text: `Run it: ${n.title} →` }));
+      const users = Object.values(NODES).filter((n) => (n.cites ?? []).some((c2) => c2.doc === key));
+      if (users.length) row.append(el("span", { class: "muted", text: `Used by ${users.map((n) => n.title).join(", ")}` }));
+      c.append(row);
+      return c;
+    };
+    for (const g of DOC_GROUPS) {
+      wrap.append(el("h2", { text: g.title }), el("p", { class: "muted spec-group-note", text: g.note }));
+      const list = el("div", { class: "spec-tree" });
+      const walk = (key, depth) => { list.append(card(key, depth)); for (const c of docChildren(key)) walk(c, depth + 1); };
+      for (const key of Object.keys(DOCS).filter((k) => DOCS[k].group === g.id && !DOCS[k].parent)) walk(key, 0);
       wrap.append(list);
     }
     if (manifest?.packagedAt) wrap.append(el("p", { class: "muted small", text: `Packaged ${fmtDate(manifest.packagedAt)}.` }));
@@ -490,11 +504,20 @@ const specReader = typeof document === "undefined" || document.body.dataset.page
   function renderNav(current) {
     const nav = $("specNav");
     const list = el("ol");
-    for (const key of Object.keys(DOCS)) {
-      if (!docs[key]) continue;
-      const a = el("a", { href: href(key), text: DOCS[key].title.replace(/ TreeMaker$/, "") });
-      if (key === current) a.setAttribute("aria-current", "page");
-      list.append(el("li", {}, a));
+    // The same tree in the side list: groups, children indented.
+    for (const g of DOC_GROUPS) {
+      list.append(el("li", { class: "nav-group", text: g.title }));
+      const walk = (key, depth) => {
+        if (docs[key]) {
+          const a = el("a", { href: href(key), text: DOCS[key].title.replace(/ TreeMaker$/, "").replace(/^TreeMaker foundations: /, "") });
+          if (key === current) a.setAttribute("aria-current", "page");
+          const li = el("li", { class: depth ? "nav-child" : "" }, a);
+          li.style.setProperty("--depth", depth);
+          list.append(li);
+        }
+        for (const c of docChildren(key)) walk(c, depth + 1);
+      };
+      for (const key of Object.keys(DOCS).filter((k) => DOCS[k].group === g.id && !DOCS[k].parent)) walk(key, 0);
     }
     nav.querySelector("ol")?.remove();
     nav.append(list);

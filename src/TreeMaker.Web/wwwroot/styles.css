@@ -369,13 +369,6 @@ details.edge-table summary { cursor: pointer; font-size: 13px; font-weight: 600;
   min-width: 0;
   padding: 0 32px 48px;
   background-color: var(--mat);
-  background-image:
-    linear-gradient(var(--mat-line-strong) 1px, transparent 1px),
-    linear-gradient(90deg, var(--mat-line-strong) 1px, transparent 1px),
-    linear-gradient(var(--mat-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--mat-line) 1px, transparent 1px);
-  background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
-  background-position: -1px -1px;
   color: var(--mat-ink);
 }
 
@@ -833,12 +826,6 @@ details.rounds summary { cursor: pointer; font-size: 13px; font-weight: 600; }
   min-height: calc(100vh - var(--topbar));
   padding: 26px 32px 56px;
   background-color: var(--mat);
-  background-image:
-    linear-gradient(var(--mat-line-strong) 1px, transparent 1px),
-    linear-gradient(90deg, var(--mat-line-strong) 1px, transparent 1px),
-    linear-gradient(var(--mat-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--mat-line) 1px, transparent 1px);
-  background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
   color: var(--mat-ink);
 }
 .map-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; max-width: 1360px; margin: 0 auto 16px; }
@@ -1328,7 +1315,6 @@ body[data-kind="step"] #stageArea > #metricsCard { display: none; }
 .doc-time { font-size: 12px; color: var(--ink-soft); }
 .back-to-result { margin-left: auto; }
 .back-to-result:hover { border-color: var(--ink); color: var(--ink); }
-.back-to-result + .delete-below { margin-left: 0; }
 .delete-below { margin-left: auto; }
 .delete-below:hover { border-color: var(--beni); color: var(--beni); }
 .final-delete { margin-left: auto; align-self: flex-start; }
@@ -1361,7 +1347,8 @@ body[data-kind="step"] #stageArea > #metricsCard { display: none; }
 .final-notes .doc-open.no { color: #ffb3c0; }
 .final-notes .doc-open.ok { color: #a8e6c1; }
 .final-notes .running { color: #fff; font-weight: 650; }
-.doc-step.final .toolbar { padding-left: 0; padding-right: 0; }
+/* Inside the live step's frame the metrics bar stays within the frame. */
+.doc-step.final .toolbar { margin-left: 0; margin-right: 0; padding: 10px 14px; border-radius: 6px; }
 
 /* What can follow. */
 .next-menu { margin-top: 18px; background: var(--panel); color: var(--ink); border-radius: 8px; padding: 16px 18px; }
@@ -1372,7 +1359,6 @@ body[data-kind="step"] #stageArea > #metricsCard { display: none; }
 .next-move.suggested { border-color: var(--beni); box-shadow: inset 3px 0 0 var(--beni); }
 .next-tag { position: absolute; top: 8px; right: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--beni); }
 .next-move .doc-spec { margin: 0; }
-.next-solver-row { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-size: 13px; }
 .next-menu #pickCard { margin: 0; box-shadow: none; padding: 0; background: none; }
 .next-menu #pickCard > h2 { font-size: 15px; }
 body:not([data-node="tree"]) .duo-tree .block-head .row, body:not([data-node="tree"]) .tree-tools .drag-chip, body:not([data-node="tree"]) .tree-tools .chip-label { display: none; }
@@ -1458,7 +1444,7 @@ details > summary::before { content: "▸"; display: inline-block; width: 1em; c
 details[open] > summary::before { transform: rotate(90deg); }
 /* Folded sections share one look: a small bold summary line. */
 .about > summary, .tree-help-box > summary, .doc-more > summary, .sheet-key > summary, .model-size > summary, .more-results > summary {
-  font-size: 12px; font-weight: 650; color: var(--ink-soft); padding: 2px 0;
+  font-size: 12px; font-weight: 650; color: var(--ink-soft);
 }
 .final-head .about > summary { color: var(--mat-ink-soft); }
 .final-head .about p { margin: 4px 0 0; }
@@ -1497,8 +1483,9 @@ details[open] > summary::before { transform: rotate(90deg); }
 .final-config > .move-block { grid-column: 1 / -1; }
 .close-ways { grid-template-columns: minmax(240px, 1fr) auto minmax(240px, 1fr); max-width: 760px; }
 .close-way button { white-space: nowrap; }
-.next-solver-row { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 650; }
-.next-solver-row select { width: auto; min-width: 200px; height: 30px; }
+/* A solve move's solver choice sits in its own card, beside its button. */
+.next-move .next-solver-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12.5px; color: var(--ink-soft); }
+.next-move .next-solver-row select { width: auto; min-width: 0; max-width: 100%; height: 28px; font-size: 12.5px; }
 .strain-run { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 10px; font-size: 12.5px; }
 .strain-run input { width: 64px; }
 .strain-progress { font-weight: 650; color: var(--beni); }
@@ -1506,7 +1493,6 @@ details[open] > summary::before { transform: rotate(90deg); }
 
 /* Per-edge room and cost in the strain step (workflow.js renderEdgeStrain). */
 .edge-strain { margin-top: 10px; font-size: 13px; }
-.edge-strain summary { cursor: pointer; }
 .edge-strain-table { border-collapse: collapse; margin: 6px 0 8px; font-size: 12.5px; }
 .edge-strain-table th { text-align: left; font-weight: 650; color: var(--ink-soft); padding: 2px 10px 4px 0; }
 .edge-strain-table td { padding: 2px 10px 2px 0; }
@@ -1514,3 +1500,75 @@ details[open] > summary::before { transform: rotate(90deg); }
 .edge-strain-table input:disabled { opacity: .4; }
 .edge-strain-table { width: auto; }
 .edge-strain .btn-note { max-width: 760px; }
+
+.edge-strain-table tr.es-needed td:first-child { font-weight: 700; }
+.es-need { font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+.es-needed .es-need { color: var(--beni); font-weight: 650; }
+
+/* Every expandable section looks the same: a bordered chip with a chevron that turns when open, so it reads as
+   "click to show more" wherever it is (on the paper panels or on the green mat). */
+details > summary {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+  padding: 4px 10px 4px 8px; border: 1px solid color-mix(in srgb, currentColor 30%, transparent); border-radius: 6px;
+  font-size: 13px; font-weight: 650; line-height: 1.35; cursor: pointer; user-select: none;
+}
+details > summary:hover { background: color-mix(in srgb, currentColor 9%, transparent); border-color: color-mix(in srgb, currentColor 55%, transparent); }
+details > summary::before { content: "▸"; width: auto; margin-right: 0; font-size: 12px; color: inherit; transition: transform .15s; }
+details[open] > summary { margin-bottom: 8px; background: color-mix(in srgb, currentColor 6%, transparent); }
+details > summary .muted { font-weight: 400; }
+
+/* The solve step's Solve and Cancel, at the foot of its settings, on the left. */
+.config-run { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line, #d9ddd6); }
+.config-run[hidden] { display: none; }
+.final-config > .config-run { grid-column: 1 / -1; }
+.next-move > button { align-self: flex-start; margin-left: 0; }
+
+/* ───────────── The crease-pattern page (cp.html): a side tool ───────────── */
+body[data-page="cp"] { background: var(--mat); color: var(--mat-ink); min-height: 100vh; }
+.cp-page { max-width: 1440px; margin: 0 auto; padding: 24px 28px 56px; }
+.cp-intro h1 { margin: 0 0 6px; font-size: 24px; font-weight: 760; font-stretch: 118%; color: #fff; }
+.cp-intro p { max-width: 900px; margin: 0 0 18px; color: var(--mat-ink-soft); line-height: 1.5; }
+.cp-grid { display: grid; grid-template-columns: minmax(260px, 0.8fr) minmax(320px, 1.1fr) minmax(320px, 1.1fr); gap: 16px; align-items: start; }
+@media (max-width: 1100px) { .cp-grid { grid-template-columns: 1fr; } }
+.cp-panel { background: var(--panel); color: var(--ink); border-radius: 8px; padding: 14px 16px; }
+.cp-panel h2 { margin: 0 0 10px; font-size: 15px; }
+.cp-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.cp-drop { display: block; border: 1.5px dashed #b9beb7; border-radius: 8px; padding: 18px 14px; text-align: center; cursor: pointer; background: var(--paper); font-size: 13px; }
+.cp-drop.over, .cp-drop:hover { border-color: var(--beni); }
+.cp-drop input { display: block; margin: 0 auto 8px; }
+.cp-options { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-top: 10px; font-size: 13px; }
+.cp-options input[type="number"] { width: 64px; height: 28px; }
+.cp-how { margin-top: 10px; font-size: 13px; }
+.cp-how p { margin: 6px 0 0; line-height: 1.45; }
+.cp-view { background: #fff; border: 1px solid #d9ddd6; border-radius: 6px; margin-bottom: 10px; }
+.cp-view svg { display: block; width: 100%; aspect-ratio: 1; }
+.cp-line { stroke-width: 0.004; stroke-linecap: round; }
+.cp-line.k-M { stroke: #c2304a; }
+.cp-line.k-V { stroke: #1f4e8c; stroke-dasharray: 0.02 0.01; }
+.cp-line.k-U { stroke: #333; }
+.cp-line.k-F { stroke: #9aa39c; stroke-dasharray: 0.006 0.008; }
+.cp-line.k-B { stroke: #111; stroke-width: 0.006; }
+.cp-hit { stroke: transparent; stroke-width: 0.02; cursor: pointer; }
+.cp-hit:hover { stroke: rgba(255, 128, 149, .35); }
+.cp-bad { fill: none; stroke: #e0475e; stroke-width: 0.006; }
+.cp-face { fill: rgba(222, 120, 140, .16); stroke: rgba(80, 20, 30, .55); }
+.cp-face.back { fill: rgba(40, 110, 160, .14); }
+.cp-legend { font-size: 12px; color: var(--ink-soft); display: inline-flex; align-items: center; gap: 4px 6px; flex-wrap: wrap; }
+.cp-legend i { display: inline-block; width: 18px; height: 0; border-top: 2px solid; margin-left: 6px; }
+.cp-legend .lg-m { border-color: #c2304a; } .cp-legend .lg-v { border-color: #1f4e8c; border-top-style: dashed; }
+.cp-legend .lg-u { border-color: #333; } .cp-legend .lg-f { border-color: #9aa39c; border-top-style: dotted; } .cp-legend .lg-b { border-color: #111; border-top-width: 3px; }
+.cp-verdict { font-weight: 700; margin: 4px 0; }
+.cp-verdict.good { color: #1d6a45; } .cp-verdict.bad { color: #b3263c; }
+.cp-messages { margin: 4px 0 8px; padding-left: 18px; font-size: 13px; }
+.btn-note.bad { color: #b3263c; }
+
+/* The map's side tool link. */
+.map-side { display: inline-flex; align-items: center; gap: 6px; }
+
+/* The docs page: the documents as a tree. */
+.spec-tree { display: flex; flex-direction: column; gap: 10px; }
+.spec-tree .spec-card.child { margin-left: calc(var(--depth, 1) * 28px); border-left: 3px solid #cfd8d2; }
+.spec-card-parent { margin: 2px 0 0; font-size: 12px; color: var(--ink-soft); }
+.spec-group-note { margin: -4px 0 10px; }
+.spec-nav .nav-group { margin-top: 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); list-style: none; }
+.spec-nav .nav-child { padding-left: calc(var(--depth, 1) * 14px); }

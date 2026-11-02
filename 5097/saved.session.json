@@ -1,0 +1,2506 @@
+{
+  "format": "treemaker-session",
+  "version": 2,
+  "name": "session",
+  "savedAt": "2026-11-02T16:18:10.823Z",
+  "steps": [
+    {
+      "kind": "tree",
+      "node": "tree",
+      "title": "The tree",
+      "params": {},
+      "input": null,
+      "output": {
+        "problem": {
+          "edges": [
+            {
+              "from": "1",
+              "to": "u",
+              "length": 3,
+              "stretch": false
+            },
+            {
+              "from": "2",
+              "to": "u",
+              "length": 2,
+              "stretch": false
+            },
+            {
+              "from": "u",
+              "to": "v",
+              "length": 3,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "3",
+              "length": 2,
+              "stretch": true
+            },
+            {
+              "from": "v",
+              "to": "4",
+              "length": 4,
+              "stretch": false
+            }
+          ],
+          "gridSize": 8,
+          "leafConditions": [],
+          "mirrorPairs": []
+        },
+        "layout": null,
+        "closure": null,
+        "creases": null,
+        "report": null,
+        "stubs": []
+      },
+      "notes": []
+    },
+    {
+      "kind": "solve",
+      "node": "pure",
+      "title": "",
+      "params": {
+        "timeLimit": 60,
+        "options": {
+          "stage": "Scale",
+          "fixedScale": null,
+          "targetScale": 1.2,
+          "strainMin": -0.5,
+          "strainMax": 0.5,
+          "strainObjective": "TotalAbsolute",
+          "relativeGap": 0.01,
+          "symmetryBreaking": false
+        },
+        "controls": {
+          "autoScale": true,
+          "fixedScale": "",
+          "targetScale": "1.2",
+          "strainObjective": "TotalAbsolute",
+          "strainMin": "-0.5",
+          "strainMax": "0.5",
+          "timeLimit": "60",
+          "relativeGap": "0.01",
+          "threads": ""
+        }
+      },
+      "input": {
+        "problem": {
+          "edges": [
+            {
+              "from": "1",
+              "to": "u",
+              "length": 3,
+              "stretch": false
+            },
+            {
+              "from": "2",
+              "to": "u",
+              "length": 2,
+              "stretch": false
+            },
+            {
+              "from": "u",
+              "to": "v",
+              "length": 3,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "3",
+              "length": 2,
+              "stretch": true
+            },
+            {
+              "from": "v",
+              "to": "4",
+              "length": 4,
+              "stretch": false
+            }
+          ],
+          "gridSize": 8,
+          "leafConditions": [],
+          "mirrorPairs": []
+        },
+        "layout": null,
+        "closure": null,
+        "creases": null,
+        "report": null,
+        "stubs": []
+      },
+      "output": {
+        "problem": {
+          "edges": [
+            {
+              "from": "1",
+              "to": "u",
+              "length": 3,
+              "stretch": false
+            },
+            {
+              "from": "2",
+              "to": "u",
+              "length": 2,
+              "stretch": false
+            },
+            {
+              "from": "u",
+              "to": "v",
+              "length": 3,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "3",
+              "length": 2,
+              "stretch": true
+            },
+            {
+              "from": "v",
+              "to": "4",
+              "length": 4,
+              "stretch": false
+            }
+          ],
+          "gridSize": 8,
+          "leafConditions": [],
+          "mirrorPairs": []
+        },
+        "layout": {
+          "node": "pure",
+          "points": [
+            {
+              "leaf": "1",
+              "x": 0,
+              "y": 0
+            },
+            {
+              "leaf": "2",
+              "x": 8,
+              "y": 0
+            },
+            {
+              "leaf": "3",
+              "x": 8,
+              "y": 8
+            },
+            {
+              "leaf": "4",
+              "x": 0,
+              "y": 8
+            }
+          ],
+          "scale": 0.8,
+          "edgeLengths": null,
+          "status": "Optimal"
+        },
+        "closure": null,
+        "creases": null,
+        "report": {
+          "valid": false,
+          "polygons": [
+            {
+              "leaves": [
+                "1",
+                "2",
+                "3",
+                "4"
+              ],
+              "valid": false
+            }
+          ],
+          "segments": [
+            {
+              "a": "1",
+              "b": "4"
+            }
+          ],
+          "missingBoundary": [
+            {
+              "a": "1",
+              "b": "2"
+            },
+            {
+              "a": "2",
+              "b": "3"
+            },
+            {
+              "a": "3",
+              "b": "4"
+            }
+          ],
+          "tightPairs": [
+            {
+              "a": "1",
+              "b": "4"
+            }
+          ],
+          "hullLeaves": [
+            "1",
+            "2",
+            "3",
+            "4"
+          ],
+          "hullArea": 1,
+          "coveredArea": 0.6,
+          "issues": [
+            "3 boundary pairs are not tight."
+          ]
+        },
+        "stubs": []
+      },
+      "notes": [
+        "Optimal in 620 ms. m = 0.8."
+      ],
+      "ms": 620
+    },
+    {
+      "kind": "stub",
+      "node": "stubs",
+      "title": "",
+      "params": {
+        "stubs": [
+          {
+            "name": "s1",
+            "attach": "v",
+            "len": 2.5069390943299865,
+            "x": 5,
+            "y": 6,
+            "tight": [
+              "3"
+            ]
+          },
+          {
+            "name": "s2",
+            "attach": "v",
+            "len": 0.5069390943299865,
+            "x": 2,
+            "y": 5,
+            "tight": [
+              "4"
+            ]
+          }
+        ]
+      },
+      "input": {
+        "problem": {
+          "edges": [
+            {
+              "from": "1",
+              "to": "u",
+              "length": 3,
+              "stretch": false
+            },
+            {
+              "from": "2",
+              "to": "u",
+              "length": 2,
+              "stretch": false
+            },
+            {
+              "from": "u",
+              "to": "v",
+              "length": 3,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "3",
+              "length": 2,
+              "stretch": true
+            },
+            {
+              "from": "v",
+              "to": "4",
+              "length": 4,
+              "stretch": false
+            }
+          ],
+          "gridSize": 8,
+          "leafConditions": [],
+          "mirrorPairs": []
+        },
+        "layout": {
+          "node": "pure",
+          "points": [
+            {
+              "leaf": "1",
+              "x": 0,
+              "y": 0
+            },
+            {
+              "leaf": "2",
+              "x": 8,
+              "y": 0
+            },
+            {
+              "leaf": "3",
+              "x": 8,
+              "y": 8
+            },
+            {
+              "leaf": "4",
+              "x": 0,
+              "y": 8
+            }
+          ],
+          "scale": 0.8,
+          "edgeLengths": null,
+          "status": "Optimal"
+        },
+        "closure": null,
+        "creases": null,
+        "report": {
+          "valid": false,
+          "polygons": [
+            {
+              "leaves": [
+                "1",
+                "2",
+                "3",
+                "4"
+              ],
+              "valid": false
+            }
+          ],
+          "segments": [
+            {
+              "a": "1",
+              "b": "4"
+            }
+          ],
+          "missingBoundary": [
+            {
+              "a": "1",
+              "b": "2"
+            },
+            {
+              "a": "2",
+              "b": "3"
+            },
+            {
+              "a": "3",
+              "b": "4"
+            }
+          ],
+          "tightPairs": [
+            {
+              "a": "1",
+              "b": "4"
+            }
+          ],
+          "hullLeaves": [
+            "1",
+            "2",
+            "3",
+            "4"
+          ],
+          "hullArea": 1,
+          "coveredArea": 0.6,
+          "issues": [
+            "3 boundary pairs are not tight."
+          ]
+        },
+        "stubs": []
+      },
+      "output": {
+        "problem": {
+          "edges": [
+            {
+              "from": "1",
+              "to": "u",
+              "length": 3,
+              "stretch": false
+            },
+            {
+              "from": "2",
+              "to": "u",
+              "length": 2,
+              "stretch": false
+            },
+            {
+              "from": "u",
+              "to": "v",
+              "length": 3,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "3",
+              "length": 2,
+              "stretch": true
+            },
+            {
+              "from": "v",
+              "to": "4",
+              "length": 4,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "s1",
+              "length": 2.5069390943299865,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "s2",
+              "length": 0.5069390943299865,
+              "stretch": false
+            }
+          ],
+          "gridSize": 8,
+          "leafConditions": [],
+          "mirrorPairs": []
+        },
+        "layout": {
+          "node": "pure",
+          "points": [
+            {
+              "leaf": "1",
+              "x": 0,
+              "y": 0
+            },
+            {
+              "leaf": "2",
+              "x": 8,
+              "y": 0
+            },
+            {
+              "leaf": "3",
+              "x": 8,
+              "y": 8
+            },
+            {
+              "leaf": "4",
+              "x": 0,
+              "y": 8
+            },
+            {
+              "leaf": "s1",
+              "x": 5,
+              "y": 6
+            },
+            {
+              "leaf": "s2",
+              "x": 2,
+              "y": 5
+            }
+          ],
+          "scale": 0.8,
+          "edgeLengths": [
+            3,
+            2,
+            3,
+            2,
+            4,
+            2.5069390943299865,
+            0.5069390943299865
+          ],
+          "status": "Optimal + stub s1 + stub s2"
+        },
+        "closure": null,
+        "creases": null,
+        "report": {
+          "valid": false,
+          "polygons": [
+            {
+              "leaves": [
+                "1",
+                "2",
+                "3",
+                "4"
+              ],
+              "valid": false
+            }
+          ],
+          "segments": [
+            {
+              "a": "1",
+              "b": "4"
+            },
+            {
+              "a": "3",
+              "b": "s1"
+            },
+            {
+              "a": "4",
+              "b": "s2"
+            }
+          ],
+          "missingBoundary": [
+            {
+              "a": "1",
+              "b": "2"
+            },
+            {
+              "a": "2",
+              "b": "3"
+            },
+            {
+              "a": "3",
+              "b": "4"
+            }
+          ],
+          "tightPairs": [
+            {
+              "a": "1",
+              "b": "4"
+            },
+            {
+              "a": "3",
+              "b": "s1"
+            },
+            {
+              "a": "4",
+              "b": "s2"
+            }
+          ],
+          "hullLeaves": [
+            "1",
+            "2",
+            "3",
+            "4"
+          ],
+          "hullArea": 1,
+          "coveredArea": 0.6,
+          "issues": [
+            "3 boundary pairs are not tight."
+          ]
+        },
+        "stubs": [
+          "s1",
+          "s2"
+        ]
+      },
+      "notes": [
+        "The scale stays; every pair still fits. 2 stubs in this step; add more, or choose the next step."
+      ],
+      "states": [
+        {
+          "problem": {
+            "edges": [
+              {
+                "from": "1",
+                "to": "u",
+                "length": 3,
+                "stretch": false
+              },
+              {
+                "from": "2",
+                "to": "u",
+                "length": 2,
+                "stretch": false
+              },
+              {
+                "from": "u",
+                "to": "v",
+                "length": 3,
+                "stretch": false
+              },
+              {
+                "from": "v",
+                "to": "3",
+                "length": 2,
+                "stretch": true
+              },
+              {
+                "from": "v",
+                "to": "4",
+                "length": 4,
+                "stretch": false
+              },
+              {
+                "from": "v",
+                "to": "s1",
+                "length": 2.5069390943299865,
+                "stretch": false
+              }
+            ],
+            "gridSize": 8,
+            "leafConditions": [],
+            "mirrorPairs": []
+          },
+          "layout": {
+            "node": "pure",
+            "points": [
+              {
+                "leaf": "1",
+                "x": 0,
+                "y": 0
+              },
+              {
+                "leaf": "2",
+                "x": 8,
+                "y": 0
+              },
+              {
+                "leaf": "3",
+                "x": 8,
+                "y": 8
+              },
+              {
+                "leaf": "4",
+                "x": 0,
+                "y": 8
+              },
+              {
+                "leaf": "s1",
+                "x": 5,
+                "y": 6
+              }
+            ],
+            "scale": 0.8,
+            "edgeLengths": [
+              3,
+              2,
+              3,
+              2,
+              4,
+              2.5069390943299865
+            ],
+            "status": "Optimal + stub s1"
+          },
+          "closure": null,
+          "creases": null,
+          "report": {
+            "valid": false,
+            "polygons": [
+              {
+                "leaves": [
+                  "1",
+                  "2",
+                  "3",
+                  "4"
+                ],
+                "valid": false
+              }
+            ],
+            "segments": [
+              {
+                "a": "1",
+                "b": "4"
+              },
+              {
+                "a": "3",
+                "b": "s1"
+              }
+            ],
+            "missingBoundary": [
+              {
+                "a": "1",
+                "b": "2"
+              },
+              {
+                "a": "2",
+                "b": "3"
+              },
+              {
+                "a": "3",
+                "b": "4"
+              }
+            ],
+            "tightPairs": [
+              {
+                "a": "1",
+                "b": "4"
+              },
+              {
+                "a": "3",
+                "b": "s1"
+              }
+            ],
+            "hullLeaves": [
+              "1",
+              "2",
+              "3",
+              "4"
+            ],
+            "hullArea": 1,
+            "coveredArea": 0.6,
+            "issues": [
+              "3 boundary pairs are not tight."
+            ]
+          },
+          "stubs": [
+            "s1"
+          ]
+        },
+        {
+          "problem": {
+            "edges": [
+              {
+                "from": "1",
+                "to": "u",
+                "length": 3,
+                "stretch": false
+              },
+              {
+                "from": "2",
+                "to": "u",
+                "length": 2,
+                "stretch": false
+              },
+              {
+                "from": "u",
+                "to": "v",
+                "length": 3,
+                "stretch": false
+              },
+              {
+                "from": "v",
+                "to": "3",
+                "length": 2,
+                "stretch": true
+              },
+              {
+                "from": "v",
+                "to": "4",
+                "length": 4,
+                "stretch": false
+              },
+              {
+                "from": "v",
+                "to": "s1",
+                "length": 2.5069390943299865,
+                "stretch": false
+              },
+              {
+                "from": "v",
+                "to": "s2",
+                "length": 0.5069390943299865,
+                "stretch": false
+              }
+            ],
+            "gridSize": 8,
+            "leafConditions": [],
+            "mirrorPairs": []
+          },
+          "layout": {
+            "node": "pure",
+            "points": [
+              {
+                "leaf": "1",
+                "x": 0,
+                "y": 0
+              },
+              {
+                "leaf": "2",
+                "x": 8,
+                "y": 0
+              },
+              {
+                "leaf": "3",
+                "x": 8,
+                "y": 8
+              },
+              {
+                "leaf": "4",
+                "x": 0,
+                "y": 8
+              },
+              {
+                "leaf": "s1",
+                "x": 5,
+                "y": 6
+              },
+              {
+                "leaf": "s2",
+                "x": 2,
+                "y": 5
+              }
+            ],
+            "scale": 0.8,
+            "edgeLengths": [
+              3,
+              2,
+              3,
+              2,
+              4,
+              2.5069390943299865,
+              0.5069390943299865
+            ],
+            "status": "Optimal + stub s1 + stub s2"
+          },
+          "closure": null,
+          "creases": null,
+          "report": {
+            "valid": false,
+            "polygons": [
+              {
+                "leaves": [
+                  "1",
+                  "2",
+                  "3",
+                  "4"
+                ],
+                "valid": false
+              }
+            ],
+            "segments": [
+              {
+                "a": "1",
+                "b": "4"
+              },
+              {
+                "a": "3",
+                "b": "s1"
+              },
+              {
+                "a": "4",
+                "b": "s2"
+              }
+            ],
+            "missingBoundary": [
+              {
+                "a": "1",
+                "b": "2"
+              },
+              {
+                "a": "2",
+                "b": "3"
+              },
+              {
+                "a": "3",
+                "b": "4"
+              }
+            ],
+            "tightPairs": [
+              {
+                "a": "1",
+                "b": "4"
+              },
+              {
+                "a": "3",
+                "b": "s1"
+              },
+              {
+                "a": "4",
+                "b": "s2"
+              }
+            ],
+            "hullLeaves": [
+              "1",
+              "2",
+              "3",
+              "4"
+            ],
+            "hullArea": 1,
+            "coveredArea": 0.6,
+            "issues": [
+              "3 boundary pairs are not tight."
+            ]
+          },
+          "stubs": [
+            "s1",
+            "s2"
+          ]
+        }
+      ],
+      "ms": 15.200000000186265
+    },
+    {
+      "kind": "solve",
+      "node": "pure",
+      "title": "",
+      "params": {
+        "which": "stubs",
+        "timeLimit": 60,
+        "options": {
+          "stage": "Scale",
+          "fixedScale": null,
+          "targetScale": 1.2,
+          "strainMin": -0.5,
+          "strainMax": 0.5,
+          "strainObjective": "TotalAbsolute",
+          "relativeGap": 0.01,
+          "symmetryBreaking": false
+        },
+        "controls": {
+          "autoScale": true,
+          "fixedScale": "",
+          "targetScale": "1.2",
+          "strainObjective": "TotalAbsolute",
+          "strainMin": "-0.5",
+          "strainMax": "0.5",
+          "timeLimit": "60",
+          "relativeGap": "0.01",
+          "threads": ""
+        }
+      },
+      "input": {
+        "problem": {
+          "edges": [
+            {
+              "from": "1",
+              "to": "u",
+              "length": 3,
+              "stretch": false
+            },
+            {
+              "from": "2",
+              "to": "u",
+              "length": 2,
+              "stretch": false
+            },
+            {
+              "from": "u",
+              "to": "v",
+              "length": 3,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "3",
+              "length": 2,
+              "stretch": true
+            },
+            {
+              "from": "v",
+              "to": "4",
+              "length": 4,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "s1",
+              "length": 2.5069390943299865,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "s2",
+              "length": 0.5069390943299865,
+              "stretch": false
+            }
+          ],
+          "gridSize": 8,
+          "leafConditions": [],
+          "mirrorPairs": []
+        },
+        "layout": {
+          "node": "pure",
+          "points": [
+            {
+              "leaf": "1",
+              "x": 0,
+              "y": 0
+            },
+            {
+              "leaf": "2",
+              "x": 8,
+              "y": 0
+            },
+            {
+              "leaf": "3",
+              "x": 8,
+              "y": 8
+            },
+            {
+              "leaf": "4",
+              "x": 0,
+              "y": 8
+            },
+            {
+              "leaf": "s1",
+              "x": 5,
+              "y": 6
+            },
+            {
+              "leaf": "s2",
+              "x": 2,
+              "y": 5
+            }
+          ],
+          "scale": 0.8,
+          "edgeLengths": [
+            3,
+            2,
+            3,
+            2,
+            4,
+            2.5069390943299865,
+            0.5069390943299865
+          ],
+          "status": "Optimal + stub s1 + stub s2"
+        },
+        "closure": null,
+        "creases": null,
+        "report": {
+          "valid": false,
+          "polygons": [
+            {
+              "leaves": [
+                "1",
+                "2",
+                "3",
+                "4"
+              ],
+              "valid": false
+            }
+          ],
+          "segments": [
+            {
+              "a": "1",
+              "b": "4"
+            },
+            {
+              "a": "3",
+              "b": "s1"
+            },
+            {
+              "a": "4",
+              "b": "s2"
+            }
+          ],
+          "missingBoundary": [
+            {
+              "a": "1",
+              "b": "2"
+            },
+            {
+              "a": "2",
+              "b": "3"
+            },
+            {
+              "a": "3",
+              "b": "4"
+            }
+          ],
+          "tightPairs": [
+            {
+              "a": "1",
+              "b": "4"
+            },
+            {
+              "a": "3",
+              "b": "s1"
+            },
+            {
+              "a": "4",
+              "b": "s2"
+            }
+          ],
+          "hullLeaves": [
+            "1",
+            "2",
+            "3",
+            "4"
+          ],
+          "hullArea": 1,
+          "coveredArea": 0.6,
+          "issues": [
+            "3 boundary pairs are not tight."
+          ]
+        },
+        "stubs": [
+          "s1",
+          "s2"
+        ]
+      },
+      "output": {
+        "problem": {
+          "edges": [
+            {
+              "from": "1",
+              "to": "u",
+              "length": 3,
+              "stretch": false
+            },
+            {
+              "from": "2",
+              "to": "u",
+              "length": 2,
+              "stretch": false
+            },
+            {
+              "from": "u",
+              "to": "v",
+              "length": 3,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "3",
+              "length": 2,
+              "stretch": true
+            },
+            {
+              "from": "v",
+              "to": "4",
+              "length": 4,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "s1",
+              "length": 2.5069390943299865,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "s2",
+              "length": 0.5069390943299865,
+              "stretch": false
+            }
+          ],
+          "gridSize": 8,
+          "leafConditions": [],
+          "mirrorPairs": []
+        },
+        "layout": {
+          "node": "pure",
+          "points": [
+            {
+              "leaf": "1",
+              "x": 0,
+              "y": 0
+            },
+            {
+              "leaf": "2",
+              "x": 5,
+              "y": 0
+            },
+            {
+              "leaf": "3",
+              "x": 8,
+              "y": 2
+            },
+            {
+              "leaf": "4",
+              "x": 8,
+              "y": 7
+            },
+            {
+              "leaf": "s1",
+              "x": 4,
+              "y": 8
+            },
+            {
+              "leaf": "s2",
+              "x": 0,
+              "y": 7
+            }
+          ],
+          "scale": 0.5150787536377127,
+          "edgeLengths": null,
+          "status": "Optimal"
+        },
+        "closure": null,
+        "creases": null,
+        "report": {
+          "valid": false,
+          "polygons": [
+            {
+              "leaves": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "s1",
+                "s2"
+              ],
+              "valid": false
+            }
+          ],
+          "segments": [
+            {
+              "a": "2",
+              "b": "3"
+            }
+          ],
+          "missingBoundary": [
+            {
+              "a": "1",
+              "b": "2"
+            },
+            {
+              "a": "3",
+              "b": "4"
+            },
+            {
+              "a": "4",
+              "b": "s1"
+            },
+            {
+              "a": "s1",
+              "b": "s2"
+            },
+            {
+              "a": "s2",
+              "b": "1"
+            }
+          ],
+          "tightPairs": [
+            {
+              "a": "2",
+              "b": "3"
+            }
+          ],
+          "hullLeaves": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "s1",
+            "s2"
+          ],
+          "hullArea": 1,
+          "coveredArea": 0.6,
+          "issues": [
+            "5 boundary pairs are not tight."
+          ]
+        },
+        "stubs": [
+          "s1",
+          "s2"
+        ]
+      },
+      "notes": [
+        "Optimal in 620 ms. m = 0.8 → 0.5151; 5 leaves moved."
+      ],
+      "ms": 620
+    },
+    {
+      "kind": "close",
+      "node": "close",
+      "title": "",
+      "params": {
+        "auto": true,
+        "strainMin": -0.184,
+        "strainMax": 0.184
+      },
+      "input": {
+        "problem": {
+          "edges": [
+            {
+              "from": "1",
+              "to": "u",
+              "length": 3,
+              "stretch": false
+            },
+            {
+              "from": "2",
+              "to": "u",
+              "length": 2,
+              "stretch": false
+            },
+            {
+              "from": "u",
+              "to": "v",
+              "length": 3,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "3",
+              "length": 2,
+              "stretch": true
+            },
+            {
+              "from": "v",
+              "to": "4",
+              "length": 4,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "s1",
+              "length": 2.5069390943299865,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "s2",
+              "length": 0.5069390943299865,
+              "stretch": false
+            }
+          ],
+          "gridSize": 8,
+          "leafConditions": [],
+          "mirrorPairs": []
+        },
+        "layout": {
+          "node": "pure",
+          "points": [
+            {
+              "leaf": "1",
+              "x": 0,
+              "y": 0
+            },
+            {
+              "leaf": "2",
+              "x": 5,
+              "y": 0
+            },
+            {
+              "leaf": "3",
+              "x": 8,
+              "y": 2
+            },
+            {
+              "leaf": "4",
+              "x": 8,
+              "y": 7
+            },
+            {
+              "leaf": "s1",
+              "x": 4,
+              "y": 8
+            },
+            {
+              "leaf": "s2",
+              "x": 0,
+              "y": 7
+            }
+          ],
+          "scale": 0.5150787536377127,
+          "edgeLengths": null,
+          "status": "Optimal"
+        },
+        "closure": null,
+        "creases": null,
+        "report": {
+          "valid": false,
+          "polygons": [
+            {
+              "leaves": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "s1",
+                "s2"
+              ],
+              "valid": false
+            }
+          ],
+          "segments": [
+            {
+              "a": "2",
+              "b": "3"
+            }
+          ],
+          "missingBoundary": [
+            {
+              "a": "1",
+              "b": "2"
+            },
+            {
+              "a": "3",
+              "b": "4"
+            },
+            {
+              "a": "4",
+              "b": "s1"
+            },
+            {
+              "a": "s1",
+              "b": "s2"
+            },
+            {
+              "a": "s2",
+              "b": "1"
+            }
+          ],
+          "tightPairs": [
+            {
+              "a": "2",
+              "b": "3"
+            }
+          ],
+          "hullLeaves": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "s1",
+            "s2"
+          ],
+          "hullArea": 1,
+          "coveredArea": 0.6,
+          "issues": [
+            "5 boundary pairs are not tight."
+          ]
+        },
+        "stubs": [
+          "s1",
+          "s2"
+        ]
+      },
+      "output": {
+        "problem": {
+          "edges": [
+            {
+              "from": "1",
+              "to": "u",
+              "length": 3,
+              "stretch": false
+            },
+            {
+              "from": "2",
+              "to": "u",
+              "length": 2,
+              "stretch": false
+            },
+            {
+              "from": "u",
+              "to": "v",
+              "length": 3,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "3",
+              "length": 2,
+              "stretch": true
+            },
+            {
+              "from": "v",
+              "to": "4",
+              "length": 4,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "s1",
+              "length": 2.5069390943299865,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "s2",
+              "length": 0.5069390943299865,
+              "stretch": false
+            }
+          ],
+          "gridSize": 8,
+          "leafConditions": [],
+          "mirrorPairs": []
+        },
+        "layout": {
+          "node": "pure",
+          "points": [
+            {
+              "leaf": "1",
+              "x": 0,
+              "y": 0
+            },
+            {
+              "leaf": "2",
+              "x": 5,
+              "y": 0
+            },
+            {
+              "leaf": "3",
+              "x": 8,
+              "y": 2
+            },
+            {
+              "leaf": "4",
+              "x": 8,
+              "y": 7
+            },
+            {
+              "leaf": "s1",
+              "x": 4,
+              "y": 8
+            },
+            {
+              "leaf": "s2",
+              "x": 0,
+              "y": 7
+            }
+          ],
+          "scale": 0.5150787536377127,
+          "edgeLengths": null,
+          "status": "Optimal"
+        },
+        "closure": {
+          "strainMin": -0.184,
+          "strainMax": 0.184,
+          "completion": {
+            "status": "Optimal",
+            "after": {
+              "valid": true,
+              "tightPairs": [
+                {
+                  "a": "2",
+                  "b": "3"
+                }
+              ],
+              "hullLeaves": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "s1",
+                "s2"
+              ],
+              "polygons": [
+                {
+                  "leaves": [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "s1",
+                    "s2"
+                  ],
+                  "valid": true
+                }
+              ],
+              "segments": [
+                {
+                  "a": "2",
+                  "b": "3"
+                }
+              ],
+              "missingBoundary": [],
+              "issues": [],
+              "hullArea": 1,
+              "coveredArea": 1
+            },
+            "edgeLengths": [
+              {
+                "edge": 0,
+                "label": "1–u",
+                "length": 3,
+                "strain": 0.18,
+                "newLength": 3.54
+              },
+              {
+                "edge": 1,
+                "label": "2–u",
+                "length": 2,
+                "strain": -0.09,
+                "newLength": 1.82
+              },
+              {
+                "edge": 2,
+                "label": "u–v",
+                "length": 3,
+                "strain": 0.18,
+                "newLength": 3.54
+              },
+              {
+                "edge": 3,
+                "label": "v–3",
+                "length": 2,
+                "strain": -0.09,
+                "newLength": 1.82
+              },
+              {
+                "edge": 4,
+                "label": "v–4",
+                "length": 4,
+                "strain": 0.18,
+                "newLength": 4.72
+              },
+              {
+                "edge": 5,
+                "label": "v–s1",
+                "length": 2.5069390943299865,
+                "strain": -0.09,
+                "newLength": 2.281314575840288
+              },
+              {
+                "edge": 6,
+                "label": "v–s2",
+                "length": 0.5069390943299865,
+                "strain": 0.18,
+                "newLength": 0.5981881313093841
+              }
+            ],
+            "targets": [
+              {
+                "a": "1",
+                "b": "2",
+                "onBoundary": true,
+                "tightBefore": false,
+                "tightAfter": true,
+                "distance": 1,
+                "requiredAfter": 1
+              }
+            ],
+            "madeTight": 1,
+            "boundaryMadeTight": 1,
+            "boundaryTargets": 1,
+            "totalStrain": 0.5,
+            "largestStrain": 0.18,
+            "variables": 20,
+            "binaries": 5,
+            "constraints": 30,
+            "milliseconds": 40,
+            "messages": [
+              "Closed (mock)."
+            ]
+          }
+        },
+        "creases": null,
+        "report": {
+          "valid": true,
+          "polygons": [
+            {
+              "leaves": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "s1",
+                "s2"
+              ],
+              "valid": true
+            }
+          ],
+          "segments": [
+            {
+              "a": "2",
+              "b": "3"
+            }
+          ],
+          "missingBoundary": [],
+          "tightPairs": [
+            {
+              "a": "2",
+              "b": "3"
+            }
+          ],
+          "hullLeaves": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "s1",
+            "s2"
+          ],
+          "hullArea": 1,
+          "coveredArea": 1,
+          "issues": []
+        },
+        "stubs": [
+          "s1",
+          "s2"
+        ]
+      },
+      "notes": [
+        "The smallest strain that closes every polygon is ±0.184. Making the boundary pairs tight needs ±0.183 (mock).",
+        "1 of 1 target pairs made tight; 7 edge lengths changed, largest strain 0.18."
+      ],
+      "ms": 37.5
+    },
+    {
+      "kind": "creases",
+      "node": "creases",
+      "title": "",
+      "params": {
+        "pleatHeight": null
+      },
+      "input": {
+        "problem": {
+          "edges": [
+            {
+              "from": "1",
+              "to": "u",
+              "length": 3,
+              "stretch": false
+            },
+            {
+              "from": "2",
+              "to": "u",
+              "length": 2,
+              "stretch": false
+            },
+            {
+              "from": "u",
+              "to": "v",
+              "length": 3,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "3",
+              "length": 2,
+              "stretch": true
+            },
+            {
+              "from": "v",
+              "to": "4",
+              "length": 4,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "s1",
+              "length": 2.5069390943299865,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "s2",
+              "length": 0.5069390943299865,
+              "stretch": false
+            }
+          ],
+          "gridSize": 8,
+          "leafConditions": [],
+          "mirrorPairs": []
+        },
+        "layout": {
+          "node": "pure",
+          "points": [
+            {
+              "leaf": "1",
+              "x": 0,
+              "y": 0
+            },
+            {
+              "leaf": "2",
+              "x": 5,
+              "y": 0
+            },
+            {
+              "leaf": "3",
+              "x": 8,
+              "y": 2
+            },
+            {
+              "leaf": "4",
+              "x": 8,
+              "y": 7
+            },
+            {
+              "leaf": "s1",
+              "x": 4,
+              "y": 8
+            },
+            {
+              "leaf": "s2",
+              "x": 0,
+              "y": 7
+            }
+          ],
+          "scale": 0.5150787536377127,
+          "edgeLengths": null,
+          "status": "Optimal"
+        },
+        "closure": {
+          "strainMin": -0.184,
+          "strainMax": 0.184,
+          "completion": {
+            "status": "Optimal",
+            "after": {
+              "valid": true,
+              "tightPairs": [
+                {
+                  "a": "2",
+                  "b": "3"
+                }
+              ],
+              "hullLeaves": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "s1",
+                "s2"
+              ],
+              "polygons": [
+                {
+                  "leaves": [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "s1",
+                    "s2"
+                  ],
+                  "valid": true
+                }
+              ],
+              "segments": [
+                {
+                  "a": "2",
+                  "b": "3"
+                }
+              ],
+              "missingBoundary": [],
+              "issues": [],
+              "hullArea": 1,
+              "coveredArea": 1
+            },
+            "edgeLengths": [
+              {
+                "edge": 0,
+                "label": "1–u",
+                "length": 3,
+                "strain": 0.18,
+                "newLength": 3.54
+              },
+              {
+                "edge": 1,
+                "label": "2–u",
+                "length": 2,
+                "strain": -0.09,
+                "newLength": 1.82
+              },
+              {
+                "edge": 2,
+                "label": "u–v",
+                "length": 3,
+                "strain": 0.18,
+                "newLength": 3.54
+              },
+              {
+                "edge": 3,
+                "label": "v–3",
+                "length": 2,
+                "strain": -0.09,
+                "newLength": 1.82
+              },
+              {
+                "edge": 4,
+                "label": "v–4",
+                "length": 4,
+                "strain": 0.18,
+                "newLength": 4.72
+              },
+              {
+                "edge": 5,
+                "label": "v–s1",
+                "length": 2.5069390943299865,
+                "strain": -0.09,
+                "newLength": 2.281314575840288
+              },
+              {
+                "edge": 6,
+                "label": "v–s2",
+                "length": 0.5069390943299865,
+                "strain": 0.18,
+                "newLength": 0.5981881313093841
+              }
+            ],
+            "targets": [
+              {
+                "a": "1",
+                "b": "2",
+                "onBoundary": true,
+                "tightBefore": false,
+                "tightAfter": true,
+                "distance": 1,
+                "requiredAfter": 1
+              }
+            ],
+            "madeTight": 1,
+            "boundaryMadeTight": 1,
+            "boundaryTargets": 1,
+            "totalStrain": 0.5,
+            "largestStrain": 0.18,
+            "variables": 20,
+            "binaries": 5,
+            "constraints": 30,
+            "milliseconds": 40,
+            "messages": [
+              "Closed (mock)."
+            ]
+          }
+        },
+        "creases": null,
+        "report": {
+          "valid": true,
+          "polygons": [
+            {
+              "leaves": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "s1",
+                "s2"
+              ],
+              "valid": true
+            }
+          ],
+          "segments": [
+            {
+              "a": "2",
+              "b": "3"
+            }
+          ],
+          "missingBoundary": [],
+          "tightPairs": [
+            {
+              "a": "2",
+              "b": "3"
+            }
+          ],
+          "hullLeaves": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "s1",
+            "s2"
+          ],
+          "hullArea": 1,
+          "coveredArea": 1,
+          "issues": []
+        },
+        "stubs": [
+          "s1",
+          "s2"
+        ]
+      },
+      "output": {
+        "problem": {
+          "edges": [
+            {
+              "from": "1",
+              "to": "u",
+              "length": 3,
+              "stretch": false
+            },
+            {
+              "from": "2",
+              "to": "u",
+              "length": 2,
+              "stretch": false
+            },
+            {
+              "from": "u",
+              "to": "v",
+              "length": 3,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "3",
+              "length": 2,
+              "stretch": true
+            },
+            {
+              "from": "v",
+              "to": "4",
+              "length": 4,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "s1",
+              "length": 2.5069390943299865,
+              "stretch": false
+            },
+            {
+              "from": "v",
+              "to": "s2",
+              "length": 0.5069390943299865,
+              "stretch": false
+            }
+          ],
+          "gridSize": 8,
+          "leafConditions": [],
+          "mirrorPairs": []
+        },
+        "layout": {
+          "node": "pure",
+          "points": [
+            {
+              "leaf": "1",
+              "x": 0,
+              "y": 0
+            },
+            {
+              "leaf": "2",
+              "x": 5,
+              "y": 0
+            },
+            {
+              "leaf": "3",
+              "x": 8,
+              "y": 2
+            },
+            {
+              "leaf": "4",
+              "x": 8,
+              "y": 7
+            },
+            {
+              "leaf": "s1",
+              "x": 4,
+              "y": 8
+            },
+            {
+              "leaf": "s2",
+              "x": 0,
+              "y": 7
+            }
+          ],
+          "scale": 0.5150787536377127,
+          "edgeLengths": null,
+          "status": "Optimal"
+        },
+        "closure": {
+          "strainMin": -0.184,
+          "strainMax": 0.184,
+          "completion": {
+            "status": "Optimal",
+            "after": {
+              "valid": true,
+              "tightPairs": [
+                {
+                  "a": "2",
+                  "b": "3"
+                }
+              ],
+              "hullLeaves": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "s1",
+                "s2"
+              ],
+              "polygons": [
+                {
+                  "leaves": [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "s1",
+                    "s2"
+                  ],
+                  "valid": true
+                }
+              ],
+              "segments": [
+                {
+                  "a": "2",
+                  "b": "3"
+                }
+              ],
+              "missingBoundary": [],
+              "issues": [],
+              "hullArea": 1,
+              "coveredArea": 1
+            },
+            "edgeLengths": [
+              {
+                "edge": 0,
+                "label": "1–u",
+                "length": 3,
+                "strain": 0.18,
+                "newLength": 3.54
+              },
+              {
+                "edge": 1,
+                "label": "2–u",
+                "length": 2,
+                "strain": -0.09,
+                "newLength": 1.82
+              },
+              {
+                "edge": 2,
+                "label": "u–v",
+                "length": 3,
+                "strain": 0.18,
+                "newLength": 3.54
+              },
+              {
+                "edge": 3,
+                "label": "v–3",
+                "length": 2,
+                "strain": -0.09,
+                "newLength": 1.82
+              },
+              {
+                "edge": 4,
+                "label": "v–4",
+                "length": 4,
+                "strain": 0.18,
+                "newLength": 4.72
+              },
+              {
+                "edge": 5,
+                "label": "v–s1",
+                "length": 2.5069390943299865,
+                "strain": -0.09,
+                "newLength": 2.281314575840288
+              },
+              {
+                "edge": 6,
+                "label": "v–s2",
+                "length": 0.5069390943299865,
+                "strain": 0.18,
+                "newLength": 0.5981881313093841
+              }
+            ],
+            "targets": [
+              {
+                "a": "1",
+                "b": "2",
+                "onBoundary": true,
+                "tightBefore": false,
+                "tightAfter": true,
+                "distance": 1,
+                "requiredAfter": 1
+              }
+            ],
+            "madeTight": 1,
+            "boundaryMadeTight": 1,
+            "boundaryTargets": 1,
+            "totalStrain": 0.5,
+            "largestStrain": 0.18,
+            "variables": 20,
+            "binaries": 5,
+            "constraints": 30,
+            "milliseconds": 40,
+            "messages": [
+              "Closed (mock)."
+            ]
+          }
+        },
+        "creases": {
+          "result": {
+            "built": true,
+            "creases": [
+              {
+                "a": {
+                  "x": 0,
+                  "y": 0
+                },
+                "b": {
+                  "x": 4,
+                  "y": 4
+                },
+                "kind": "Ridge"
+              },
+              {
+                "a": {
+                  "x": 5,
+                  "y": 0
+                },
+                "b": {
+                  "x": 4,
+                  "y": 4
+                },
+                "kind": "Hinge"
+              },
+              {
+                "a": {
+                  "x": 8,
+                  "y": 2
+                },
+                "b": {
+                  "x": 4,
+                  "y": 4
+                },
+                "kind": "Axial"
+              },
+              {
+                "a": {
+                  "x": 8,
+                  "y": 7
+                },
+                "b": {
+                  "x": 4,
+                  "y": 4
+                },
+                "kind": "Ridge"
+              },
+              {
+                "a": {
+                  "x": 4,
+                  "y": 8
+                },
+                "b": {
+                  "x": 4,
+                  "y": 4
+                },
+                "kind": "Hinge"
+              },
+              {
+                "a": {
+                  "x": 0,
+                  "y": 7
+                },
+                "b": {
+                  "x": 4,
+                  "y": 4
+                },
+                "kind": "Axial"
+              }
+            ],
+            "facets": [
+              {
+                "edge": 0,
+                "paper": [
+                  {
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "x": 1,
+                    "y": 0
+                  },
+                  {
+                    "x": 0,
+                    "y": 1
+                  }
+                ],
+                "along": [
+                  0,
+                  3,
+                  1.5
+                ],
+                "elevation": [
+                  0,
+                  0,
+                  1
+                ]
+              },
+              {
+                "edge": 1,
+                "paper": [
+                  {
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "x": 1,
+                    "y": 0
+                  },
+                  {
+                    "x": 0,
+                    "y": 1
+                  }
+                ],
+                "along": [
+                  0,
+                  2,
+                  1
+                ],
+                "elevation": [
+                  0,
+                  0,
+                  1
+                ]
+              },
+              {
+                "edge": 2,
+                "paper": [
+                  {
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "x": 1,
+                    "y": 0
+                  },
+                  {
+                    "x": 0,
+                    "y": 1
+                  }
+                ],
+                "along": [
+                  0,
+                  3,
+                  1.5
+                ],
+                "elevation": [
+                  0,
+                  0,
+                  1
+                ]
+              },
+              {
+                "edge": 3,
+                "paper": [
+                  {
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "x": 1,
+                    "y": 0
+                  },
+                  {
+                    "x": 0,
+                    "y": 1
+                  }
+                ],
+                "along": [
+                  0,
+                  2,
+                  1
+                ],
+                "elevation": [
+                  0,
+                  0,
+                  1
+                ]
+              },
+              {
+                "edge": 4,
+                "paper": [
+                  {
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "x": 1,
+                    "y": 0
+                  },
+                  {
+                    "x": 0,
+                    "y": 1
+                  }
+                ],
+                "along": [
+                  0,
+                  4,
+                  2
+                ],
+                "elevation": [
+                  0,
+                  0,
+                  1
+                ]
+              },
+              {
+                "edge": 5,
+                "paper": [
+                  {
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "x": 1,
+                    "y": 0
+                  },
+                  {
+                    "x": 0,
+                    "y": 1
+                  }
+                ],
+                "along": [
+                  0,
+                  2.5069390943299865,
+                  1.2534695471649933
+                ],
+                "elevation": [
+                  0,
+                  0,
+                  1
+                ]
+              },
+              {
+                "edge": 6,
+                "paper": [
+                  {
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "x": 1,
+                    "y": 0
+                  },
+                  {
+                    "x": 0,
+                    "y": 1
+                  }
+                ],
+                "along": [
+                  0,
+                  0.5069390943299865,
+                  0.25346954716499326
+                ],
+                "elevation": [
+                  0,
+                  0,
+                  1
+                ]
+              }
+            ],
+            "problems": [],
+            "messages": [
+              "Built (mock)."
+            ],
+            "maxDepth": 1,
+            "maxElevation": 1,
+            "foldedHeight": 1,
+            "milliseconds": 30,
+            "edgePaperLengths": [
+              3,
+              2,
+              3,
+              2,
+              4,
+              2.5069390943299865,
+              0.5069390943299865
+            ],
+            "pleatHeight": null
+          },
+          "lengths": [
+            3.54,
+            1.82,
+            3.54,
+            1.82,
+            4.72,
+            2.281314575840288,
+            0.5981881313093841
+          ],
+          "pleatHeight": null
+        },
+        "report": {
+          "valid": true,
+          "polygons": [
+            {
+              "leaves": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "s1",
+                "s2"
+              ],
+              "valid": true
+            }
+          ],
+          "segments": [
+            {
+              "a": "2",
+              "b": "3"
+            }
+          ],
+          "missingBoundary": [],
+          "tightPairs": [
+            {
+              "a": "2",
+              "b": "3"
+            }
+          ],
+          "hullLeaves": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "s1",
+            "s2"
+          ],
+          "hullArea": 1,
+          "coveredArea": 1,
+          "issues": []
+        },
+        "stubs": [
+          "s1",
+          "s2"
+        ]
+      },
+      "notes": [
+        "6 creases. Built (mock)."
+      ],
+      "ms": 14.299999999813735
+    }
+  ]
+}

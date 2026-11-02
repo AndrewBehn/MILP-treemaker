@@ -1,6 +1,6 @@
 namespace TreeMaker.Core.Tests;
 
-/// <summary>Per-edge room and cost (D:7 of the Polygon Closing spec) in the closing MILP and the strain LPs.</summary>
+/// <summary>Per-edge room and cost (strain D:3, TreeMaker foundations: strain) in the closing MILP and the strain LPs.</summary>
 public class EdgeStrainTests
 {
     private static (ProblemSpec Spec, LeafPlacement[] Layout, double Scale) RunningExampleAtOptimum()
@@ -22,6 +22,10 @@ public class EdgeStrainTests
         var plain = StrainNeeded.Find(spec, layout, scale);
         var ones = StrainNeeded.Find(spec, layout, scale, edgeStrain: new EdgeStrain { Room = Fill(n, 1), Cost = Fill(n, 1) });
         Assert.Equal(plain.BoundaryStrain!.Value, ones.BoundaryStrain!.Value, 6);
+        // The boundary LP reports a strain per edge, at most the bound in size: what the page suggests room from.
+        Assert.Equal(n, plain.BoundaryStrains.Count);
+        Assert.All(plain.BoundaryStrains, v => Assert.True(Math.Abs(v) <= plain.BoundaryStrain.Value + 1e-6));
+        Assert.Contains(plain.BoundaryStrains, v => Math.Abs(v) > 1e-6);
     }
 
     [Fact]

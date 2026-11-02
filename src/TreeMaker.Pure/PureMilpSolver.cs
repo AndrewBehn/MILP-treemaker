@@ -9,7 +9,7 @@ public static class PureMilpSolver
 {
     /// <summary>
     /// Solves <paramref name="spec"/>. Edge optimization without a fixed scale first solves the scale stage and
-    /// uses its optimum m* as m₀, seeding the second solve with the stage-one layout (Section 11.2).
+    /// uses its optimum m* as m₀, seeding the second solve with the stage-one layout (Section 8.2).
     /// Cancelling <paramref name="cancellationToken"/> interrupts SCIP; the best layout found so far is returned.
     /// </summary>
     public static SolveResult Solve(ProblemSpec spec, CancellationToken cancellationToken = default)
@@ -73,7 +73,7 @@ public static class PureMilpSolver
             messages.Add(DescribeSymmetry(spec.Tree, symmetry));
             if (hint is not null)
             {
-                // The hint must satisfy C:5 and C:6, so map it to its equivalent layout first.
+                // The hint must satisfy conditions C:6 and C:7, so map it to its equivalent layout first.
                 bool imported = ReferenceEquals(hint, spec.StartLayout);
                 var canonical = symmetry.Canonicalize(hint.ToDictionary(p => p.Vertex, p => (p.X, p.Y)));
                 hint = hint.Select(p => p with { X = canonical[p.Vertex].X, Y = canonical[p.Vertex].Y }).ToArray();
@@ -242,18 +242,18 @@ public static class PureMilpSolver
 
     private static double CleanZero(double v) => Math.Abs(v) < 1e-9 ? 0 : v;
 
-    /// <summary>One line on the symmetry breaking in the model (Symmetry-Breaking MILP doc, C:5 and C:6).</summary>
+    /// <summary>One line on the symmetry breaking in the model (Symmetry-Breaking MILP doc; conditions C:6 and C:7).</summary>
     private static string DescribeSymmetry(Tree tree, SymmetryBreaking symmetry)
     {
         var parts = new List<string>
         {
             symmetry.Anchor is int a
-                ? $"Symmetry breaking: anchor leaf {tree.Name(a)} in the fundamental domain 0 ≤ y ≤ x ≤ N/2 (C:5)."
+                ? $"Symmetry breaking: anchor leaf {tree.Name(a)} in the fundamental domain 0 ≤ y ≤ x ≤ N/2 (conditions C:6)."
                 : "Symmetry breaking: no anchor leaf.",
         };
         if (symmetry.SiblingGroups.Count > 0)
         {
-            parts.Add("Interchangeable siblings in order (C:6): " +
+            parts.Add("Interchangeable siblings in order (conditions C:7): " +
                 string.Join("; ", symmetry.SiblingGroups.Select(g => string.Join(" ≤ ", g.Select(tree.Name)))) + ".");
         }
         if (symmetry.Note is { } note) parts.Add(note);

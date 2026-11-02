@@ -24,14 +24,14 @@ const treeUi = {
 };
 
 /** In the Add stubs node the tree is the workbench layout's: it can be looked at and rearranged, not edited. */
-/** Only the session's tree step edits the tree; every later step shows it locked (delete the steps below step 1 to change it). */
+/** Only the session's tree step edits the tree; every later step shows it locked (“Go back to this result” on step 1 to change it). */
 const treeLocked = () => document.body.dataset.view === "work" && document.body.dataset.node !== "tree";
 /** True while the workflow document's "Add a stub" move is open: clicks on joints hang the stub (stubs.js). */
 const stubbing = () => document.body.dataset.stubbing === "on";
 
 // ───────────────────────── Leaf conditions on the drawing ─────────────────────────
 // The same state as the sidebar's Leaf conditions table and Mirror pairs (state.conditions, state.mirrors), set by
-// clicking a leaf. Pure MILP spec, Sections 7.1–7.5.
+// clicking a leaf. conditions P:1, C:1–C:5.
 
 /** The places a leaf can be pinned on the sheet, as a 3 × 3 picture of it (top row = top of the sheet). */
 const SHEET_PINS = [
